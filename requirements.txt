@@ -1,0 +1,25 @@
+Django==6.0.5
+django-cors-headers==4.9.0
+djangorestframework==3.17.1
+djangorestframework_simplejwt==5.5.1
+pillow==12.2.0
+PyJWT==2.12.1
+reportlab==4.5.1
+openpyxl
+requests==2.34.2
+python-decouple==3.8
+gunicorn==23.0.0
+
+# Banco de dados
+psycopg2-binary==2.9.12
+
+# Cache
+redis==7.4.0
+django-redis==6.0.0
+
+# Estáticos em produção
+whitenoise==6.12.0
+
+# Armazenamento de mídia — Cloudflare R2 / S3
+django-storages[s3]==1.14.4
+boto3==1.38.0
