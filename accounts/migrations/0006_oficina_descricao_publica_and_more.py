@@ -55,10 +55,27 @@ class Migration(migrations.Migration):
         ),
         # Populate slugs for existing rows
         migrations.RunPython(populate_slugs, migrations.RunPython.noop),
-        # Now add the unique constraint
-        migrations.AlterField(
-            model_name='oficina',
-            name='slug_publico',
-            field=models.SlugField(blank=True, max_length=100, unique=True),
+        # Now add the unique constraint (using RunSQL to avoid duplicate index errors)
+        migrations.RunSQL(
+            sql="""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_indexes
+                        WHERE tablename = 'accounts_oficina'
+                        AND indexname = 'accounts_oficina_slug_publico_key'
+                    ) THEN
+                        ALTER TABLE accounts_oficina ADD CONSTRAINT accounts_oficina_slug_publico_key UNIQUE (slug_publico);
+                    END IF;
+                END$$;
+            """,
+            reverse_sql="ALTER TABLE accounts_oficina DROP CONSTRAINT IF EXISTS accounts_oficina_slug_publico_key;",
+            state_operations=[
+                migrations.AlterField(
+                    model_name='oficina',
+                    name='slug_publico',
+                    field=models.SlugField(blank=True, max_length=100, unique=True),
+                ),
+            ],
         ),
     ]
