@@ -93,8 +93,8 @@ export default function AdminGateway() {
             gateway: data.gateway,
             ambiente: data.ambiente || 'sandbox',
             chave_publica: data.chave_publica || '',
-            chave_secreta: '',
-            webhook_secret: '',
+            chave_secreta: data.chave_secreta || '',
+            webhook_secret: data.webhook_secret || '',
             chave_secreta_salva: data.chave_secreta_salva,
             webhook_secret_salvo: data.webhook_secret_salvo,
           })
