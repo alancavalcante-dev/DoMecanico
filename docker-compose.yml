@@ -38,7 +38,7 @@ services:
              gunicorn core.wsgi --workers 3 --bind 0.0.0.0:8000 --timeout 120"
 
   evolution:
-    image: atendai/evolution-api:latest
+    image: atendai/evolution-api:v2.2.3
     restart: always
     ports:
       - "8080:8080"
@@ -47,7 +47,15 @@ services:
       AUTHENTICATION_TYPE: apikey
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
       AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES: "true"
-      DATABASE_ENABLED: "false"
+      DATABASE_ENABLED: "true"
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://domecanico:${DB_PASSWORD}@db:5432/evolution
+      DATABASE_CONNECTION_CLIENT_NAME: evolution
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
       REDIS_ENABLED: "true"
       REDIS_URI: redis://redis:6379/1
       REDIS_PREFIX_KEY: evolution
@@ -57,9 +65,11 @@ services:
       DEL_INSTANCE: "false"
     volumes:
       - evolution_instances:/evolution/instances
-      - evolution_store:/evolution/store
     depends_on:
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
 volumes:
   postgres_data:
