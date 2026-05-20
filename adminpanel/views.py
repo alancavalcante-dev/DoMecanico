@@ -121,7 +121,7 @@ def admin_dashboard(request):
     # Distribuição por plano
     por_plano = []
     for plano in Plano.objects.annotate(
-        assinantes=Count('assinaturas', filter=Q(assinaturas__status='ativa'))
+        assinantes=Count('assinatura', filter=Q(assinatura__status='ativa'))
     ):
         por_plano.append({'plano': plano.nome, 'quantidade': plano.assinantes, 'preco': float(plano.preco)})
 
@@ -371,7 +371,7 @@ def admin_oficina_acao(request, pk):
 def admin_planos(request):
     planos = []
     for p in Plano.objects.annotate(
-        assinantes=Count('assinaturas', filter=Q(assinaturas__status='ativa'))
+        assinantes=Count('assinatura', filter=Q(assinatura__status='ativa'))
     ):
         assinantes = p.assinantes
         mrr = float(p.preco) * assinantes
