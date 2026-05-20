@@ -690,32 +690,49 @@ def whatsapp_conectar(request):
     except Exception:
         pass
 
-    # Tenta criar a instância (ignora erro se já existir)
+    # Tenta criar a instância — captura QR da resposta de criação (v2)
+    qr_from_create = None
     try:
-        req.post(f"{base}/instance/create", json={
+        cr = req.post(f"{base}/instance/create", json={
             'instanceName': config.instance_name,
             'qrcode': True,
             'integration': 'WHATSAPP-BAILEYS',
         }, headers=headers, timeout=10)
+        if cr.status_code in (200, 201):
+            cd = cr.json()
+            qr_from_create = (
+                cd.get('qrcode', {}).get('base64')
+                or cd.get('base64')
+            )
+            if qr_from_create and not qr_from_create.startswith('data:'):
+                qr_from_create = f'data:image/png;base64,{qr_from_create}'
     except Exception:
         pass
 
-    # Busca o QR code
+    if qr_from_create:
+        return Response({'qr': qr_from_create})
+
+    # Busca o QR code via connect
     try:
         r = req.get(f"{base}/instance/connect/{config.instance_name}", headers=headers, timeout=10)
         if r.status_code == 200:
             data = r.json()
-            # Evolution API v2 retorna base64 diretamente, v1 aninha em 'qrcode'
-            qr_base64 = (
-                data.get('base64')
-                or data.get('qrcode', {}).get('base64')
-                or data.get('qr')
-            )
+            # v2: campo 'base64' (imagem) ou 'code' (string QR bruta)
+            qr_base64 = data.get('base64') or data.get('qrcode', {}).get('base64') or data.get('qr')
             if qr_base64:
                 if not qr_base64.startswith('data:'):
                     qr_base64 = f'data:image/png;base64,{qr_base64}'
                 return Response({'qr': qr_base64})
-            # Instância já pode estar conectada
+            # v2: 'code' é a string bruta do QR — converte para imagem via qrcode lib
+            qr_code_str = data.get('code')
+            if qr_code_str:
+                import qrcode, io, base64 as b64
+                img = qrcode.make(qr_code_str)
+                buf = io.BytesIO()
+                img.save(buf, format='PNG')
+                qr_b64 = 'data:image/png;base64,' + b64.b64encode(buf.getvalue()).decode()
+                return Response({'qr': qr_b64})
+            # Instância já conectada
             state = data.get('instance', {}).get('state', '')
             if state == 'open':
                 return Response({'ja_conectado': True})

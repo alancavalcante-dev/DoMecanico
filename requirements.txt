@@ -23,3 +23,6 @@ whitenoise==6.12.0
 # Armazenamento de mídia — Cloudflare R2 / S3
 django-storages[s3]==1.14.4
 boto3==1.38.0
+
+# QR code gerado localmente (fallback para Evolution API v2)
+qrcode[pil]==8.0
