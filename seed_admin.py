@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from adminpanel.models import ConfiguracaoEmail, TemplateEmail, LogAtividade
 
 # ── Superusuário ──────────────────────────────────────────────────────────────
-EMAIL = 'admin@domecanico.com.br'
+EMAIL = 'admin@domecanico.net'
 SENHA = 'DoMecanico@2025'
 
 if not User.objects.filter(email=EMAIL).exists():
@@ -40,7 +40,7 @@ templates = [
 <p>Olá, <strong>{{nome}}</strong>!</p>
 <p>Sua oficina <strong>{{oficina}}</strong> foi cadastrada com sucesso.</p>
 <p>Você tem <strong>{{dias}} dias de trial gratuito</strong> para explorar todas as funcionalidades.</p>
-<a href="https://domecanico.com.br" style="background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px">
+<a href="https://domecanico.net" style="background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px">
   Acessar o sistema
 </a>
 <p style="color:#888;margin-top:32px;font-size:12px">DoMecânico — Sistema de Gestão para Oficinas</p>
@@ -55,7 +55,7 @@ templates = [
 <p>Olá, <strong>{{nome}}</strong>!</p>
 <p>Seu período de teste expira em <strong>{{dias}} dias</strong>.</p>
 <p>Para continuar usando o DoMecânico sem interrupções, assine um plano agora.</p>
-<a href="https://domecanico.com.br/assinatura" style="background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px">
+<a href="https://domecanico.net/assinatura" style="background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px">
   Ver planos
 </a>
 <p style="color:#888;margin-top:32px;font-size:12px">DoMecânico — Sistema de Gestão para Oficinas</p>
@@ -70,7 +70,7 @@ templates = [
 <p>Olá, <strong>{{nome}}</strong>!</p>
 <p>Sua assinatura do plano <strong>{{plano}}</strong> foi ativada com sucesso.</p>
 <p>Aproveite todos os recursos do DoMecânico!</p>
-<a href="https://domecanico.com.br" style="background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px">
+<a href="https://domecanico.net" style="background:#7c3aed;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px">
   Acessar o sistema
 </a>
 <p style="color:#888;margin-top:32px;font-size:12px">DoMecânico — Sistema de Gestão para Oficinas</p>
@@ -97,7 +97,7 @@ templates = [
 <p>Olá, <strong>{{nome}}</strong>!</p>
 <p>Não foi possível processar o pagamento da sua assinatura.</p>
 <p>Por favor, atualize os dados de pagamento para continuar usando o DoMecânico.</p>
-<a href="https://domecanico.com.br/assinatura" style="background:#ef4444;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px">
+<a href="https://domecanico.net/assinatura" style="background:#ef4444;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:16px">
   Atualizar pagamento
 </a>
 <p style="color:#888;margin-top:32px;font-size:12px">DoMecânico — Sistema de Gestão para Oficinas</p>

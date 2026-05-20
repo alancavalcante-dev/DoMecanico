@@ -128,7 +128,7 @@ export default function AdminEmail() {
             { label: 'Porta', field: 'port', placeholder: '587', type: 'number' },
             { label: 'Usuário (e-mail)', field: 'username', placeholder: 'usuario@gmail.com' },
             { label: 'Senha / App Password', field: 'password', placeholder: '••••••••', type: 'password' },
-            { label: 'E-mail remetente', field: 'from_email', placeholder: 'noreply@domecanico.com.br' },
+            { label: 'E-mail remetente', field: 'from_email', placeholder: 'noreply@domecanico.net' },
             { label: 'Nome remetente', field: 'from_name', placeholder: 'DoMecânico' },
           ].map(({ label, field, placeholder, type = 'text' }) => (
             <div key={field}>

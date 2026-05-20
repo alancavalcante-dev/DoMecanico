@@ -66,8 +66,8 @@ class StripeAdapter(GatewayBase):
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=self.config.config_extra.get('success_url', 'https://app.domecanico.com.br'),
-                cancel_url=self.config.config_extra.get('cancel_url', 'https://app.domecanico.com.br'),
+                success_url=self.config.config_extra.get('success_url', 'https://app.domecanico.net'),
+                cancel_url=self.config.config_extra.get('cancel_url', 'https://app.domecanico.net'),
                 metadata={'fatura_numero': fatura.numero},
             )
             return {'gateway_id': session.id, 'link_pagamento': session.url}
@@ -191,7 +191,7 @@ class PagSeguroAdapter(GatewayBase):
         try:
             resp = requests.post(f'{self.base_url}/orders', headers=self.headers_req, json={
                 'reference_id': fatura.numero,
-                'customer': {'name': oficina.nome, 'email': oficina.email or 'contato@domecanico.com.br'},
+                'customer': {'name': oficina.nome, 'email': oficina.email or 'contato@domecanico.net'},
                 'items': [{'reference_id': fatura.numero, 'name': f'Fatura {fatura.numero}', 'quantity': 1, 'unit_amount': int(fatura.valor * 100)}],
                 'charges': [{'reference_id': fatura.numero, 'description': f'Fatura {fatura.numero}', 'amount': {'value': int(fatura.valor * 100), 'currency': 'BRL'}, 'payment_method': {'type': 'PIX', 'installments': 1}}],
             }, timeout=10)
@@ -247,8 +247,8 @@ class AbacatePayAdapter(GatewayBase):
                     'price': int(fatura.valor * 100),  # centavos
                 }],
                 'externalId': fatura.numero,
-                'returnUrl': self.config.config_extra.get('return_url', 'https://app.domecanico.com.br'),
-                'completionUrl': self.config.config_extra.get('completion_url', 'https://app.domecanico.com.br'),
+                'returnUrl': self.config.config_extra.get('return_url', 'https://app.domecanico.net'),
+                'completionUrl': self.config.config_extra.get('completion_url', 'https://app.domecanico.net'),
                 'metadata': {
                     'fatura_numero': fatura.numero,
                     'oficina': oficina.nome,

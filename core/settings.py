@@ -31,7 +31,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = ''
 EMAIL_HOST_PASSWORD = ''
-DEFAULT_FROM_EMAIL = 'DoMecânico <noreply@domecanico.com.br>'
+DEFAULT_FROM_EMAIL = 'DoMecânico <noreply@domecanico.net>'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

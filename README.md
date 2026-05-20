@@ -155,15 +155,15 @@ Copie `.env.example` para `.env` e preencha:
 |---|---|---|
 | `SECRET_KEY` | Chave secreta Django (gere uma nova em produção) | `django-insecure-...` |
 | `DEBUG` | Modo debug (`True` em dev, `False` em produção) | `False` |
-| `ALLOWED_HOSTS` | Hosts permitidos, separados por vírgula | `domecanico.com.br` |
+| `ALLOWED_HOSTS` | Hosts permitidos, separados por vírgula | `domecanico.net` |
 | `DATABASE_URL` | URL de conexão PostgreSQL | `postgres://user:pass@host/db` |
 | `REDIS_URL` | URL de conexão Redis | `redis://localhost:6379/0` |
-| `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo CORS | `https://domecanico.com.br` |
+| `CORS_ALLOWED_ORIGINS` | Origens permitidas pelo CORS | `https://domecanico.net` |
 | `R2_ACCESS_KEY_ID` | Cloudflare R2 — Access Key ID | — |
 | `R2_SECRET_ACCESS_KEY` | Cloudflare R2 — Secret Key | — |
 | `R2_BUCKET_NAME` | Nome do bucket R2 | `domecanico-media` |
 | `R2_ENDPOINT_URL` | Endpoint S3 do R2 | `https://ACCOUNT_ID.r2.cloudflarestorage.com` |
-| `R2_PUBLIC_URL` | Domínio público do bucket (opcional) | `media.domecanico.com.br` |
+| `R2_PUBLIC_URL` | Domínio público do bucket (opcional) | `media.domecanico.net` |
 | `EVOLUTION_API_URL` | URL base da Evolution API (WhatsApp) | `http://localhost:8080` |
 | `EVOLUTION_API_KEY` | Chave da Evolution API | — |
 

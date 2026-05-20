@@ -60,7 +60,7 @@ const GATEWAYS: {
   },
 ]
 
-const WEBHOOK_URL = 'https://api.domecanico.com.br/api/admin-panel/webhook/gateway/'
+const WEBHOOK_URL = `${window.location.origin}/api/admin-panel/webhook/gateway/`
 
 const token = () => localStorage.getItem('admin_access_token') || ''
 

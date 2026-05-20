@@ -50,12 +50,12 @@ Preencha todos os valores de produção:
 ```env
 SECRET_KEY=gere-uma-chave-segura-aqui
 DEBUG=False
-ALLOWED_HOSTS=domecanico.com.br,www.domecanico.com.br
+ALLOWED_HOSTS=domecanico.net,www.domecanico.net
 
 DATABASE_URL=postgres://domecanico:SENHA_FORTE@db:5432/domecanico
 REDIS_URL=redis://redis:6379/0
 
-CORS_ALLOWED_ORIGINS=https://domecanico.com.br,https://www.domecanico.com.br
+CORS_ALLOWED_ORIGINS=https://domecanico.net,https://www.domecanico.net
 
 R2_ACCESS_KEY_ID=c20f9d50e5972565890cede97733a4ff
 R2_SECRET_ACCESS_KEY=d3e6b48fb8a1328adaa93d6de67d3aa416bde3fb4ce23a6c121127d836b8ee74
@@ -179,7 +179,7 @@ Crie `/etc/nginx/sites-available/domecanico`:
 ```nginx
 server {
     listen 80;
-    server_name domecanico.com.br www.domecanico.com.br;
+    server_name domecanico.net www.domecanico.net;
 
     # Frontend React (SPA)
     root /opt/domecanico/frontend/dist;
@@ -232,7 +232,7 @@ systemctl reload nginx
 ## 7. Gerar certificado SSL
 
 ```bash
-certbot --nginx -d domecanico.com.br -d www.domecanico.com.br
+certbot --nginx -d domecanico.net -d www.domecanico.net
 ```
 
 O certbot atualiza o nginx automaticamente com HTTPS e renovação automática.
@@ -330,8 +330,8 @@ Configure os seguintes registros no painel DNS do domínio:
 
 ## Checklist pós-deploy
 
-- [ ] `https://domecanico.com.br` abre o frontend
-- [ ] `https://domecanico.com.br/api/auth/login/` retorna 405 (Method Not Allowed)
+- [ ] `https://domecanico.net` abre o frontend
+- [ ] `https://domecanico.net/api/auth/login/` retorna 405 (Method Not Allowed)
 - [ ] Login funciona com usuário criado
 - [ ] Upload de logo da oficina vai para o R2
 - [ ] Certificado SSL ativo (cadeado no navegador)

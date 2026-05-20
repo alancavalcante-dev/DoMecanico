@@ -106,7 +106,7 @@ Os arquivos gerados ficam em `dist/`. Sirva com nginx ou outro servidor estátic
 Crie um arquivo `.env` na raiz do `frontend/` se precisar sobrescrever a URL da API:
 
 ```env
-VITE_API_URL=https://api.domecanico.com.br
+VITE_API_URL=https://api.domecanico.net
 ```
 
 Por padrão, todas as requisições são feitas para `/api/` (relativo), o que funciona quando nginx faz proxy do backend no mesmo domínio.

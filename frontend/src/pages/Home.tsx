@@ -326,7 +326,7 @@ export default function Home() {
               <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
               <div className="w-3 h-3 rounded-full bg-green-500/70" />
               <div className="flex-1 bg-gray-700 rounded-full h-5 mx-8 flex items-center px-3">
-                <span className="text-gray-500 text-xs">app.domecanico.com.br</span>
+                <span className="text-gray-500 text-xs">app.domecanico.net</span>
               </div>
             </div>
             <div className="bg-gray-950 rounded-b-xl p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -691,8 +691,8 @@ export default function Home() {
                 Sistema de gestão completo para oficinas mecânicas. Simples, rápido e profissional.
               </p>
               <div className="flex flex-col gap-2 mt-4">
-                <a href="mailto:contato@domecanico.com.br" className="flex items-center gap-2 text-gray-500 hover:text-gray-300 text-sm transition-colors">
-                  <Mail className="w-4 h-4" /> contato@domecanico.com.br
+                <a href="mailto:contato@domecanico.net" className="flex items-center gap-2 text-gray-500 hover:text-gray-300 text-sm transition-colors">
+                  <Mail className="w-4 h-4" /> contato@domecanico.net
                 </a>
                 <div className="flex items-center gap-2 text-gray-500 text-sm">
                   <MapPin className="w-4 h-4" /> Brasil
