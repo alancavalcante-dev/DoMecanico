@@ -88,15 +88,16 @@ export default function AdminGateway() {
     })
       .then(r => r.json())
       .then(data => {
-        if (data && data.gateway) {
+        const gw = data.gateway || data.provider
+        if (data && gw) {
           setConfig({
-            gateway: data.gateway,
+            gateway: gw as GatewayTipo,
             ambiente: data.ambiente || 'sandbox',
             chave_publica: data.chave_publica || '',
             chave_secreta: data.chave_secreta || '',
             webhook_secret: data.webhook_secret || '',
-            chave_secreta_salva: data.chave_secreta_salva,
-            webhook_secret_salvo: data.webhook_secret_salvo,
+            chave_secreta_salva: data.chave_secreta_salva ?? Boolean(data.chave_secreta),
+            webhook_secret_salvo: data.webhook_secret_salvo ?? Boolean(data.webhook_secret),
           })
         }
       })
