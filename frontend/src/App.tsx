@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { FlaskConical } from 'lucide-react'
 
-const MODO_HOMOLOGACAO = true
+const MODO_HOMOLOGACAO = false
 import { AuthProvider } from './contexts/AuthContext'
 import { AdminAuthProvider } from './contexts/AdminAuthContext'
 import { useAuth } from './contexts/AuthContext'

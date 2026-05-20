@@ -59,7 +59,7 @@ def listar_planos(request):
     return Response(PlanoSerializer(planos, many=True).data)
 
 
-MODO_HOMOLOGACAO = True
+MODO_HOMOLOGACAO = False
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
