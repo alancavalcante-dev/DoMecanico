@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
+import { FlaskConical } from 'lucide-react'
+
+const MODO_HOMOLOGACAO = true
 import { AuthProvider } from './contexts/AuthContext'
 import { AdminAuthProvider } from './contexts/AdminAuthContext'
 import { useAuth } from './contexts/AuthContext'
@@ -139,16 +142,29 @@ function PageTitle() {
   return null
 }
 
+// ── Banner de homologação ─────────────────────────────────────────────────────
+function BannerHomologacao() {
+  if (!MODO_HOMOLOGACAO) return null
+  return (
+    <div className="fixed top-0 left-0 right-0 z-[9999] bg-amber-500 text-black text-xs font-semibold flex items-center justify-center gap-2 py-1.5 px-4">
+      <FlaskConical size={13} />
+      Ambiente de homologação — sistema em testes, cadastros desativados
+    </div>
+  )
+}
+
 // ── Rotas ─────────────────────────────────────────────────────────────────────
 function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
+      <BannerHomologacao />
+      <div className={MODO_HOMOLOGACAO ? 'pt-7' : ''}>
       <PageTitle />
       <Routes>
         {/* Públicas */}
         <Route path="/"                          element={<Home />} />
         <Route path="/login"                     element={<Login />} />
-        <Route path="/cadastro"                  element={<Cadastro />} />
+        <Route path="/cadastro"                  element={MODO_HOMOLOGACAO ? <Navigate to="/login" replace /> : <Cadastro />} />
         <Route path="/checklist-cliente/:token"  element={<ChecklistCliente />} />
         <Route path="/acompanhar"                element={<AcompanharOS />} />
         <Route path="/acompanhar/:token"         element={<AcompanharOSToken />} />
@@ -194,6 +210,7 @@ function AppRoutes() {
           <Route path="gateway"           element={<AdminGateway />} />
         </Route>
       </Routes>
+      </div>
     </Suspense>
   )
 }

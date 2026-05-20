@@ -59,9 +59,16 @@ def listar_planos(request):
     return Response(PlanoSerializer(planos, many=True).data)
 
 
+MODO_HOMOLOGACAO = True
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def registrar(request):
+    if MODO_HOMOLOGACAO:
+        return Response(
+            {'erro': 'Cadastros desativados temporariamente. O sistema está em homologação.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     serializer = RegistroSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
