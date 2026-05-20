@@ -199,11 +199,17 @@ def admin_oficinas(request):
     if plano_filtro:
         qs = qs.filter(assinatura__plano__slug=plano_filtro)
 
+    total = qs.count()
+
+    page = int(request.query_params.get('page', 1))
+    page_size = int(request.query_params.get('page_size', 50))
+    offset = (page - 1) * page_size
+
     qs = qs.annotate(
         membros_count=Count('membros', distinct=True),
         clientes_count=Count('clientes', distinct=True),
         os_count=Count('ordens', distinct=True),
-    )
+    )[offset:offset + page_size]
 
     resultado = []
     for of in qs:
@@ -223,10 +229,6 @@ def admin_oficinas(request):
             ass_trial_fim = None
             mrr_of = 0
 
-        membros = of.membros_count
-        clientes = of.clientes_count
-        os_total = of.os_count
-
         resultado.append({
             'id': of.id,
             'nome': of.nome,
@@ -242,12 +244,12 @@ def admin_oficinas(request):
             'data_fim': ass_data_fim,
             'trial_fim': ass_trial_fim,
             'mrr': mrr_of,
-            'membros': membros,
-            'clientes': clientes,
-            'os_total': os_total,
+            'membros': of.membros_count,
+            'clientes': of.clientes_count,
+            'os_total': of.os_count,
         })
 
-    return Response(resultado)
+    return Response({'total': total, 'page': page, 'page_size': page_size, 'results': resultado})
 
 
 @api_view(['GET'])

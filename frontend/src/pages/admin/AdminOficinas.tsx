@@ -74,7 +74,7 @@ export default function AdminOficinas() {
 
   const carregar = (params?: object) => {
     setLoading(true)
-    adminAPI.oficinas(params).then(r => setOficinas(r.data)).finally(() => setLoading(false))
+    adminAPI.oficinas(params).then(r => setOficinas(r.data.results ?? r.data)).finally(() => setLoading(false))
   }
 
   useEffect(() => {
