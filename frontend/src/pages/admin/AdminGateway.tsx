@@ -14,6 +14,8 @@ interface GatewayConfig {
   chave_publica: string
   chave_secreta: string
   webhook_secret: string
+  chave_secreta_salva?: boolean
+  webhook_secret_salvo?: boolean
 }
 
 const GATEWAYS: {
@@ -86,7 +88,17 @@ export default function AdminGateway() {
     })
       .then(r => r.json())
       .then(data => {
-        if (data && data.gateway) setConfig(data)
+        if (data && data.gateway) {
+          setConfig({
+            gateway: data.gateway,
+            ambiente: data.ambiente || 'sandbox',
+            chave_publica: data.chave_publica || '',
+            chave_secreta: '',
+            webhook_secret: '',
+            chave_secreta_salva: data.chave_secreta_salva,
+            webhook_secret_salvo: data.webhook_secret_salvo,
+          })
+        }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -241,16 +253,25 @@ export default function AdminGateway() {
 
             {/* Chave secreta */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">
-                {config.gateway === 'asaas' ? 'Access Token' : config.gateway === 'abacatepay' ? 'API Key' : 'Chave Secreta'}
-              </label>
+              <div className="flex items-center gap-2 mb-1">
+                <label className="text-xs text-gray-500">
+                  {config.gateway === 'asaas' ? 'Access Token' : config.gateway === 'abacatepay' ? 'API Key' : 'Chave Secreta'}
+                </label>
+                {config.chave_secreta_salva && !config.chave_secreta && (
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <CheckCircle size={10} /> Salvo
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type={mostrarSecreta ? 'text' : 'password'}
                   value={config.chave_secreta}
                   onChange={e => set('chave_secreta', e.target.value)}
                   placeholder={
-                    config.gateway === 'stripe'
+                    config.chave_secreta_salva
+                      ? '(chave salva — deixe em branco para manter)'
+                      : config.gateway === 'stripe'
                       ? 'sk_test_...'
                       : config.gateway === 'asaas'
                       ? '$aas_...'
@@ -273,13 +294,28 @@ export default function AdminGateway() {
             {/* Webhook secret (Stripe, PagSeguro e Abacate Pay) */}
             {(config.gateway === 'stripe' || config.gateway === 'pagseguro' || config.gateway === 'abacatepay') && (
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Webhook Secret</label>
+                <div className="flex items-center gap-2 mb-1">
+                  <label className="text-xs text-gray-500">Webhook Secret</label>
+                  {config.webhook_secret_salvo && !config.webhook_secret && (
+                    <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <CheckCircle size={10} /> Salvo
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <input
                     type={mostrarWebhook ? 'text' : 'password'}
                     value={config.webhook_secret}
                     onChange={e => set('webhook_secret', e.target.value)}
-                    placeholder={config.gateway === 'stripe' ? 'whsec_...' : config.gateway === 'abacatepay' ? 'Chave HMAC do webhook (opcional)' : 'webhook-secret'}
+                    placeholder={
+                      config.webhook_secret_salvo
+                        ? '(chave salva — deixe em branco para manter)'
+                        : config.gateway === 'stripe'
+                        ? 'whsec_...'
+                        : config.gateway === 'abacatepay'
+                        ? 'Chave HMAC do webhook (opcional)'
+                        : 'webhook-secret'
+                    }
                     className={`${inputCls} pr-10`}
                   />
                   <button

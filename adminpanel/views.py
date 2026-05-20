@@ -727,11 +727,15 @@ def _criar_notificacao(tipo, titulo, mensagem):
 class GatewayConfigView(APIView):
     permission_classes = [IsStaff]
 
-    def get(self, request):
+    def _get_or_create_config(self):
         from adminpanel.models import GatewayConfig
-        config = GatewayConfig.objects.filter(ativo=True).first()
+        config = GatewayConfig.objects.order_by('-id').first()
         if not config:
             config = GatewayConfig.objects.create(provider='manual', ambiente='sandbox')
+        return config
+
+    def get(self, request):
+        config = self._get_or_create_config()
         return Response({
             'id': config.id,
             'gateway': config.provider,
@@ -739,16 +743,15 @@ class GatewayConfigView(APIView):
             'chave_publica': config.chave_publica,
             'chave_secreta': '***' if config.chave_secreta else '',
             'webhook_secret': '***' if config.webhook_secret else '',
+            'chave_secreta_salva': bool(config.chave_secreta),
+            'webhook_secret_salvo': bool(config.webhook_secret),
             'config_extra': config.config_extra,
             'atualizado_em': config.atualizado_em,
         })
 
     def post(self, request):
-        from adminpanel.models import GatewayConfig
+        config = self._get_or_create_config()
         data = request.data
-        config = GatewayConfig.objects.filter(ativo=True).first()
-        if not config:
-            config = GatewayConfig(ativo=True)
         config.provider = data.get('gateway', data.get('provider', config.provider or 'manual'))
         config.ambiente = data.get('ambiente', config.ambiente or 'sandbox')
         config.chave_publica = data.get('chave_publica', config.chave_publica or '')
