@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { authAPI } from '../api'
 import { useAuth } from '../contexts/AuthContext'
-import { CreditCard, Check, AlertTriangle, RefreshCw } from 'lucide-react'
+import { CreditCard, Check, AlertTriangle, RefreshCw, ExternalLink, Loader2 } from 'lucide-react'
 
 interface Plano {
   id: number
@@ -32,6 +32,7 @@ export default function Assinatura() {
   const [planoSelecionado, setPlanoSelecionado] = useState('')
   const [metodo, setMetodo] = useState('cartao_credito')
   const [loading, setLoading] = useState(false)
+  const [loadingLink, setLoadingLink] = useState(false)
   const [showPagar, setShowPagar] = useState(false)
 
   useEffect(() => {
@@ -55,6 +56,23 @@ export default function Assinatura() {
       toast.error('Erro ao processar pagamento.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleGerarLink = async () => {
+    setLoadingLink(true)
+    try {
+      const { data } = await authAPI.gerarLinkPagamento({ plano_slug: planoSelecionado })
+      if (data.link_pagamento) {
+        window.open(data.link_pagamento, '_blank')
+        toast.success('Redirecionando para pagamento...')
+        setShowPagar(false)
+      }
+    } catch (err: any) {
+      const msg = err?.response?.data?.erro || 'Erro ao gerar link de pagamento.'
+      toast.error(msg)
+    } finally {
+      setLoadingLink(false)
     }
   }
 
@@ -211,19 +229,32 @@ export default function Assinatura() {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
+            {/* Botão link de pagamento (gateway real) */}
+            <button
+              onClick={handleGerarLink}
+              disabled={loadingLink || !planoSelecionado}
+              className="w-full mt-5 flex items-center justify-center gap-2 bg-lime-600 hover:bg-lime-700 disabled:opacity-50 text-white font-semibold rounded-lg py-2.5 transition text-sm"
+            >
+              {loadingLink ? (
+                <><Loader2 size={15} className="animate-spin" /> Gerando link...</>
+              ) : (
+                <><ExternalLink size={15} /> Pagar com AbacatePay (link de pagamento)</>
+              )}
+            </button>
+
+            <div className="flex gap-3 mt-3">
               <button
                 onClick={() => setShowPagar(false)}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg py-2.5 transition"
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg py-2.5 transition text-sm"
               >
                 Cancelar
               </button>
               <button
                 onClick={handlePagar}
                 disabled={loading || !planoSelecionado}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-lg py-2.5 transition"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-lg py-2.5 transition text-sm"
               >
-                {loading ? 'Processando...' : 'Confirmar pagamento'}
+                {loading ? 'Processando...' : 'Simular pagamento'}
               </button>
             </div>
           </div>

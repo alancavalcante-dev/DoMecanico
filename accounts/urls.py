@@ -14,6 +14,7 @@ urlpatterns = [
     path('oficina/logo/', views.upload_logo_oficina),
     path('assinatura/', views.minha_assinatura, name='assinatura'),
     path('assinatura/pagar/', views.simular_pagamento, name='pagar'),
+    path('assinatura/gerar-link-pagamento/', views.gerar_link_pagamento, name='gerar_link_pagamento'),
     path('assinatura/trocar-plano/', views.trocar_plano, name='trocar_plano'),
     # Membros / equipe
     path('membros/', views.listar_membros),

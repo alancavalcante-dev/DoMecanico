@@ -277,6 +277,54 @@ def simular_pagamento(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def gerar_link_pagamento(request):
+    """Cria fatura via gateway e retorna link de pagamento para redirecionamento."""
+    from adminpanel.gateway import get_gateway
+    from adminpanel.models import GatewayConfig, Fatura
+
+    plano_slug = request.data.get('plano_slug')
+    try:
+        plano = Plano.objects.get(slug=plano_slug)
+    except Plano.DoesNotExist:
+        return Response({'erro': 'Plano inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    config = GatewayConfig.objects.filter(ativo=True).first()
+    if not config or config.provider == 'manual':
+        return Response({'erro': 'Gateway de pagamento não configurado.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        assinatura = request.user.membro.oficina.assinatura
+        oficina = request.user.membro.oficina
+    except Exception:
+        return Response({'erro': 'Assinatura não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+    import uuid
+    numero = f'FAT-{uuid.uuid4().hex[:8].upper()}'
+    fatura = Fatura.objects.create(
+        assinatura=assinatura,
+        numero=numero,
+        valor=plano.preco,
+        status='pendente',
+        vencimento=(timezone.now() + timedelta(days=3)).date(),
+    )
+
+    gw = get_gateway()
+    resultado = gw.criar_cobranca(fatura, oficina)
+    link = resultado.get('link_pagamento', '')
+
+    if not link:
+        fatura.delete()
+        return Response({'erro': 'Não foi possível gerar o link de pagamento.'}, status=status.HTTP_502_BAD_GATEWAY)
+
+    fatura.gateway_id = resultado.get('gateway_id', '')
+    fatura.link_pagamento = link
+    fatura.save(update_fields=['gateway_id', 'link_pagamento'])
+
+    return Response({'link_pagamento': link, 'fatura_numero': numero})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def trocar_plano(request):
     plano_slug = request.data.get('plano_slug')
     try:

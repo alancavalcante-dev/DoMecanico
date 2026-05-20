@@ -81,6 +81,7 @@ export const authAPI = {
   me: () => api.get('/auth/me/'),
   assinatura: () => api.get('/auth/assinatura/'),
   pagar: (data: object) => api.post('/auth/assinatura/pagar/', data),
+  gerarLinkPagamento: (data: object) => api.post('/auth/assinatura/gerar-link-pagamento/', data),
   trocarPlano: (data: object) => api.post('/auth/assinatura/trocar-plano/', data),
   atualizarOficina: (data: object) => api.patch('/auth/oficina/', data),
   alterarSenha: (data: object) => api.post('/auth/alterar-senha/', data),
