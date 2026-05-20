@@ -690,55 +690,60 @@ def whatsapp_conectar(request):
     except Exception:
         pass
 
-    # Tenta criar a instância — captura QR da resposta de criação (v2)
-    qr_from_create = None
+    import time, qrcode, io, base64 as b64
+
+    def _qr_from_data(data):
+        """Extrai QR base64 de qualquer formato da Evolution API v1/v2."""
+        img_b64 = (
+            data.get('base64')
+            or data.get('qrcode', {}).get('base64')
+            or data.get('qr')
+        )
+        if img_b64:
+            if not img_b64.startswith('data:'):
+                img_b64 = f'data:image/png;base64,{img_b64}'
+            return img_b64
+        code_str = data.get('code') or data.get('qrcode', {}).get('code')
+        if code_str:
+            img = qrcode.make(code_str)
+            buf = io.BytesIO()
+            img.save(buf, format='PNG')
+            return 'data:image/png;base64,' + b64.b64encode(buf.getvalue()).decode()
+        return None
+
+    # Tenta criar a instância (ignora 403 se já existir)
     try:
         cr = req.post(f"{base}/instance/create", json={
             'instanceName': config.instance_name,
             'qrcode': True,
             'integration': 'WHATSAPP-BAILEYS',
-        }, headers=headers, timeout=10)
+        }, headers=headers, timeout=15)
         if cr.status_code in (200, 201):
-            cd = cr.json()
-            qr_from_create = (
-                cd.get('qrcode', {}).get('base64')
-                or cd.get('base64')
-            )
-            if qr_from_create and not qr_from_create.startswith('data:'):
-                qr_from_create = f'data:image/png;base64,{qr_from_create}'
+            qr = _qr_from_data(cr.json())
+            if qr:
+                return Response({'qr': qr})
     except Exception:
         pass
 
-    if qr_from_create:
-        return Response({'qr': qr_from_create})
+    # Busca o QR via connect com retry (o QR demora ~3s para gerar)
+    last_response = ''
+    for attempt in range(5):
+        try:
+            time.sleep(2)
+            r = req.get(f"{base}/instance/connect/{config.instance_name}", headers=headers, timeout=10)
+            last_response = r.text[:300]
+            if r.status_code == 200:
+                data = r.json()
+                qr = _qr_from_data(data)
+                if qr:
+                    return Response({'qr': qr})
+                state = data.get('instance', {}).get('state', '')
+                if state == 'open':
+                    return Response({'ja_conectado': True})
+        except Exception:
+            pass
 
-    # Busca o QR code via connect
-    try:
-        r = req.get(f"{base}/instance/connect/{config.instance_name}", headers=headers, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            # v2: campo 'base64' (imagem) ou 'code' (string QR bruta)
-            qr_base64 = data.get('base64') or data.get('qrcode', {}).get('base64') or data.get('qr')
-            if qr_base64:
-                if not qr_base64.startswith('data:'):
-                    qr_base64 = f'data:image/png;base64,{qr_base64}'
-                return Response({'qr': qr_base64})
-            # v2: 'code' é a string bruta do QR — converte para imagem via qrcode lib
-            qr_code_str = data.get('code')
-            if qr_code_str:
-                import qrcode, io, base64 as b64
-                img = qrcode.make(qr_code_str)
-                buf = io.BytesIO()
-                img.save(buf, format='PNG')
-                qr_b64 = 'data:image/png;base64,' + b64.b64encode(buf.getvalue()).decode()
-                return Response({'qr': qr_b64})
-            # Instância já conectada
-            state = data.get('instance', {}).get('state', '')
-            if state == 'open':
-                return Response({'ja_conectado': True})
-        return Response({'erro': f'Evolution API retornou {r.status_code}: {r.text[:300]}'}, status=status.HTTP_502_BAD_GATEWAY)
-    except Exception as e:
-        return Response({'erro': f'Não foi possível conectar à Evolution API: {str(e)}'}, status=status.HTTP_502_BAD_GATEWAY)
+    return Response({'erro': f'QR não gerado após retries. Último retorno: {last_response}'}, status=status.HTTP_502_BAD_GATEWAY)
 
 
 @api_view(['POST'])
