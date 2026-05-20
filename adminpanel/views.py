@@ -734,7 +734,7 @@ class GatewayConfigView(APIView):
             config = GatewayConfig.objects.create(provider='manual', ambiente='sandbox')
         return Response({
             'id': config.id,
-            'provider': config.provider,
+            'gateway': config.provider,
             'ambiente': config.ambiente,
             'chave_publica': config.chave_publica,
             'chave_secreta': '***' if config.chave_secreta else '',
@@ -749,7 +749,7 @@ class GatewayConfigView(APIView):
         config = GatewayConfig.objects.filter(ativo=True).first()
         if not config:
             config = GatewayConfig(ativo=True)
-        config.provider = data.get('provider', config.provider or 'manual')
+        config.provider = data.get('gateway', data.get('provider', config.provider or 'manual'))
         config.ambiente = data.get('ambiente', config.ambiente or 'sandbox')
         config.chave_publica = data.get('chave_publica', config.chave_publica or '')
         if data.get('chave_secreta') and data['chave_secreta'] != '***':
