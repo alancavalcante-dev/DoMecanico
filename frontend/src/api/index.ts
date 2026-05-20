@@ -75,6 +75,7 @@ adminApi.interceptors.response.use(
 )
 
 export const authAPI = {
+  configuracaoSistema: () => axios.get('/api/admin-panel/configuracao-sistema/publica/'),
   planos: () => api.get('/auth/planos/'),
   registrar: (data: object) => api.post('/auth/registrar/', data),
   login: (data: object) => api.post('/auth/login/', data),
@@ -224,6 +225,10 @@ export const adminAPI = {
   emailTestar: (data: object) => adminApi.post('/admin-panel/email/testar/', data),
   emailTemplates: () => adminApi.get('/admin-panel/email/templates/'),
   emailTemplateEditar: (id: number, data: object) => adminApi.put(`/admin-panel/email/templates/${id}/`, data),
+
+  // Configuração do sistema
+  configuracaoSistema: () => adminApi.get('/admin-panel/configuracao-sistema/'),
+  configuracaoSistemaSalvar: (data: object) => adminApi.put('/admin-panel/configuracao-sistema/', data),
 
   // Logs
   logs: (params?: object) => adminApi.get('/admin-panel/logs/', { params }),

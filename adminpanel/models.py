@@ -161,6 +161,28 @@ class Fatura(models.Model):
             Fatura.objects.filter(pk=self.pk).update(numero=self.numero)
 
 
+class ConfiguracaoSistema(models.Model):
+    bloquear_cadastros = models.BooleanField(default=False)
+    bloquear_login = models.BooleanField(default=False)
+    bloquear_pagamentos = models.BooleanField(default=False)
+    modo_manutencao = models.BooleanField(default=False)
+    mensagem_manutencao = models.TextField(blank=True, default='Sistema em manutenção. Voltamos em breve.')
+    banner_homologacao = models.BooleanField(default=False)
+    mensagem_banner = models.CharField(max_length=200, default='Ambiente de homologação — sistema em testes')
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Configuração do Sistema'
+
+    def __str__(self):
+        return 'Configuração do Sistema'
+
+    @classmethod
+    def get(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 class Pagamento(models.Model):
     fatura = models.ForeignKey(Fatura, on_delete=models.CASCADE, related_name='pagamentos')
     valor = models.DecimalField(max_digits=10, decimal_places=2)

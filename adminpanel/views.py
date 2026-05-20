@@ -6,7 +6,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import viewsets, status
@@ -14,7 +14,7 @@ from rest_framework.decorators import action
 
 from accounts.models import Oficina, Assinatura, Plano, PagamentoSimulado
 from mecanica.models import OrdemServico, Cliente, Veiculo, ChecklistEntrada
-from .models import ConfiguracaoEmail, TemplateEmail, LogAtividade, NotificacaoAdmin
+from .models import ConfiguracaoEmail, TemplateEmail, LogAtividade, NotificacaoAdmin, ConfiguracaoSistema
 
 
 def is_staff_user(request):
@@ -1011,3 +1011,44 @@ class FinanceiroResumoView(APIView):
                 for f in ultimas
             ],
         })
+
+
+# ── Configuração do Sistema ───────────────────────────────────────────────────
+
+@api_view(['GET', 'PUT'])
+@permission_classes([IsStaff])
+def admin_configuracao_sistema(request):
+    cfg = ConfiguracaoSistema.get()
+    if request.method == 'GET':
+        return Response({
+            'bloquear_cadastros': cfg.bloquear_cadastros,
+            'bloquear_login': cfg.bloquear_login,
+            'bloquear_pagamentos': cfg.bloquear_pagamentos,
+            'modo_manutencao': cfg.modo_manutencao,
+            'mensagem_manutencao': cfg.mensagem_manutencao,
+            'banner_homologacao': cfg.banner_homologacao,
+            'mensagem_banner': cfg.mensagem_banner,
+        })
+    for field in ['bloquear_cadastros', 'bloquear_login', 'bloquear_pagamentos',
+                  'modo_manutencao', 'mensagem_manutencao', 'banner_homologacao', 'mensagem_banner']:
+        if field in request.data:
+            setattr(cfg, field, request.data[field])
+    cfg.save()
+    registrar_log('info', 'sistema', 'Configuração do sistema atualizada', usuario=request.user, request=request)
+    return Response({'ok': True})
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def configuracao_sistema_publica(request):
+    """Endpoint público — retorna apenas os campos que o frontend precisa."""
+    cfg = ConfiguracaoSistema.get()
+    return Response({
+        'bloquear_cadastros': cfg.bloquear_cadastros,
+        'bloquear_login': cfg.bloquear_login,
+        'bloquear_pagamentos': cfg.bloquear_pagamentos,
+        'modo_manutencao': cfg.modo_manutencao,
+        'mensagem_manutencao': cfg.mensagem_manutencao,
+        'banner_homologacao': cfg.banner_homologacao,
+        'mensagem_banner': cfg.mensagem_banner,
+    })

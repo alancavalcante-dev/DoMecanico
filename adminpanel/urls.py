@@ -48,6 +48,10 @@ urlpatterns = [
     # Financeiro — resumo/dashboard
     path('financeiro/resumo/', views.FinanceiroResumoView.as_view()),
 
+    # Configuração do sistema
+    path('configuracao-sistema/', views.admin_configuracao_sistema),
+    path('configuracao-sistema/publica/', views.configuracao_sistema_publica),
+
     # Webhook (público, sem autenticação)
     path('webhook/gateway/', views.WebhookGatewayView.as_view()),
 

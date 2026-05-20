@@ -59,14 +59,14 @@ def listar_planos(request):
     return Response(PlanoSerializer(planos, many=True).data)
 
 
-MODO_HOMOLOGACAO = False
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def registrar(request):
-    if MODO_HOMOLOGACAO:
+    from adminpanel.models import ConfiguracaoSistema
+    cfg = ConfiguracaoSistema.get()
+    if cfg.bloquear_cadastros:
         return Response(
-            {'erro': 'Cadastros desativados temporariamente. O sistema está em homologação.'},
+            {'erro': cfg.mensagem_manutencao or 'Cadastros desativados temporariamente.'},
             status=status.HTTP_503_SERVICE_UNAVAILABLE,
         )
     serializer = RegistroSerializer(data=request.data)
@@ -162,6 +162,13 @@ def admin_login(request):
 @permission_classes([AllowAny])
 @throttle_classes([LoginRateThrottle])
 def login(request):
+    from adminpanel.models import ConfiguracaoSistema
+    cfg = ConfiguracaoSistema.get()
+    if cfg.bloquear_login:
+        return Response(
+            {'erro': cfg.mensagem_manutencao or 'Login desativado temporariamente.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
     email = request.data.get('email', '')
     senha = request.data.get('senha', '')
 
