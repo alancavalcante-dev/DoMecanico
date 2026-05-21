@@ -32,7 +32,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   temAcesso: (modulo: string) => boolean
-  login: (email: string, senha: string) => Promise<void>
+  login: (email: string, senha: string) => Promise<{ codigo?: string; redirecionamento?: string }>
   loginDireto: (userData: User, tokens: { access: string; refresh: string }) => void
   logout: () => void
   refreshUser: () => Promise<void>
@@ -62,11 +62,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = async (email: string, senha: string) => {
+  const login = async (email: string, senha: string): Promise<{ codigo?: string; redirecionamento?: string }> => {
     const { data } = await authAPI.login({ email, senha })
     localStorage.setItem('access_token', data.tokens.access)
     localStorage.setItem('refresh_token', data.tokens.refresh)
     setUser(data.user)
+    return { codigo: data.codigo, redirecionamento: data.redirecionamento }
   }
 
   const loginDireto = (userData: User, tokens: { access: string; refresh: string }) => {

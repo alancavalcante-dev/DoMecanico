@@ -15,8 +15,12 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     try {
-      await login(email, senha)
-      navigate('/dashboard')
+      const result = await login(email, senha)
+      if (result.codigo === 'assinatura_inativa') {
+        navigate(result.redirecionamento || '/assinatura')
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { erro?: string } } })?.response?.data?.erro ||

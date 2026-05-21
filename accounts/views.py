@@ -189,9 +189,11 @@ def login(request):
         assinatura = user.membro.oficina.assinatura
         if not assinatura.ativa:
             return Response({
-                'erro': 'Sua assinatura está suspensa ou expirada.',
+                'tokens': get_tokens(user),
+                'user': MeSerializer(user).data,
                 'codigo': 'assinatura_inativa',
-            }, status=status.HTTP_403_FORBIDDEN)
+                'redirecionamento': '/assinatura',
+            }, status=status.HTTP_200_OK)
     except Exception:
         pass
 
