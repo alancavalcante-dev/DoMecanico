@@ -4,12 +4,7 @@ from django.utils import timezone
 
 
 class Plano(models.Model):
-    SLUG_CHOICES = [
-        ('starter', 'Starter'),
-        ('pro', 'Pro'),
-    ]
-
-    slug = models.CharField(max_length=20, unique=True, choices=SLUG_CHOICES)
+    slug = models.CharField(max_length=50, unique=True)
     nome = models.CharField(max_length=50)
     preco = models.DecimalField(max_digits=8, decimal_places=2)
     max_usuarios = models.IntegerField()

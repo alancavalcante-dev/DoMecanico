@@ -110,11 +110,24 @@ class MeSerializer(serializers.ModelSerializer):
 
     def get_modulos(self, obj):
         try:
-            return obj.membro.permissoes.modulos
+            try:
+                permissoes_membro = obj.membro.permissoes.modulos
+            except Exception:
+                if obj.membro.papel == 'admin':
+                    permissoes_membro = [m[0] for m in MODULOS]
+                else:
+                    return []
+
+            # Intersecta com os módulos disponíveis no plano (se configurados)
+            try:
+                modulos_plano = obj.membro.oficina.assinatura.plano.modulos_disponiveis
+                if modulos_plano:
+                    return [m for m in permissoes_membro if m in modulos_plano]
+            except Exception:
+                pass
+
+            return permissoes_membro
         except Exception:
-            # admin sem permissão cadastrada ainda: libera tudo
-            if obj.membro.papel == 'admin':
-                return [m[0] for m in MODULOS]
             return []
 
 

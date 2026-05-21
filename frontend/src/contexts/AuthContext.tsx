@@ -82,10 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
-  // Admin sempre tem acesso a tudo; outros só ao que está na lista
+  // Acesso determinado pelos módulos retornados pelo backend (já intersectados com o plano)
   const temAcesso = (modulo: string): boolean => {
     if (!user) return false
-    if (user.papel === 'admin') return true
     return user.modulos?.includes(modulo) ?? false
   }
 

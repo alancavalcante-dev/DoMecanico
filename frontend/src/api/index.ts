@@ -209,7 +209,9 @@ export const adminAPI = {
 
   // Planos
   planos: () => adminApi.get('/admin-panel/planos/'),
+  planoCriar: (data: object) => adminApi.post('/admin-panel/planos/', data),
   planoEditar: (id: number, data: object) => adminApi.put(`/admin-panel/planos/${id}/`, data),
+  planoExcluir: (id: number) => adminApi.delete(`/admin-panel/planos/${id}/`),
 
   // Usuários
   usuarios: () => adminApi.get('/admin-panel/usuarios/'),

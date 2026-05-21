@@ -368,43 +368,84 @@ def admin_oficina_acao(request, pk):
 
 # ── Planos ───────────────────────────────────────────────────────────────────
 
-@api_view(['GET'])
+def _serializar_plano(p, assinantes):
+    return {
+        'id': p.id,
+        'slug': p.slug,
+        'nome': p.nome,
+        'preco': float(p.preco),
+        'max_usuarios': p.max_usuarios,
+        'max_clientes': p.max_clientes,
+        'max_os_mes': p.max_os_mes,
+        'max_pecas': p.max_pecas,
+        'tem_nota_fiscal': p.tem_nota_fiscal,
+        'tem_relatorios': p.tem_relatorios,
+        'tem_fotos_veiculo': p.tem_fotos_veiculo,
+        'modulos_disponiveis': p.modulos_disponiveis,
+        'descricao': p.descricao,
+        'destaque': p.destaque,
+        'assinantes_ativos': assinantes,
+        'mrr': float(p.preco) * assinantes,
+    }
+
+
+@api_view(['GET', 'POST'])
 @permission_classes([IsStaff])
 def admin_planos(request):
+    if request.method == 'POST':
+        slug = (request.data.get('slug') or '').strip().lower().replace(' ', '-')
+        nome = (request.data.get('nome') or '').strip()
+        if not slug:
+            return Response({'erro': 'Slug é obrigatório.'}, status=400)
+        if not nome:
+            return Response({'erro': 'Nome é obrigatório.'}, status=400)
+        if Plano.objects.filter(slug=slug).exists():
+            return Response({'erro': 'Já existe um plano com este slug.'}, status=400)
+        plano = Plano.objects.create(
+            slug=slug,
+            nome=nome,
+            preco=request.data.get('preco', 0),
+            max_usuarios=request.data.get('max_usuarios', 1),
+            max_clientes=request.data.get('max_clientes', -1),
+            max_os_mes=request.data.get('max_os_mes', -1),
+            max_pecas=request.data.get('max_pecas', -1),
+            tem_nota_fiscal=request.data.get('tem_nota_fiscal', False),
+            tem_relatorios=request.data.get('tem_relatorios', False),
+            tem_fotos_veiculo=request.data.get('tem_fotos_veiculo', False),
+            modulos_disponiveis=request.data.get('modulos_disponiveis', []),
+            descricao=request.data.get('descricao', ''),
+            destaque=request.data.get('destaque', False),
+        )
+        registrar_log('info', 'sistema', f'Plano "{plano.nome}" criado por admin.', request.user, request=request)
+        return Response(_serializar_plano(plano, 0), status=201)
+
     planos = []
     for p in Plano.objects.annotate(
         assinantes=Count('assinatura', filter=Q(assinatura__status='ativa'))
     ):
-        assinantes = p.assinantes
-        mrr = float(p.preco) * assinantes
-        planos.append({
-            'id': p.id,
-            'slug': p.slug,
-            'nome': p.nome,
-            'preco': float(p.preco),
-            'max_usuarios': p.max_usuarios,
-            'max_clientes': p.max_clientes,
-            'max_os_mes': p.max_os_mes,
-            'max_pecas': p.max_pecas,
-            'tem_nota_fiscal': p.tem_nota_fiscal,
-            'tem_relatorios': p.tem_relatorios,
-            'tem_fotos_veiculo': p.tem_fotos_veiculo,
-            'modulos_disponiveis': p.modulos_disponiveis,
-            'descricao': p.descricao,
-            'destaque': p.destaque,
-            'assinantes_ativos': assinantes,
-            'mrr': mrr,
-        })
+        planos.append(_serializar_plano(p, p.assinantes))
     return Response(planos)
 
 
-@api_view(['PUT'])
+@api_view(['PUT', 'DELETE'])
 @permission_classes([IsStaff])
 def admin_plano_editar(request, pk):
     try:
         plano = Plano.objects.get(pk=pk)
     except Plano.DoesNotExist:
         return Response({'erro': 'Plano não encontrado.'}, status=404)
+
+    if request.method == 'DELETE':
+        assinantes_ativos = plano.assinatura_set.filter(status__in=['ativa', 'trial']).count()
+        if assinantes_ativos > 0:
+            return Response(
+                {'erro': f'Não é possível remover: {assinantes_ativos} assinante(s) ativo(s) neste plano.'},
+                status=400,
+            )
+        nome = plano.nome
+        plano.delete()
+        registrar_log('info', 'sistema', f'Plano "{nome}" removido por admin.', request.user, request=request)
+        return Response({'ok': True})
 
     campos = ['nome', 'preco', 'max_usuarios', 'max_clientes', 'max_os_mes',
               'max_pecas', 'tem_nota_fiscal', 'tem_relatorios', 'tem_fotos_veiculo',
