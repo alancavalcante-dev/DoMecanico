@@ -241,6 +241,7 @@ export default function Home() {
             <a href="#planos" className="text-gray-400 hover:text-white text-sm transition-colors">Planos</a>
             <a href="#depoimentos" className="text-gray-400 hover:text-white text-sm transition-colors">Depoimentos</a>
             <a href="#faq" className="text-gray-400 hover:text-white text-sm transition-colors">FAQ</a>
+            <Link to="/contato" className="text-gray-400 hover:text-white text-sm transition-colors">Suporte</Link>
           </div>
 
           <div className="hidden md:flex items-center gap-3">
@@ -263,6 +264,7 @@ export default function Home() {
             <a href="#planos" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white">Planos</a>
             <a href="#depoimentos" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white">Depoimentos</a>
             <a href="#faq" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white">FAQ</a>
+            <Link to="/contato" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white">Suporte</Link>
             <div className="flex gap-3 pt-2 border-t border-gray-800">
               <Link to="/login" className="flex-1 text-center py-2 border border-gray-700 rounded-lg text-sm">Entrar</Link>
               <Link to="/cadastro" className="flex-1 text-center py-2 bg-blue-600 rounded-lg text-sm font-medium">Teste Grátis</Link>
