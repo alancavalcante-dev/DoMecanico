@@ -879,8 +879,17 @@ class WebhookGatewayView(APIView):
     authentication_classes = []
 
     def post(self, request):
+        import logging as _logging
+        _log = _logging.getLogger(__name__)
+        _log.info(f'WEBHOOK recebido — provider ativo: {request.data}')
+
         from adminpanel.gateway import get_gateway
         from adminpanel.models import Fatura, Pagamento
+
+        LogAtividade.objects.create(
+            nivel='info', categoria='pagamento',
+            mensagem=f'Webhook recebido: {str(request.data)[:500]}',
+        )
 
         gw = get_gateway()
 
@@ -892,7 +901,12 @@ class WebhookGatewayView(APIView):
             return Response({'erro': 'Assinatura inválida'}, status=400)
 
         resultado = gw.processar_webhook(request.data, request.META)
+        _log.info(f'WEBHOOK processado — resultado: {resultado}')
         if not resultado:
+            LogAtividade.objects.create(
+                nivel='aviso', categoria='pagamento',
+                mensagem=f'Webhook sem resultado processável. Evento: {request.data.get("event", "?")}',
+            )
             return Response({'ok': True})
 
         fatura_numero = resultado.get('fatura_numero', '')
