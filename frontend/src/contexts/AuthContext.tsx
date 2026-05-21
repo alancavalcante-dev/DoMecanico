@@ -24,7 +24,7 @@ interface User {
     status: string
     ativa: boolean
     dias_trial_restantes: number
-    plano: { nome: string; slug: string; preco: string }
+    plano: { nome: string; slug: string; preco: string; modulos_disponiveis: string[] }
   } | null
 }
 

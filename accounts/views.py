@@ -509,6 +509,13 @@ def criar_membro(request):
         modulos_perm = [m for m in modulos if m in modulos_validos]
     else:
         modulos_perm = PERFIS_PADRAO.get(papel, [])
+    # Intersecta com os módulos disponíveis no plano
+    try:
+        modulos_plano = oficina.assinatura.plano.modulos_disponiveis
+        if modulos_plano:
+            modulos_perm = [m for m in modulos_perm if m in modulos_plano]
+    except Exception:
+        pass
     PermissaoMembro.objects.create(membro=membro, modulos=modulos_perm)
 
     return Response({
@@ -675,7 +682,15 @@ def aplicar_perfil(request, membro_id):
     except MembroOficina.DoesNotExist:
         return Response({'erro': 'Membro não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
     perm, _ = PermissaoMembro.objects.get_or_create(membro=membro, defaults={'modulos': []})
-    perm.modulos = PERFIS_PADRAO[perfil]
+    modulos_perfil = PERFIS_PADRAO[perfil]
+    # Intersecta com os módulos disponíveis no plano
+    try:
+        modulos_plano = membro.oficina.assinatura.plano.modulos_disponiveis
+        if modulos_plano:
+            modulos_perfil = [m for m in modulos_perfil if m in modulos_plano]
+    except Exception:
+        pass
+    perm.modulos = modulos_perfil
     perm.save()
     return Response({'membro_id': membro_id, 'perfil': perfil, 'modulos': perm.modulos})
 

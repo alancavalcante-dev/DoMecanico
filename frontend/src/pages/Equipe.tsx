@@ -387,6 +387,12 @@ export default function Equipe() {
   const [membros, setMembros] = useState<Membro[]>([])
   const [modulos, setModulos] = useState<Modulo[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Filtra módulos pelo que o plano atual da oficina permite
+  const modulosDoPlano = user?.assinatura?.plano?.modulos_disponiveis ?? []
+  const modulosFiltrados: Modulo[] = modulosDoPlano.length > 0
+    ? modulos.filter(m => modulosDoPlano.includes(m.id))
+    : modulos
   const [modalCriar, setModalCriar] = useState(false)
   const [membroPermissoes, setMembroPermissoes] = useState<Membro | null>(null)
   const [senhaReset, setSenhaReset] = useState<{ nome: string; senha: string } | null>(null)
@@ -545,7 +551,7 @@ export default function Equipe() {
       {/* Modal criar membro */}
       <Modal open={modalCriar} onClose={() => setModalCriar(false)} title="Adicionar Membro" size="lg">
         <FormCriarMembro
-          modulos={modulos}
+          modulos={modulosFiltrados}
           onCriado={carregar}
           onClose={() => setModalCriar(false)}
         />
@@ -556,7 +562,7 @@ export default function Equipe() {
         {membroPermissoes && (
           <PainelPermissoes
             membro={membroPermissoes}
-            modulos={modulos}
+            modulos={modulosFiltrados}
             onClose={() => setMembroPermissoes(null)}
             onSaved={carregar}
           />
