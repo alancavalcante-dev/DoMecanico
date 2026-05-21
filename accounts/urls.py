@@ -17,6 +17,7 @@ urlpatterns = [
     path('assinatura/gerar-link-pagamento/', views.gerar_link_pagamento, name='gerar_link_pagamento'),
     path('assinatura/trocar-plano/', views.trocar_plano, name='trocar_plano'),
     path('assinatura/faturas/', views.minhas_faturas, name='minhas_faturas'),
+    path('assinatura/faturas/<int:fatura_id>/cancelar/', views.cancelar_minha_fatura, name='cancelar_minha_fatura'),
     # Membros / equipe
     path('membros/', views.listar_membros),
     path('membros/criar/', views.criar_membro),

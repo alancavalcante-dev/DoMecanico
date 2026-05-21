@@ -85,6 +85,7 @@ export const authAPI = {
   gerarLinkPagamento: (data: object) => api.post('/auth/assinatura/gerar-link-pagamento/', data),
   trocarPlano: (data: object) => api.post('/auth/assinatura/trocar-plano/', data),
   minhasFaturas: () => api.get('/auth/assinatura/faturas/'),
+  cancelarFatura: (id: number) => api.post(`/auth/assinatura/faturas/${id}/cancelar/`),
   atualizarOficina: (data: object) => api.patch('/auth/oficina/', data),
   alterarSenha: (data: object) => api.post('/auth/alterar-senha/', data),
   uploadLogo: (formData: FormData) => api.post('/auth/oficina/logo/', formData, {

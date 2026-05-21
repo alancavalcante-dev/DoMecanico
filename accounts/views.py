@@ -291,6 +291,8 @@ def simular_pagamento(request):
     })
 
 
+DIAS_ANTECIPACAO_RENOVACAO = 7  # permite renovar quando restar até X dias
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def gerar_link_pagamento(request):
@@ -314,11 +316,37 @@ def gerar_link_pagamento(request):
     except Exception:
         return Response({'erro': 'Assinatura não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
-    import uuid
-    numero = f'FAT-{uuid.uuid4().hex[:8].upper()}'
+    # ── Regra 1: bloquear renovação antecipada ────────────────────────────────
+    if assinatura.ativa and assinatura.data_fim:
+        dias_restantes = (assinatura.data_fim.date() - timezone.now().date()).days
+        if dias_restantes > DIAS_ANTECIPACAO_RENOVACAO:
+            return Response({
+                'erro': (
+                    f'Sua assinatura está ativa e vence em {dias_restantes} dias. '
+                    f'A renovação ficará disponível quando restarem '
+                    f'{DIAS_ANTECIPACAO_RENOVACAO} dias para o vencimento.'
+                ),
+                'dias_restantes': dias_restantes,
+                'pode_renovar_em': DIAS_ANTECIPACAO_RENOVACAO,
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    # ── Regra 2: reutilizar fatura pendente do mês atual ─────────────────────
+    inicio_mes = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    fatura_existente = Fatura.objects.filter(
+        assinatura=assinatura,
+        status='pendente',
+        criado_em__gte=inicio_mes,
+    ).order_by('-criado_em').first()
+
+    if fatura_existente and fatura_existente.link_pagamento:
+        return Response({
+            'link_pagamento': fatura_existente.link_pagamento,
+            'fatura_numero': fatura_existente.numero,
+            'existente': True,
+        })
+
     fatura = Fatura.objects.create(
         assinatura=assinatura,
-        numero=numero,
         valor=plano.preco,
         status='pendente',
         vencimento=(timezone.now() + timedelta(days=3)).date(),
@@ -334,9 +362,36 @@ def gerar_link_pagamento(request):
 
     fatura.gateway_id = resultado.get('gateway_id', '')
     fatura.link_pagamento = link
-    fatura.save(update_fields=['gateway_id', 'link_pagamento'])
+    fatura.gateway_provider = config.provider
+    fatura.save(update_fields=['gateway_id', 'link_pagamento', 'gateway_provider'])
 
-    return Response({'link_pagamento': link, 'fatura_numero': numero})
+    return Response({'link_pagamento': link, 'fatura_numero': fatura.numero})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cancelar_minha_fatura(request, fatura_id):
+    """Permite ao cliente cancelar uma fatura pendente."""
+    from adminpanel.models import Fatura
+    from adminpanel.gateway import get_gateway
+    try:
+        assinatura = request.user.membro.oficina.assinatura
+        fatura = Fatura.objects.get(id=fatura_id, assinatura=assinatura, status='pendente')
+    except Fatura.DoesNotExist:
+        return Response({'erro': 'Fatura não encontrada ou não pode ser cancelada.'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception:
+        return Response({'erro': 'Erro ao buscar fatura.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if fatura.gateway_id:
+        try:
+            gw = get_gateway()
+            gw.cancelar_cobranca(fatura.gateway_id)
+        except Exception:
+            pass
+
+    fatura.status = 'cancelada'
+    fatura.save(update_fields=['status'])
+    return Response({'ok': True})
 
 
 @api_view(['POST'])

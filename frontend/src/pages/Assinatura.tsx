@@ -55,6 +55,7 @@ export default function Assinatura() {
   const [loadingLink, setLoadingLink] = useState(false)
   const [showPagar, setShowPagar] = useState(false)
   const [linkCopiado, setLinkCopiado] = useState<number | null>(null)
+  const [cancelando, setCancelando] = useState<number | null>(null)
 
   const carregarFaturas = () =>
     authAPI.minhasFaturas().then(({ data }) => setFaturas(data)).catch(() => {})
@@ -67,6 +68,20 @@ export default function Assinatura() {
     authAPI.planos().then(({ data }) => setPlanos(data))
     carregarFaturas()
   }, [])
+
+  const cancelarFatura = async (f: Fatura) => {
+    if (!window.confirm(`Cancelar a fatura ${f.numero}?`)) return
+    setCancelando(f.id)
+    try {
+      await authAPI.cancelarFatura(f.id)
+      toast.success('Fatura cancelada.')
+      carregarFaturas()
+    } catch {
+      toast.error('Erro ao cancelar fatura.')
+    } finally {
+      setCancelando(null)
+    }
+  }
 
   const copiarLink = (f: Fatura) => {
     navigator.clipboard.writeText(f.link_pagamento).then(() => {
@@ -98,8 +113,9 @@ export default function Assinatura() {
       const { data } = await authAPI.gerarLinkPagamento({ plano_slug: planoSelecionado })
       if (data.link_pagamento) {
         window.open(data.link_pagamento, '_blank')
-        toast.success('Redirecionando para pagamento...')
+        toast.success(data.existente ? 'Fatura pendente já existente — redirecionando...' : 'Redirecionando para pagamento...')
         setShowPagar(false)
+        carregarFaturas()
       }
     } catch (err: any) {
       const msg = err?.response?.data?.erro || 'Erro ao gerar link de pagamento.'
@@ -242,6 +258,7 @@ export default function Assinatura() {
                     <th className="text-left px-4 py-3 font-medium">Vencimento</th>
                     <th className="text-left px-4 py-3 font-medium">Pagamento</th>
                     <th className="text-left px-4 py-3 font-medium">Link</th>
+                    <th className="text-left px-4 py-3 font-medium">Ação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
@@ -269,6 +286,17 @@ export default function Assinatura() {
                               {linkCopiado === f.id ? 'Copiado' : 'Copiar link'}
                             </button>
                           ) : <span className="text-gray-700 text-xs">—</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {f.status === 'pendente' && (
+                            <button
+                              onClick={() => cancelarFatura(f)}
+                              disabled={cancelando === f.id}
+                              className="text-xs text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+                            >
+                              {cancelando === f.id ? '...' : 'Cancelar'}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     )
