@@ -4,6 +4,7 @@ import { authAPI } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { CreditCard, Check, AlertTriangle, RefreshCw, ExternalLink, Loader2, Receipt, Copy, CheckCircle } from 'lucide-react'
 
+
 interface Plano {
   id: number
   slug: string
@@ -50,8 +51,6 @@ export default function Assinatura() {
   const [planos, setPlanos] = useState<Plano[]>([])
   const [faturas, setFaturas] = useState<Fatura[]>([])
   const [planoSelecionado, setPlanoSelecionado] = useState('')
-  const [metodo, setMetodo] = useState('cartao_credito')
-  const [loading, setLoading] = useState(false)
   const [loadingLink, setLoadingLink] = useState(false)
   const [showPagar, setShowPagar] = useState(false)
   const [linkCopiado, setLinkCopiado] = useState<number | null>(null)
@@ -88,23 +87,6 @@ export default function Assinatura() {
       setLinkCopiado(f.id)
       setTimeout(() => setLinkCopiado(null), 2000)
     })
-  }
-
-  const handlePagar = async () => {
-    setLoading(true)
-    try {
-      await authAPI.pagar({ plano_slug: planoSelecionado, metodo })
-      await refreshUser()
-      const { data } = await authAPI.assinatura()
-      setAssinatura(data)
-      carregarFaturas()
-      toast.success('Pagamento aprovado! Assinatura ativa por 30 dias.')
-      setShowPagar(false)
-    } catch {
-      toast.error('Erro ao processar pagamento.')
-    } finally {
-      setLoading(false)
-    }
   }
 
   const handleGerarLink = async () => {
@@ -312,7 +294,7 @@ export default function Assinatura() {
       {showPagar && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-gray-900 rounded-2xl p-8 w-full max-w-md border border-gray-700">
-            <h3 className="text-white font-bold text-xl mb-6">Simular pagamento</h3>
+            <h3 className="text-white font-bold text-xl mb-6">Pagar via PIX</h3>
 
             <div className="space-y-4">
               <div>
@@ -329,53 +311,26 @@ export default function Assinatura() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Método</label>
-                <select
-                  value={metodo}
-                  onChange={(e) => setMetodo(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2.5"
-                >
-                  <option value="cartao_credito">Cartão de Crédito</option>
-                  <option value="boleto">Boleto</option>
-                  <option value="pix">PIX</option>
-                </select>
-              </div>
-
-              <div className="bg-gray-800 rounded-lg p-4 text-sm text-gray-400">
-                <p className="text-yellow-400 font-semibold mb-1">Pagamento simulado</p>
-                <p>Este é um ambiente de teste. O pagamento será aprovado automaticamente e a assinatura ficará ativa por 30 dias.</p>
-              </div>
             </div>
 
-            {/* Botão link de pagamento (gateway real) */}
             <button
               onClick={handleGerarLink}
               disabled={loadingLink || !planoSelecionado}
-              className="w-full mt-5 flex items-center justify-center gap-2 bg-lime-600 hover:bg-lime-700 disabled:opacity-50 text-white font-semibold rounded-lg py-2.5 transition text-sm"
+              className="w-full mt-6 flex items-center justify-center gap-2 bg-lime-600 hover:bg-lime-700 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition text-sm"
             >
               {loadingLink ? (
                 <><Loader2 size={15} className="animate-spin" /> Gerando link...</>
               ) : (
-                <><ExternalLink size={15} /> Pagar com AbacatePay (link de pagamento)</>
+                <><ExternalLink size={15} /> Pagar com AbacatePay (PIX)</>
               )}
             </button>
 
-            <div className="flex gap-3 mt-3">
-              <button
-                onClick={() => setShowPagar(false)}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg py-2.5 transition text-sm"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handlePagar}
-                disabled={loading || !planoSelecionado}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-lg py-2.5 transition text-sm"
-              >
-                {loading ? 'Processando...' : 'Simular pagamento'}
-              </button>
-            </div>
+            <button
+              onClick={() => setShowPagar(false)}
+              className="w-full mt-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg py-2.5 transition text-sm"
+            >
+              Cancelar
+            </button>
           </div>
         </div>
       )}
