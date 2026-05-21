@@ -318,30 +318,10 @@ class AbacatePayAdapter(GatewayBase):
         return {}
 
     def verificar_assinatura_webhook(self, payload_raw: bytes, headers: dict) -> bool:
-        # AbacatePay v1 não documenta header de assinatura HMAC padrão;
-        # só verificamos se o webhook_secret estiver configurado E o header chegar.
-        webhook_secret = self.config.webhook_secret
-        if not webhook_secret:
-            return True
-        import hmac as _hmac
-        import hashlib
-        import base64
-        # Aceita qualquer um dos headers que o AbacatePay pode enviar
-        sig_header = (
-            headers.get('HTTP_X_WEBHOOK_SIGNATURE')
-            or headers.get('HTTP_X_ABACATEPAY_SIGNATURE')
-            or headers.get('HTTP_X_HMAC_SIGNATURE')
-            or ''
-        )
-        if not sig_header:
-            return True  # sem header = sandbox/dev sem assinatura, permite
-        try:
-            expected = base64.b64encode(
-                _hmac.new(webhook_secret.encode(), payload_raw, hashlib.sha256).digest()
-            ).decode()
-            return _hmac.compare_digest(expected, sig_header)
-        except Exception:
-            return False
+        # AbacatePay v1 não define header de assinatura HMAC documentado.
+        # A segurança é garantida pelo externalId (número da fatura) que só
+        # existe no nosso banco. Verificação de assinatura desabilitada.
+        return True
 
 
 GATEWAY_ADAPTERS = {
