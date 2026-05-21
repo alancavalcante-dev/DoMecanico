@@ -31,6 +31,7 @@ interface Fatura {
   status: 'pendente' | 'paga' | 'vencida' | 'cancelada'
   vencimento: string
   pagamento: string | null
+  criado_em: string | null
   link_pagamento: string | null
 }
 
@@ -50,6 +51,9 @@ const fmt = (v: number) =>
 
 const fmtData = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('pt-BR') : '—'
+
+const fmtDataHora = (d: string | null) =>
+  d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
 
 const STATUS_BADGE: Record<string, string> = {
   pendente: 'bg-amber-500/15 text-amber-400',
@@ -463,6 +467,7 @@ function AbaFaturas() {
                   <th className="text-left px-5 py-3 font-medium">Plano</th>
                   <th className="text-left px-5 py-3 font-medium">Valor</th>
                   <th className="text-left px-5 py-3 font-medium">Status</th>
+                  <th className="text-left px-5 py-3 font-medium">Criado em</th>
                   <th className="text-left px-5 py-3 font-medium">Vencimento</th>
                   <th className="text-left px-5 py-3 font-medium">Link</th>
                   <th className="text-left px-5 py-3 font-medium">Ações</th>
@@ -478,6 +483,7 @@ function AbaFaturas() {
                     <td className="px-5 py-3.5">
                       <StatusBadge status={f.status} />
                     </td>
+                    <td className="px-5 py-3.5 text-gray-400 text-xs">{fmtDataHora(f.criado_em)}</td>
                     <td className="px-5 py-3.5 text-gray-400">{fmtData(f.vencimento)}</td>
                     <td className="px-5 py-3.5">
                       {f.link_pagamento ? (
@@ -521,7 +527,7 @@ function AbaFaturas() {
                 ))}
                 {faturas.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-5 py-10 text-center text-gray-600 text-sm">
+                    <td colSpan={9} className="px-5 py-10 text-center text-gray-600 text-sm">
                       Nenhuma fatura encontrada
                     </td>
                   </tr>
