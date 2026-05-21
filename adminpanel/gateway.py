@@ -236,6 +236,17 @@ class AbacatePayAdapter(GatewayBase):
     def criar_cobranca(self, fatura, oficina):
         import requests
         try:
+            cnpj = (getattr(oficina, 'cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '').replace(' ', '')
+            telefone = (getattr(oficina, 'telefone', '') or '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+
+            customer = {
+                'name': oficina.nome,
+                'email': oficina.email or 'contato@domecanico.net',
+                'taxId': cnpj or '00000000000000',
+            }
+            if telefone:
+                customer['cellphone'] = telefone
+
             payload = {
                 'frequency': 'ONE_TIME',
                 'methods': ['PIX'],
@@ -244,15 +255,12 @@ class AbacatePayAdapter(GatewayBase):
                     'name': f'DoMecânico — Fatura {fatura.numero}',
                     'description': f'Assinatura {oficina.nome}',
                     'quantity': 1,
-                    'price': int(fatura.valor * 100),  # centavos
+                    'price': int(fatura.valor * 100),
                 }],
                 'externalId': fatura.numero,
-                'returnUrl': self.config.config_extra.get('return_url', 'https://app.domecanico.net'),
-                'completionUrl': self.config.config_extra.get('completion_url', 'https://app.domecanico.net'),
-                'metadata': {
-                    'fatura_numero': fatura.numero,
-                    'oficina': oficina.nome,
-                },
+                'returnUrl': self.config.config_extra.get('return_url', 'https://domecanico.net/assinatura'),
+                'completionUrl': self.config.config_extra.get('completion_url', 'https://domecanico.net/assinatura'),
+                'customer': customer,
             }
             resp = requests.post(
                 f'{self.BASE_URL}/billing/create',
@@ -260,7 +268,9 @@ class AbacatePayAdapter(GatewayBase):
                 json=payload,
                 timeout=15,
             )
-            resp.raise_for_status()
+            if not resp.ok:
+                logger.error(f'AbacatePay criar_cobranca: HTTP {resp.status_code} — {resp.text}')
+                return {'gateway_id': '', 'link_pagamento': ''}
             data = resp.json()
             billing = data.get('data', data)
             return {
