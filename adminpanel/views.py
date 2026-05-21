@@ -727,42 +727,43 @@ def _criar_notificacao(tipo, titulo, mensagem):
 class GatewayConfigView(APIView):
     permission_classes = [IsStaff]
 
-    def _get_or_create_config(self):
-        from adminpanel.models import GatewayConfig
-        config = GatewayConfig.objects.order_by('-id').first()
-        if not config:
-            config = GatewayConfig.objects.create(provider='manual', ambiente='sandbox')
-        return config
-
     def get(self, request):
-        config = self._get_or_create_config()
-        return Response({
-            'id': config.id,
-            'gateway': config.provider,
-            'ambiente': config.ambiente,
-            'chave_publica': config.chave_publica,
-            'chave_secreta': config.chave_secreta,
-            'webhook_secret': config.webhook_secret,
-            'chave_secreta_salva': bool(config.chave_secreta),
-            'webhook_secret_salvo': bool(config.webhook_secret),
-            'config_extra': config.config_extra,
-            'atualizado_em': config.atualizado_em,
-        })
+        from adminpanel.models import GatewayConfig
+        active = GatewayConfig.objects.filter(ativo=True).order_by('-id').first()
+        gateway_ativo = active.provider if active else 'manual'
+
+        configs = {}
+        for provider, _ in GatewayConfig.PROVIDERS:
+            cfg = GatewayConfig.objects.filter(provider=provider).order_by('-id').first()
+            configs[provider] = {
+                'chave_publica': cfg.chave_publica if cfg else '',
+                'chave_secreta': cfg.chave_secreta if cfg else '',
+                'webhook_secret': cfg.webhook_secret if cfg else '',
+                'ambiente': cfg.ambiente if cfg else 'sandbox',
+            }
+
+        return Response({'gateway_ativo': gateway_ativo, 'configs': configs})
 
     def post(self, request):
-        config = self._get_or_create_config()
+        from adminpanel.models import GatewayConfig
         data = request.data
-        config.provider = data.get('gateway', data.get('provider', config.provider or 'manual'))
-        config.ambiente = data.get('ambiente', config.ambiente or 'sandbox')
-        config.chave_publica = data.get('chave_publica', config.chave_publica or '')
-        if data.get('chave_secreta') and data['chave_secreta'] != '***':
-            config.chave_secreta = data['chave_secreta']
-        if data.get('webhook_secret') and data['webhook_secret'] != '***':
-            config.webhook_secret = data['webhook_secret']
-        if 'config_extra' in data:
-            config.config_extra = data['config_extra']
-        config.save()
-        return Response({'ok': True, 'provider': config.provider})
+        provider = data.get('gateway', data.get('provider', 'manual'))
+
+        cfg = GatewayConfig.objects.filter(provider=provider).order_by('-id').first()
+        if not cfg:
+            cfg = GatewayConfig(provider=provider, ativo=False)
+
+        cfg.ambiente = data.get('ambiente', cfg.ambiente or 'sandbox')
+        cfg.chave_publica = data.get('chave_publica', cfg.chave_publica or '')
+        if data.get('chave_secreta'):
+            cfg.chave_secreta = data['chave_secreta']
+        if data.get('webhook_secret'):
+            cfg.webhook_secret = data['webhook_secret']
+
+        GatewayConfig.objects.exclude(provider=provider).update(ativo=False)
+        cfg.ativo = True
+        cfg.save()
+        return Response({'ok': True, 'provider': provider})
 
 
 # ── FATURAS ───────────────────────────────────────────────────────────────────
