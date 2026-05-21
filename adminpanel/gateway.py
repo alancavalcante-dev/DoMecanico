@@ -237,13 +237,19 @@ class AbacatePayAdapter(GatewayBase):
         import requests
         try:
             cnpj = (getattr(oficina, 'cnpj', '') or '').replace('.', '').replace('/', '').replace('-', '').replace(' ', '')
-            telefone = (getattr(oficina, 'telefone', '') or '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+            telefone_raw = (getattr(oficina, 'telefone', '') or '').replace(' ', '').replace('-', '').replace('(', '').replace(')', '').replace('+', '')
+            if telefone_raw.startswith('55') and len(telefone_raw) >= 12:
+                telefone = f'+{telefone_raw}'
+            elif telefone_raw:
+                telefone = f'+55{telefone_raw}'
+            else:
+                telefone = ''
 
             customer = {
                 'name': oficina.nome,
                 'email': oficina.email or 'contato@domecanico.net',
                 'taxId': cnpj or '00000000000000',
-                'cellphone': telefone or '',
+                'cellphone': telefone,
             }
 
             payload = {
