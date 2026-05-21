@@ -69,8 +69,12 @@ function PageLoader() {
 // ── Guards ────────────────────────────────────────────────────────────────────
 function AuthGuard() {
   const { user, loading } = useAuth()
+  const { pathname } = useLocation()
   if (loading) return <PageLoader />
   if (!user) return <Navigate to="/login" replace />
+  if (user.assinatura && !user.assinatura.ativa && pathname !== '/assinatura') {
+    return <Navigate to="/assinatura" replace />
+  }
   return <Layout />
 }
 
