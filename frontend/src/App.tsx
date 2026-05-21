@@ -20,6 +20,9 @@ const AcompanharOSToken = lazy(() => import('./pages/AcompanharOS').then(m => ({
 const OrcamentoPublico  = lazy(() => import('./pages/OrcamentoPublico'))
 const PerfilOficina     = lazy(() => import('./pages/PerfilOficina'))
 const AceitarConvite    = lazy(() => import('./pages/AceitarConvite'))
+const Contato           = lazy(() => import('./pages/Contato'))
+const Privacidade       = lazy(() => import('./pages/Privacidade'))
+const Termos            = lazy(() => import('./pages/Termos'))
 
 // ── Páginas da oficina ────────────────────────────────────────────────────────
 const Dashboard             = lazy(() => import('./pages/Dashboard'))
@@ -192,6 +195,9 @@ function AppRoutes() {
         <Route path="/orcamento/:token"          element={<OrcamentoPublico />} />
         <Route path="/oficina/:slug"             element={<PerfilOficina />} />
         <Route path="/aceitar-convite/:token"    element={<AceitarConvite />} />
+        <Route path="/contato"                   element={<Contato />} />
+        <Route path="/privacidade"               element={<Privacidade />} />
+        <Route path="/termos"                    element={<Termos />} />
 
         {/* Oficina (protegidas) */}
         <Route element={<AuthGuard />}>

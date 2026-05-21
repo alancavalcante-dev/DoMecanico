@@ -702,18 +702,17 @@ export default function Home() {
             <div>
               <div className="font-semibold text-sm mb-4">Produto</div>
               <div className="space-y-2">
-                {['Recursos', 'Planos', 'Acompanhar OS'].map((l) => (
-                  <div key={l}>
-                    <a href={l === 'Acompanhar OS' ? '/acompanhar' : `#${l.toLowerCase()}`} className="text-gray-500 hover:text-gray-300 text-sm transition-colors">
-                      {l}
-                    </a>
-                  </div>
-                ))}
+                <div><a href="#recursos" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Recursos</a></div>
+                <div><a href="#planos" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Planos</a></div>
+                <div><Link to="/acompanhar" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Acompanhar OS</Link></div>
+                <div><Link to="/contato" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Suporte</Link></div>
               </div>
             </div>
             <div>
-              <div className="font-semibold text-sm mb-4">Conta</div>
+              <div className="font-semibold text-sm mb-4">Legal</div>
               <div className="space-y-2">
+                <div><Link to="/privacidade" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Política de Privacidade</Link></div>
+                <div><Link to="/termos" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Termos de Uso</Link></div>
                 <div><Link to="/login" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Entrar</Link></div>
                 <div><Link to="/cadastro" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Criar conta</Link></div>
               </div>
@@ -721,9 +720,12 @@ export default function Home() {
           </div>
           <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="text-gray-600 text-xs">© {new Date().getFullYear()} DoMecânico. Todos os direitos reservados.</div>
-            <div className="flex items-center gap-2 text-gray-600 text-xs">
-              <Receipt className="w-3.5 h-3.5" />
-              CNPJ: 00.000.000/0000-00
+            <div className="flex items-center gap-4 text-gray-600 text-xs">
+              <Link to="/privacidade" className="hover:text-gray-400 transition-colors">LGPD / Privacidade</Link>
+              <span>·</span>
+              <Link to="/termos" className="hover:text-gray-400 transition-colors">Termos</Link>
+              <span>·</span>
+              <span className="flex items-center gap-1.5"><Receipt className="w-3.5 h-3.5" /> CNPJ: 00.000.000/0000-00</span>
             </div>
           </div>
         </div>
