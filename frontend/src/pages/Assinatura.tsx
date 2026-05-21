@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { authAPI } from '../api'
 import { useAuth } from '../contexts/AuthContext'
-import { CreditCard, Check, AlertTriangle, RefreshCw, ExternalLink, Loader2 } from 'lucide-react'
+import { CreditCard, Check, AlertTriangle, RefreshCw, ExternalLink, Loader2, Receipt, Copy, CheckCircle } from 'lucide-react'
 
 interface Plano {
   id: number
@@ -25,15 +25,39 @@ interface Assinatura {
   plano: Plano
 }
 
+interface Fatura {
+  id: number
+  numero: string
+  valor: string
+  status: string
+  vencimento: string
+  criado_em: string | null
+  data_pagamento: string | null
+  metodo_pagamento: string
+  link_pagamento: string
+}
+
+const STATUS_FATURA: Record<string, { label: string; cls: string }> = {
+  pendente: { label: 'Pendente', cls: 'bg-amber-500/15 text-amber-400' },
+  paga:     { label: 'Paga',     cls: 'bg-green-500/15 text-green-400' },
+  vencida:  { label: 'Vencida',  cls: 'bg-red-500/15 text-red-400' },
+  cancelada:{ label: 'Cancelada',cls: 'bg-slate-500/15 text-slate-400' },
+}
+
 export default function Assinatura() {
   const { refreshUser } = useAuth()
   const [assinatura, setAssinatura] = useState<Assinatura | null>(null)
   const [planos, setPlanos] = useState<Plano[]>([])
+  const [faturas, setFaturas] = useState<Fatura[]>([])
   const [planoSelecionado, setPlanoSelecionado] = useState('')
   const [metodo, setMetodo] = useState('cartao_credito')
   const [loading, setLoading] = useState(false)
   const [loadingLink, setLoadingLink] = useState(false)
   const [showPagar, setShowPagar] = useState(false)
+  const [linkCopiado, setLinkCopiado] = useState<number | null>(null)
+
+  const carregarFaturas = () =>
+    authAPI.minhasFaturas().then(({ data }) => setFaturas(data)).catch(() => {})
 
   useEffect(() => {
     authAPI.assinatura().then(({ data }) => {
@@ -41,7 +65,15 @@ export default function Assinatura() {
       setPlanoSelecionado(data.plano?.slug || '')
     })
     authAPI.planos().then(({ data }) => setPlanos(data))
+    carregarFaturas()
   }, [])
+
+  const copiarLink = (f: Fatura) => {
+    navigator.clipboard.writeText(f.link_pagamento).then(() => {
+      setLinkCopiado(f.id)
+      setTimeout(() => setLinkCopiado(null), 2000)
+    })
+  }
 
   const handlePagar = async () => {
     setLoading(true)
@@ -50,6 +82,7 @@ export default function Assinatura() {
       await refreshUser()
       const { data } = await authAPI.assinatura()
       setAssinatura(data)
+      carregarFaturas()
       toast.success('Pagamento aprovado! Assinatura ativa por 30 dias.')
       setShowPagar(false)
     } catch {
@@ -187,6 +220,64 @@ export default function Assinatura() {
             </div>
           )
         })}
+      </div>
+
+      {/* Histórico de faturas */}
+      <div className="mt-8">
+        <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
+          <Receipt size={17} /> Histórico de Faturas
+        </h2>
+        {faturas.length === 0 ? (
+          <p className="text-gray-600 text-sm">Nenhuma fatura encontrada.</p>
+        ) : (
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-gray-500 border-b border-gray-800 bg-gray-950/50">
+                    <th className="text-left px-4 py-3 font-medium">Nº Fatura</th>
+                    <th className="text-left px-4 py-3 font-medium">Valor</th>
+                    <th className="text-left px-4 py-3 font-medium">Status</th>
+                    <th className="text-left px-4 py-3 font-medium">Criado em</th>
+                    <th className="text-left px-4 py-3 font-medium">Vencimento</th>
+                    <th className="text-left px-4 py-3 font-medium">Pagamento</th>
+                    <th className="text-left px-4 py-3 font-medium">Link</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800">
+                  {faturas.map(f => {
+                    const badge = STATUS_FATURA[f.status] || { label: f.status, cls: 'bg-slate-500/15 text-slate-400' }
+                    const fmtDt = (d: string | null) => d ? new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+                    const fmtD = (d: string | null) => d ? new Date(d).toLocaleDateString('pt-BR') : '—'
+                    return (
+                      <tr key={f.id} className="hover:bg-gray-800/40 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs text-gray-400">{f.numero}</td>
+                        <td className="px-4 py-3 text-white font-medium">{fmt(f.valor)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge.cls}`}>{badge.label}</span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-400 text-xs">{fmtDt(f.criado_em)}</td>
+                        <td className="px-4 py-3 text-gray-400">{fmtD(f.vencimento)}</td>
+                        <td className="px-4 py-3 text-gray-400 text-xs">
+                          {f.data_pagamento ? fmtDt(f.data_pagamento) : '—'}
+                          {f.metodo_pagamento && <span className="ml-1 text-gray-600">({f.metodo_pagamento})</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {f.link_pagamento && f.status === 'pendente' ? (
+                            <button onClick={() => copiarLink(f)} className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
+                              {linkCopiado === f.id ? <CheckCircle size={12} className="text-green-400" /> : <Copy size={12} />}
+                              {linkCopiado === f.id ? 'Copiado' : 'Copiar link'}
+                            </button>
+                          ) : <span className="text-gray-700 text-xs">—</span>}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modal pagamento */}

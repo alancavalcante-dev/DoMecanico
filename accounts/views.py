@@ -364,6 +364,28 @@ def trocar_plano(request):
     })
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def minhas_faturas(request):
+    from adminpanel.models import Fatura
+    try:
+        assinatura = request.user.membro.oficina.assinatura
+    except Exception:
+        return Response([])
+    faturas = Fatura.objects.filter(assinatura=assinatura).order_by('-criado_em')
+    return Response([{
+        'id': f.id,
+        'numero': f.numero,
+        'valor': str(f.valor),
+        'status': f.status,
+        'vencimento': str(f.vencimento),
+        'criado_em': f.criado_em.isoformat() if f.criado_em else None,
+        'data_pagamento': f.data_pagamento.isoformat() if f.data_pagamento else None,
+        'metodo_pagamento': f.metodo_pagamento or '',
+        'link_pagamento': f.link_pagamento or '',
+    } for f in faturas])
+
+
 # ── Membros / Equipe ──────────────────────────────────────────────────────────
 
 def _gerar_senha():
