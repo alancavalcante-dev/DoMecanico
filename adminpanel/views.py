@@ -880,16 +880,27 @@ class WebhookGatewayView(APIView):
 
     def post(self, request):
         import logging as _logging
+        import json as _json
         _log = _logging.getLogger(__name__)
-        _log.info(f'WEBHOOK recebido — provider ativo: {request.data}')
 
         from adminpanel.gateway import get_gateway
         from adminpanel.models import Fatura, Pagamento
 
-        LogAtividade.objects.create(
-            nivel='info', categoria='pagamento',
-            mensagem=f'Webhook recebido: {str(request.data)[:500]}',
-        )
+        # Parse manual do body para garantir dict puro mesmo sem Content-Type correto
+        try:
+            payload = _json.loads(request.body.decode('utf-8'))
+        except Exception:
+            payload = dict(request.data) if request.data else {}
+
+        try:
+            LogAtividade.objects.create(
+                nivel='info', categoria='pagamento',
+                mensagem=f'Webhook recebido: {str(payload)[:500]}',
+            )
+        except Exception:
+            pass
+
+        _log.info(f'WEBHOOK payload: {payload}')
 
         gw = get_gateway()
 
@@ -900,12 +911,12 @@ class WebhookGatewayView(APIView):
             )
             return Response({'erro': 'Assinatura inválida'}, status=400)
 
-        resultado = gw.processar_webhook(request.data, request.META)
-        _log.info(f'WEBHOOK processado — resultado: {resultado}')
+        resultado = gw.processar_webhook(payload, request.META)
+        _log.info(f'WEBHOOK resultado: {resultado}')
         if not resultado:
             LogAtividade.objects.create(
                 nivel='aviso', categoria='pagamento',
-                mensagem=f'Webhook sem resultado processável. Evento: {request.data.get("event", "?")}',
+                mensagem=f'Webhook sem resultado processável. Evento: {payload.get("event", "?")}',
             )
             return Response({'ok': True})
 
@@ -927,7 +938,7 @@ class WebhookGatewayView(APIView):
                 metodo=resultado.get('metodo', ''),
                 gateway_id=resultado.get('gateway_id', ''),
                 gateway_provider=gw.config.provider,
-                dados_gateway=request.data,
+                dados_gateway=payload,
             )
             fatura.status = 'paga'
             fatura.data_pagamento = timezone.now()
