@@ -243,9 +243,8 @@ class AbacatePayAdapter(GatewayBase):
                 'name': oficina.nome,
                 'email': oficina.email or 'contato@domecanico.net',
                 'taxId': cnpj or '00000000000000',
+                'cellphone': telefone or '',
             }
-            if telefone:
-                customer['cellphone'] = telefone
 
             payload = {
                 'frequency': 'ONE_TIME',
