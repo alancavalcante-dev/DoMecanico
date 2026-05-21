@@ -294,39 +294,52 @@ class AbacatePayAdapter(GatewayBase):
     def processar_webhook(self, payload, headers):
         event = payload.get('event', '')
         data = payload.get('data', {})
+        # AbacatePay v1 aninha os dados em data.billing e data.payment
+        billing = data.get('billing', data)
+        payment = data.get('payment', {})
+
         if event == 'billing.paid':
+            valor_centavos = payment.get('amount') or billing.get('paidAmount') or 0
             return {
-                'gateway_id': data.get('id', ''),
+                'gateway_id': billing.get('id', ''),
                 'status': 'pago',
-                'valor': Decimal(str(data.get('paidAmount', 0) / 100)),
-                'metodo': 'PIX',
-                'fatura_numero': (data.get('metadata') or {}).get('fatura_numero')
-                                 or data.get('externalId', ''),
+                'valor': Decimal(str(valor_centavos / 100)),
+                'metodo': payment.get('method', 'PIX'),
+                'fatura_numero': billing.get('externalId', '')
+                                 or (billing.get('metadata') or {}).get('fatura_numero', ''),
             }
         if event in ('billing.cancelled', 'billing.expired'):
             return {
-                'gateway_id': data.get('id', ''),
+                'gateway_id': billing.get('id', ''),
                 'status': 'cancelado',
-                'fatura_numero': (data.get('metadata') or {}).get('fatura_numero')
-                                 or data.get('externalId', ''),
+                'fatura_numero': billing.get('externalId', '')
+                                 or (billing.get('metadata') or {}).get('fatura_numero', ''),
             }
         return {}
 
     def verificar_assinatura_webhook(self, payload_raw: bytes, headers: dict) -> bool:
+        # AbacatePay v1 não documenta header de assinatura HMAC padrão;
+        # só verificamos se o webhook_secret estiver configurado E o header chegar.
         webhook_secret = self.config.webhook_secret
         if not webhook_secret:
             return True
-        import hmac
+        import hmac as _hmac
         import hashlib
         import base64
-        sig_header = headers.get('HTTP_X_WEBHOOK_SIGNATURE', '')
+        # Aceita qualquer um dos headers que o AbacatePay pode enviar
+        sig_header = (
+            headers.get('HTTP_X_WEBHOOK_SIGNATURE')
+            or headers.get('HTTP_X_ABACATEPAY_SIGNATURE')
+            or headers.get('HTTP_X_HMAC_SIGNATURE')
+            or ''
+        )
         if not sig_header:
-            return True
+            return True  # sem header = sandbox/dev sem assinatura, permite
         try:
             expected = base64.b64encode(
-                hmac.new(webhook_secret.encode(), payload_raw, hashlib.sha256).digest()
+                _hmac.new(webhook_secret.encode(), payload_raw, hashlib.sha256).digest()
             ).decode()
-            return hmac.compare_digest(expected, sig_header)
+            return _hmac.compare_digest(expected, sig_header)
         except Exception:
             return False
 
