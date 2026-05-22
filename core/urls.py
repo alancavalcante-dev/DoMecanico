@@ -9,23 +9,17 @@ import redis as redis_lib
 
 
 def health_check(request):
-    status = {'status': 'ok', 'db': 'ok', 'redis': 'ok'}
-    http_status = 200
     try:
         connection.ensure_connection()
     except Exception:
-        status['db'] = 'error'
-        status['status'] = 'degraded'
-        http_status = 503
+        return JsonResponse({'status': 'degraded'}, status=503)
     redis_url = env_config('REDIS_URL', default='redis://redis:6379/0')
     try:
         r = redis_lib.from_url(redis_url, socket_connect_timeout=2)
         r.ping()
     except Exception:
-        status['redis'] = 'error'
-        status['status'] = 'degraded'
-        http_status = 503
-    return JsonResponse(status, status=http_status)
+        return JsonResponse({'status': 'degraded'}, status=503)
+    return JsonResponse({'status': 'ok'})
 
 
 urlpatterns = [

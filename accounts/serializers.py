@@ -148,7 +148,7 @@ class MembroOficinaSerializer(serializers.ModelSerializer):
         try:
             return obj.permissoes.modulos
         except Exception:
-            return [m[0] for m in MODULOS]  # fallback: tudo liberado
+            return []
 
 
 class ModulosDisponivelSerializer(serializers.Serializer):

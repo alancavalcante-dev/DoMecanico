@@ -3,9 +3,14 @@ from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from rest_framework import viewsets, status
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
+
+
+class OSPublicaBuscarThrottle(AnonRateThrottle):
+    rate = '5/minute'
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import cm
@@ -38,6 +43,20 @@ from .serializers import (
 
 def get_oficina(request):
     return request.user.membro.oficina
+
+
+def _validar_imagem(arquivo, formatos_permitidos=('JPEG', 'PNG', 'WEBP', 'GIF')):
+    """Verifica os bytes reais do arquivo — rejeita arquivos que não sejam imagens válidas."""
+    from PIL import Image
+    try:
+        arquivo.seek(0)
+        img = Image.open(io.BytesIO(arquivo.read(2048)))
+        if img.format not in formatos_permitidos:
+            return False
+        arquivo.seek(0)
+        return True
+    except Exception:
+        return False
 
 
 class ClienteViewSet(viewsets.ModelViewSet):
@@ -95,14 +114,13 @@ class VeiculoViewSet(viewsets.ModelViewSet):
         fotos = request.FILES.getlist('fotos')
         if not fotos:
             return Response({'erro': 'Nenhuma foto enviada.'}, status=status.HTTP_400_BAD_REQUEST)
-        ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
         MAX_SIZE = 10 * 1024 * 1024  # 10 MB
         criadas = []
         for foto in fotos:
-            if foto.content_type not in ALLOWED_TYPES:
-                return Response({'erro': f'Tipo de arquivo não permitido: {foto.content_type}.'}, status=status.HTTP_400_BAD_REQUEST)
             if foto.size > MAX_SIZE:
                 return Response({'erro': 'Arquivo muito grande. Limite: 10 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+            if not _validar_imagem(foto):
+                return Response({'erro': 'Arquivo inválido. Envie uma imagem JPEG, PNG, WebP ou GIF.'}, status=status.HTTP_400_BAD_REQUEST)
             obj = FotoVeiculo.objects.create(veiculo=veiculo, foto=foto, descricao=request.data.get('descricao', ''))
             criadas.append(FotoVeiculoSerializer(obj, context={'request': request}).data)
         return Response(criadas, status=status.HTTP_201_CREATED)
@@ -1153,12 +1171,11 @@ class ChecklistViewSet(viewsets.ModelViewSet):
         foto = request.FILES.get('foto')
         if not foto:
             return Response({'erro': 'Nenhuma foto enviada.'}, status=status.HTTP_400_BAD_REQUEST)
-        ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp', 'image/gif'}
         MAX_SIZE = 10 * 1024 * 1024  # 10 MB
-        if foto.content_type not in ALLOWED_TYPES:
-            return Response({'erro': f'Tipo de arquivo não permitido: {foto.content_type}.'}, status=status.HTTP_400_BAD_REQUEST)
         if foto.size > MAX_SIZE:
             return Response({'erro': 'Arquivo muito grande. Limite: 10 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not _validar_imagem(foto):
+            return Response({'erro': 'Arquivo inválido. Envie uma imagem JPEG, PNG, WebP ou GIF.'}, status=status.HTTP_400_BAD_REQUEST)
         if dano.foto:
             dano.foto.delete()
         dano.foto = foto
@@ -1363,6 +1380,7 @@ def os_publica_por_token(request, token):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([OSPublicaBuscarThrottle])
 def os_publica_buscar(request):
     """Busca OS pelo número (ou placa) + CPF/CNPJ do cliente."""
     import re

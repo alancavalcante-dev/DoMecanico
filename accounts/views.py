@@ -1,5 +1,7 @@
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from datetime import timedelta
 from rest_framework import status
@@ -29,6 +31,21 @@ def _gerar_instance_name(oficina):
     sem_acento = ''.join(c for c in normalizado if not unicodedata.combining(c))
     slug = re.sub(r'[^a-z0-9]', '', sem_acento.lower())
     return f"{slug}-{oficina.id}"
+
+
+def _validar_imagem(arquivo):
+    """Verifica os bytes reais do arquivo — rejeita arquivos que não sejam imagens válidas."""
+    from PIL import Image
+    import io
+    try:
+        arquivo.seek(0)
+        img = Image.open(io.BytesIO(arquivo.read(2048)))
+        if img.format not in ('JPEG', 'PNG', 'WEBP', 'GIF'):
+            return False
+        arquivo.seek(0)
+        return True
+    except Exception:
+        return False
 
 
 def _evolution_url_global():
@@ -216,8 +233,10 @@ def alterar_senha(request):
     nova_senha = request.data.get('nova_senha', '')
     if not senha_atual or not nova_senha:
         return Response({'erro': 'Preencha a senha atual e a nova senha.'}, status=status.HTTP_400_BAD_REQUEST)
-    if len(nova_senha) < 6:
-        return Response({'erro': 'A nova senha deve ter pelo menos 6 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        validate_password(nova_senha, request.user)
+    except DjangoValidationError as e:
+        return Response({'erro': ' '.join(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
     user = authenticate(username=request.user.username, password=senha_atual)
     if not user:
         return Response({'erro': 'Senha atual incorreta.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -397,26 +416,10 @@ def cancelar_minha_fatura(request, fatura_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def trocar_plano(request):
-    plano_slug = request.data.get('plano_slug')
-    try:
-        plano = Plano.objects.get(slug=plano_slug)
-    except Plano.DoesNotExist:
-        return Response({'erro': 'Plano inválido.'}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        assinatura = request.user.membro.oficina.assinatura
-    except Exception:
-        return Response({'erro': 'Assinatura não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
-
-    plano_anterior = assinatura.plano.nome
-    assinatura.plano = plano
-    assinatura.save()
-
-    return Response({
-        'sucesso': True,
-        'mensagem': f'Plano alterado de {plano_anterior} para {plano.nome}.',
-        'assinatura': AssinaturaSerializer(assinatura).data,
-    })
+    return Response(
+        {'erro': 'Troca de plano deve ser realizada pelo painel administrativo.'},
+        status=status.HTTP_403_FORBIDDEN,
+    )
 
 
 @api_view(['GET'])
@@ -552,8 +555,10 @@ def aceitar_convite(request, token):
     senha = request.data.get('senha', '').strip()
     if not nome or not senha:
         return Response({'erro': 'Nome e senha são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
-    if len(senha) < 6:
-        return Response({'erro': 'A senha deve ter pelo menos 6 caracteres.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        validate_password(senha)
+    except DjangoValidationError as e:
+        return Response({'erro': ' '.join(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
     if User.objects.filter(email=convite.email).exists():
         return Response({'erro': 'Este e-mail já está cadastrado.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -747,12 +752,11 @@ def upload_logo_oficina(request):
     if not logo:
         return Response({'erro': 'Nenhuma imagem enviada.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    ALLOWED_TYPES = {'image/jpeg', 'image/png', 'image/webp'}
     MAX_SIZE = 2 * 1024 * 1024  # 2 MB
-    if logo.content_type not in ALLOWED_TYPES:
-        return Response({'erro': f'Tipo de arquivo não permitido: {logo.content_type}. Use JPEG, PNG ou WebP.'}, status=status.HTTP_400_BAD_REQUEST)
     if logo.size > MAX_SIZE:
         return Response({'erro': 'Imagem muito grande. Limite: 2 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not _validar_imagem(logo):
+        return Response({'erro': 'Arquivo inválido. Envie uma imagem JPEG, PNG ou WebP.'}, status=status.HTTP_400_BAD_REQUEST)
 
     if oficina.logo:
         oficina.logo.delete(save=False)
