@@ -190,6 +190,7 @@ REST_FRAMEWORK = {
         'anon': '60/minute',
         'user': '300/minute',
         'login': '5/minute',
+        'esqueci_senha': '5/hour',
     },
 }
 

@@ -65,10 +65,16 @@ export default function Login() {
             </div>
           </div>
 
+          <div className="flex justify-end mt-2">
+            <Link to="/esqueci-senha" className="text-sm text-gray-500 hover:text-blue-400 transition-colors">
+              Esqueceu a senha?
+            </Link>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-3 transition"
+            className="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-lg px-4 py-3 transition"
           >
             {loading ? 'Entrando...' : 'Entrar'}
           </button>

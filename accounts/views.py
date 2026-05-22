@@ -9,6 +9,11 @@ from rest_framework.decorators import api_view, permission_classes, throttle_cla
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
+
+
+class EsqueciSenhaThrottle(AnonRateThrottle):
+    rate = '5/hour'
+    scope = 'esqueci_senha'
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -1042,3 +1047,124 @@ def perfil_configurar(request):
         'perfil_publico_ativo': oficina.perfil_publico_ativo,
         'cor_primaria': oficina.cor_primaria,
     })
+
+
+# ── Esqueci minha senha ───────────────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([EsqueciSenhaThrottle])
+def esqueci_senha(request):
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.http import urlsafe_base64_encode
+    from django.utils.encoding import force_bytes
+
+    email = request.data.get('email', '').strip().lower()
+    if not email:
+        return Response({'erro': 'Informe o e-mail.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        user = User.objects.get(email__iexact=email)
+    except User.DoesNotExist:
+        return Response({'ok': True})
+
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    link = f'https://domecanico.net/redefinir-senha/{uid}/{token}/'
+
+    user_email = user.email
+    user_nome = user.first_name or user.email
+
+    def _enviar():
+        from .email_assinatura import _get_connection
+        from django.core.mail import EmailMultiAlternatives
+        conn, from_email = _get_connection()
+        if not conn:
+            return
+        html = f'''<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0"
+        style="background:#ffffff;border-radius:12px;overflow:hidden;max-width:600px;width:100%">
+        <tr><td style="background:#2563eb;padding:28px 32px">
+          <h1 style="margin:0;color:#ffffff;font-size:22px">Redefinição de senha</h1>
+        </td></tr>
+        <tr><td style="padding:28px 32px">
+          <p style="margin:0 0 16px;color:#374151;font-size:15px">
+            Olá, <strong>{user_nome}</strong>!
+          </p>
+          <p style="margin:0 0 24px;color:#374151;font-size:15px">
+            Recebemos uma solicitação para redefinir a senha da sua conta DoMecânico.
+            Clique no botão abaixo para criar uma nova senha. O link é válido por <strong>1 hora</strong>.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center">
+              <a href="{link}"
+                style="display:inline-block;background:#2563eb;color:#ffffff;font-weight:700;
+                       font-size:15px;padding:14px 36px;border-radius:8px;text-decoration:none">
+                Redefinir senha →
+              </a>
+            </td></tr>
+          </table>
+          <p style="margin:24px 0 0;font-size:13px;color:#9ca3af;text-align:center">
+            Se você não solicitou a redefinição, ignore este e-mail. Sua senha não será alterada.
+          </p>
+        </td></tr>
+        <tr><td style="padding:16px 32px;background:#f9fafb;border-top:1px solid #e5e7eb">
+          <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">
+            DoMecânico &bull; Este e-mail foi gerado automaticamente. Não responda.
+          </p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>'''
+        try:
+            msg = EmailMultiAlternatives(
+                subject='Redefinição de senha — DoMecânico',
+                body=f'Acesse o link para redefinir sua senha (válido por 1 hora):\n{link}',
+                from_email=from_email,
+                to=[user_email],
+                connection=conn,
+            )
+            msg.attach_alternative(html, 'text/html')
+            msg.send()
+        except Exception:
+            pass
+
+    import threading
+    threading.Thread(target=_enviar, daemon=True).start()
+
+    return Response({'ok': True})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def redefinir_senha(request, uidb64, token):
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.http import urlsafe_base64_decode
+    from django.utils.encoding import force_str
+
+    nova_senha = request.data.get('nova_senha', '')
+    if not nova_senha:
+        return Response({'erro': 'Informe a nova senha.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except Exception:
+        return Response({'erro': 'Link inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not default_token_generator.check_token(user, token):
+        return Response({'erro': 'Link inválido ou expirado. Solicite um novo.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        validate_password(nova_senha, user)
+    except DjangoValidationError as e:
+        return Response({'erro': ' '.join(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.set_password(nova_senha)
+    user.save()
+    return Response({'ok': True})

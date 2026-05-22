@@ -23,6 +23,8 @@ const AceitarConvite    = lazy(() => import('./pages/AceitarConvite'))
 const Contato           = lazy(() => import('./pages/Contato'))
 const Privacidade       = lazy(() => import('./pages/Privacidade'))
 const Termos            = lazy(() => import('./pages/Termos'))
+const EsqueciSenha      = lazy(() => import('./pages/EsqueciSenha'))
+const RedefinirSenha    = lazy(() => import('./pages/RedefinirSenha'))
 
 // ── Páginas da oficina ────────────────────────────────────────────────────────
 const Dashboard             = lazy(() => import('./pages/Dashboard'))
@@ -198,6 +200,8 @@ function AppRoutes() {
         <Route path="/contato"                   element={<Contato />} />
         <Route path="/privacidade"               element={<Privacidade />} />
         <Route path="/termos"                    element={<Termos />} />
+        <Route path="/esqueci-senha"             element={<EsqueciSenha />} />
+        <Route path="/redefinir-senha/:uidb64/:token" element={<RedefinirSenha />} />
 
         {/* Oficina (protegidas) */}
         <Route element={<AuthGuard />}>

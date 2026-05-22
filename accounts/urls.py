@@ -36,6 +36,9 @@ urlpatterns = [
     # Convite de membros
     path('convite/<str:token>/', views.info_convite),
     path('convite/<str:token>/aceitar/', views.aceitar_convite),
+    # Recuperação de senha
+    path('esqueci-senha/', views.esqueci_senha),
+    path('redefinir-senha/<str:uidb64>/<str:token>/', views.redefinir_senha),
     # Perfil público
     path('perfil-configurar/', views.perfil_configurar),
     path('perfil/<slug:slug>/', views.perfil_publico),
