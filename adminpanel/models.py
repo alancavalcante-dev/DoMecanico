@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.cache import cache
 
 
 class ConfiguracaoEmail(models.Model):
@@ -179,8 +180,15 @@ class ConfiguracaoSistema(models.Model):
 
     @classmethod
     def get(cls):
-        obj, _ = cls.objects.get_or_create(pk=1)
+        obj = cache.get('config_sistema')
+        if obj is None:
+            obj, _ = cls.objects.get_or_create(pk=1)
+            cache.set('config_sistema', obj, 300)
         return obj
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        cache.delete('config_sistema')
 
 
 class Pagamento(models.Model):

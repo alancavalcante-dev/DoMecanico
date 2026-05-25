@@ -25,6 +25,11 @@ class Plano(models.Model):
     def __str__(self):
         return self.nome
 
+    def save(self, *args, **kwargs):
+        from django.core.cache import cache
+        super().save(*args, **kwargs)
+        cache.delete('planos_ativos')
+
 
 class Oficina(models.Model):
     nome = models.CharField(max_length=200)

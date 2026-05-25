@@ -139,8 +139,13 @@ def logout_view(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def listar_planos(request):
-    planos = Plano.objects.all()
-    return Response(PlanoSerializer(planos, many=True).data)
+    from django.core.cache import cache
+    cached = cache.get('planos_ativos')
+    if cached is not None:
+        return Response(cached)
+    data = PlanoSerializer(Plano.objects.all(), many=True).data
+    cache.set('planos_ativos', data, 300)
+    return Response(data)
 
 
 @api_view(['POST'])
