@@ -206,11 +206,11 @@ export default function Cadastro() {
                 <input
                   required
                   type="password"
-                  minLength={6}
+                  minLength={8}
                   value={form.senha}
                   onChange={(e) => set('senha', e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres"
                 />
               </div>
             </div>

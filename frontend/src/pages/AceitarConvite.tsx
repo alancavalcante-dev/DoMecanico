@@ -97,15 +97,15 @@ export default function AceitarConvite() {
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Senha *</label>
-                <input type="password" required minLength={6} value={form.senha}
+                <input type="password" required minLength={8} value={form.senha}
                   onChange={e => setForm(p => ({ ...p, senha: e.target.value }))}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres"
                   className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Confirmar senha *</label>
-                <input type="password" required minLength={6} value={form.confirmarSenha}
+                <input type="password" required minLength={8} value={form.confirmarSenha}
                   onChange={e => setForm(p => ({ ...p, confirmarSenha: e.target.value }))}
                   placeholder="Repita a senha"
                   className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />

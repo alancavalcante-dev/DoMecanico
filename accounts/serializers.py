@@ -20,7 +20,7 @@ class RegistroSerializer(serializers.Serializer):
     # Usuário admin
     nome = serializers.CharField(max_length=150)
     email = serializers.EmailField()
-    senha = serializers.CharField(min_length=6, write_only=True)
+    senha = serializers.CharField(min_length=8, write_only=True)
     # Plano
     plano_slug = serializers.CharField(max_length=20)
 

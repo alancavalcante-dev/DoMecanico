@@ -8,10 +8,10 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
+from core.throttles import PublicWriteThrottle, RegistroThrottle
 
 
-class EsqueciSenhaThrottle(AnonRateThrottle):
+class EsqueciSenhaThrottle(PublicWriteThrottle):
     rate = '5/hour'
     scope = 'esqueci_senha'
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -145,6 +145,7 @@ def listar_planos(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([RegistroThrottle])
 def registrar(request):
     from adminpanel.models import ConfiguracaoSistema
     cfg = ConfiguracaoSistema.get()
@@ -358,10 +359,12 @@ def simular_pagamento(request):
     except Exception:
         return Response({'erro': 'Assinatura não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Simula aprovação do pagamento (sempre aprova)
+    # Estende a partir do fim atual (se ainda válida) ou de agora
+    agora = timezone.now()
+    base = assinatura.data_fim if assinatura.data_fim and assinatura.data_fim > agora else agora
     assinatura.plano = plano
     assinatura.status = 'ativa'
-    assinatura.data_fim = timezone.now() + timedelta(days=30)
+    assinatura.data_fim = base + timedelta(days=30)
     assinatura.save()
 
     PagamentoSimulado.objects.create(
@@ -369,7 +372,7 @@ def simular_pagamento(request):
         valor=plano.preco,
         status='aprovado',
         metodo=metodo,
-        referencia=f'SIM-{timezone.now().strftime("%Y%m%d%H%M%S")}',
+        referencia=f'SIM-{agora.strftime("%Y%m%d%H%M%S")}',
     )
 
     return Response({
@@ -1035,6 +1038,7 @@ def perfil_publico(request, slug):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicWriteThrottle])
 def agendar_publico(request, slug):
     try:
         oficina = Oficina.objects.get(slug_publico=slug)

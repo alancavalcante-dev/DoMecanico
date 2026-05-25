@@ -7,11 +7,11 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle
+from core.throttles import PublicReadThrottle, PublicWriteThrottle
 
 
-class OSPublicaBuscarThrottle(AnonRateThrottle):
-    rate = '5/minute'
+class OSPublicaBuscarThrottle(PublicWriteThrottle):
+    rate = '5/minute'  # mais restritivo para busca de dados
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import cm
@@ -128,8 +128,9 @@ class VeiculoViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['delete'], url_path='foto/(?P<foto_id>[^/.]+)')
     def deletar_foto(self, request, pk=None, foto_id=None):
+        oficina = get_oficina(request)
         try:
-            foto = FotoVeiculo.objects.get(id=foto_id, veiculo_id=pk)
+            foto = FotoVeiculo.objects.get(id=foto_id, veiculo_id=pk, veiculo__oficina=oficina)
             foto.foto.delete()
             foto.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -466,17 +467,32 @@ def dashboard_stats(request):
     )
     por_status = {s[0]: status_counts.get(s[0], 0) for s in OrdemServico.STATUS_CHOICES}
 
+    # Busca todas OS concluídas dos últimos 6 meses de uma vez (3 queries: OS + prefetch servicos + pecas)
+    from collections import defaultdict
+    seis_meses_atras = (hoje - timedelta(days=30 * 5)).replace(day=1, hour=0, minute=0, second=0)
+    os_6meses = (
+        OrdemServico.objects
+        .filter(oficina=oficina, data_entrada__gte=seis_meses_atras, status='concluida')
+        .prefetch_related('servicos', 'pecas_usadas')
+        .only('id', 'data_entrada', 'desconto')
+    )
+    meses_fat: dict = defaultdict(lambda: {'faturamento': 0.0, 'ordens': 0})
+    for os in os_6meses:
+        chave = os.data_entrada.strftime('%Y-%m')
+        srv = sum(float(s.quantidade * s.preco_unitario) for s in os.servicos.all())
+        pec = sum(float(p.quantidade * p.preco_unitario) for p in os.pecas_usadas.all())
+        meses_fat[chave]['faturamento'] += srv + pec - float(os.desconto or 0)
+        meses_fat[chave]['ordens'] += 1
+
     faturamento_mensal = []
     for i in range(5, -1, -1):
         mes_inicio = (hoje - timedelta(days=30 * i)).replace(day=1, hour=0, minute=0, second=0)
-        mes_fim = (hoje - timedelta(days=30 * (i - 1))).replace(day=1, hour=0, minute=0, second=0) if i > 0 else hoje
-        os_mes = OrdemServico.objects.filter(
-            oficina=oficina, data_entrada__gte=mes_inicio, data_entrada__lt=mes_fim, status='concluida'
-        )
+        chave = mes_inicio.strftime('%Y-%m')
+        dados = meses_fat.get(chave, {'faturamento': 0.0, 'ordens': 0})
         faturamento_mensal.append({
             'mes': mes_inicio.strftime('%b/%y'),
-            'faturamento': calc_fat(os_mes),
-            'ordens': os_mes.count(),
+            'faturamento': dados['faturamento'],
+            'ordens': dados['ordens'],
         })
 
     return JsonResponse({
@@ -1216,6 +1232,7 @@ class ChecklistViewSet(viewsets.ModelViewSet):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicReadThrottle])
 def checklist_publico(request, token):
     """Rota pública — o cliente acessa via link para ver e assinar o checklist."""
     try:
@@ -1229,6 +1246,7 @@ def checklist_publico(request, token):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicWriteThrottle])
 def checklist_assinar_publico(request, token):
     """Rota pública — cliente assina digitalmente."""
     try:
@@ -1377,6 +1395,7 @@ def _gerar_pdf_checklist(checklist):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicReadThrottle])
 def os_publica_por_token(request, token):
     """Retorna os dados públicos de uma OS via token único."""
     try:
@@ -1430,6 +1449,7 @@ def os_publica_buscar(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicReadThrottle])
 def os_publica_por_placa_oficina(request, slug):
     """Busca OS por placa e/ou CPF dentro de uma oficina específica (mini-site público)."""
     import re
@@ -1618,6 +1638,7 @@ class OrcamentoViewSet(viewsets.ModelViewSet):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicReadThrottle])
 def orcamento_publico(request, token):
     try:
         orc = Orcamento.objects.select_related(
@@ -1630,6 +1651,7 @@ def orcamento_publico(request, token):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([PublicWriteThrottle])
 def orcamento_responder(request, token):
     try:
         orc = Orcamento.objects.get(token_publico=token, status='pendente')

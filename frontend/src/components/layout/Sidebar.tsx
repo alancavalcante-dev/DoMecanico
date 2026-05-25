@@ -111,9 +111,9 @@ function ModalSenha({ onClose }: { onClose: () => void }) {
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Nova senha *</label>
-            <input required type="password" minLength={6} value={form.nova_senha}
+            <input required type="password" minLength={8} value={form.nova_senha}
               onChange={e => setForm(p => ({ ...p, nova_senha: e.target.value }))}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres"
               className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <div>
