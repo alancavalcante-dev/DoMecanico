@@ -39,6 +39,8 @@ urlpatterns = [
     # Recuperação de senha
     path('esqueci-senha/', views.esqueci_senha),
     path('redefinir-senha/<str:uidb64>/<str:token>/', views.redefinir_senha),
+    # Erros do frontend
+    path('client-error/', views.client_error),
     # Perfil público
     path('perfil-configurar/', views.perfil_configurar),
     path('perfil/<slug:slug>/', views.perfil_publico),

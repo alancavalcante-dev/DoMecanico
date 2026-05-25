@@ -1049,6 +1049,20 @@ def perfil_configurar(request):
     })
 
 
+# ── Erros do cliente (frontend) ──────────────────────────────────────────────
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def client_error(request):
+    import logging
+    logger = logging.getLogger('performance')
+    msg = request.data.get('message', '')
+    stack = request.data.get('stack', '')
+    url = request.data.get('url', '')
+    logger.error('FRONTEND_ERROR %s | %s | stack: %s', url, msg, stack[:500])
+    return Response({'ok': True})
+
+
 # ── Esqueci minha senha ───────────────────────────────────────────────────────
 
 @api_view(['POST'])

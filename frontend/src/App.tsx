@@ -9,6 +9,7 @@ import { useAuth } from './contexts/AuthContext'
 import { useAdminAuth } from './contexts/AdminAuthContext'
 import Layout from './components/layout/Layout'
 import AdminLayout from './components/admin/AdminLayout'
+import ErrorBoundary from './components/ErrorBoundary'
 
 // ── Páginas públicas ──────────────────────────────────────────────────────────
 const Home              = lazy(() => import('./pages/Home'))
@@ -249,13 +250,15 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AdminAuthProvider>
-        <AuthProvider>
-          <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
-          <AppRoutes />
-        </AuthProvider>
-      </AdminAuthProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AdminAuthProvider>
+          <AuthProvider>
+            <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+            <AppRoutes />
+          </AuthProvider>
+        </AdminAuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
