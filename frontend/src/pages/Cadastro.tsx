@@ -46,8 +46,7 @@ export default function Cadastro() {
     setLoading(true)
     try {
       const { data } = await authAPI.registrar({ ...form, plano_slug: planoSlug })
-      localStorage.setItem('access_token', data.tokens.access)
-      localStorage.setItem('refresh_token', data.tokens.refresh)
+      // Cookies httpOnly são setados pelo backend — basta navegar
       toast.success(data.mensagem)
       navigate('/dashboard')
     } catch (err: unknown) {

@@ -24,8 +24,8 @@ export default function AdminLayout() {
   const { admin, logout, notifNaoLidas } = useAdminAuth()
   const navigate = useNavigate()
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/admin-panel/login')
   }
 

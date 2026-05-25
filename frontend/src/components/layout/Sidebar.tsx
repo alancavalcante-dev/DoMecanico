@@ -196,7 +196,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const navigate = useNavigate()
   const [modalSenha, setModalSenha] = useState(false)
 
-  const handleLogout = () => { logout(); navigate('/login') }
+  const handleLogout = () => { logout().then(() => navigate('/login')) }
 
   const trial = user?.assinatura?.status === 'trial'
   const diasTrial = user?.assinatura?.dias_trial_restantes ?? 0

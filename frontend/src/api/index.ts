@@ -4,12 +4,7 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
-})
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
+  withCredentials: true,  // envia cookies httpOnly automaticamente
 })
 
 api.interceptors.response.use(
@@ -18,18 +13,11 @@ api.interceptors.response.use(
     const original = error.config
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
-      const refresh = localStorage.getItem('refresh_token')
-      if (refresh) {
-        try {
-          const { data } = await axios.post('/api/auth/token/refresh/', { refresh })
-          localStorage.setItem('access_token', data.access)
-          original.headers.Authorization = `Bearer ${data.access}`
-          return api(original)
-        } catch {
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
-          window.location.href = '/login'
-        }
+      try {
+        await axios.post('/api/auth/token/refresh/', {}, { withCredentials: true })
+        return api(original)
+      } catch {
+        window.location.href = '/login'
       }
     }
     return Promise.reject(error)
@@ -38,16 +26,11 @@ api.interceptors.response.use(
 
 export default api
 
-// ── API exclusiva para o painel admin (token isolado) ────────────────────────
+// ── API exclusiva para o painel admin (cookie isolado) ────────────────────────
 const adminApi = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
-})
-
-adminApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('admin_access_token')
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
+  withCredentials: true,
 })
 
 adminApi.interceptors.response.use(
@@ -56,18 +39,11 @@ adminApi.interceptors.response.use(
     const original = error.config
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
-      const refresh = localStorage.getItem('admin_refresh_token')
-      if (refresh) {
-        try {
-          const { data } = await axios.post('/api/auth/token/refresh/', { refresh })
-          localStorage.setItem('admin_access_token', data.access)
-          original.headers.Authorization = `Bearer ${data.access}`
-          return adminApi(original)
-        } catch {
-          localStorage.removeItem('admin_access_token')
-          localStorage.removeItem('admin_refresh_token')
-          window.location.href = '/admin-panel/login'
-        }
+      try {
+        await axios.post('/api/auth/token/refresh/', { admin: true }, { withCredentials: true })
+        return adminApi(original)
+      } catch {
+        window.location.href = '/admin-panel/login'
       }
     }
     return Promise.reject(error)
@@ -79,6 +55,7 @@ export const authAPI = {
   planos: () => api.get('/auth/planos/'),
   registrar: (data: object) => api.post('/auth/registrar/', data),
   login: (data: object) => api.post('/auth/login/', data),
+  logout: () => api.post('/auth/logout/'),
   me: () => api.get('/auth/me/'),
   assinatura: () => api.get('/auth/assinatura/'),
   pagar: (data: object) => api.post('/auth/assinatura/pagar/', data),

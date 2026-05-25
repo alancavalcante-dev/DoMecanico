@@ -27,15 +27,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [notifNaoLidas, setNotifNaoLidas] = useState(0)
 
   const carregarAdmin = async () => {
-    const token = localStorage.getItem('admin_access_token')
-    if (!token) { setLoading(false); return }
     try {
       const r = await adminAPI.me()
       setAdmin(r.data)
       refreshNotifs()
     } catch {
-      localStorage.removeItem('admin_access_token')
-      localStorage.removeItem('admin_refresh_token')
+      // Cookie inválido ou inexistente — usuário não autenticado
     } finally {
       setLoading(false)
     }
@@ -52,23 +49,17 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => { carregarAdmin() }, [])
 
   const login = async (email: string, senha: string) => {
-    // Endpoint exclusivo para staff — retorna 403 se não for equipe DoMecânico
-    const { data } = await axios.post('/api/auth/admin-login/', { email, senha })
-
-    // Guarda em chaves exclusivas do admin — não contamina o sistema de oficinas
-    localStorage.setItem('admin_access_token', data.access)
-    localStorage.setItem('admin_refresh_token', data.refresh)
-
-    // Verifica que é realmente staff (o backend já bloqueia não-staff, mas
-    // confirmamos aqui para exibir mensagem amigável)
+    // Backend seta o cookie admin_access_token httpOnly
+    await axios.post('/api/auth/admin-login/', { email, senha }, { withCredentials: true })
     const me = await adminAPI.me()
     setAdmin(me.data)
     refreshNotifs()
   }
 
-  const logout = () => {
-    localStorage.removeItem('admin_access_token')
-    localStorage.removeItem('admin_refresh_token')
+  const logout = async () => {
+    try {
+      await axios.post('/api/auth/logout/', {}, { withCredentials: true })
+    } catch { /* silencioso */ }
     setAdmin(null)
   }
 

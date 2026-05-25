@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from core.fields import EncryptedCharField
 
 
 class Plano(models.Model):
@@ -195,9 +196,9 @@ class ConfiguracaoWhatsApp(models.Model):
     oficina = models.OneToOneField(Oficina, on_delete=models.CASCADE, related_name='whatsapp_config')
     ativo = models.BooleanField(default=False)
     evolution_url = models.URLField(blank=True, help_text='URL base da Evolution API ex: http://localhost:8080')
-    evolution_api_key = models.CharField(max_length=200, blank=True)
+    evolution_api_key = EncryptedCharField(max_length=500, blank=True)
     instance_name = models.CharField(max_length=100, blank=True)
-    instance_token = models.CharField(max_length=200, blank=True)
+    instance_token = EncryptedCharField(max_length=500, blank=True)
     msg_os_concluida = models.BooleanField(default=True)
     msg_orcamento_enviado = models.BooleanField(default=True)
     msg_agendamento_confirmado = models.BooleanField(default=True)

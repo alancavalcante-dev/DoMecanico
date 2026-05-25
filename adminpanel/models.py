@@ -153,10 +153,10 @@ class Fatura(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.numero:
-            import random
-            self.numero = f'FAT-{random.randint(10000, 99999)}'
+            import secrets
+            self.numero = secrets.token_hex(8)  # placeholder único enquanto não temos pk
         super().save(*args, **kwargs)
-        if self.numero.startswith('FAT-') and len(self.numero) < 10:
+        if not self.numero.startswith('FAT-'):
             self.numero = f'FAT-{self.pk:05d}'
             Fatura.objects.filter(pk=self.pk).update(numero=self.numero)
 

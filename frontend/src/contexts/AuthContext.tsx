@@ -33,8 +33,8 @@ interface AuthContextType {
   loading: boolean
   temAcesso: (modulo: string) => boolean
   login: (email: string, senha: string) => Promise<{ codigo?: string; redirecionamento?: string }>
-  loginDireto: (userData: User, tokens: { access: string; refresh: string }) => void
-  logout: () => void
+  loginDireto: (userData: User) => void
+  logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
 
@@ -54,35 +54,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (token) {
-      refreshUser().finally(() => setLoading(false))
-    } else {
-      setLoading(false)
-    }
+    // Verifica sessão via cookie (sem depender de localStorage)
+    refreshUser().finally(() => setLoading(false))
   }, [])
 
   const login = async (email: string, senha: string): Promise<{ codigo?: string; redirecionamento?: string }> => {
     const { data } = await authAPI.login({ email, senha })
-    localStorage.setItem('access_token', data.tokens.access)
-    localStorage.setItem('refresh_token', data.tokens.refresh)
+    // Cookies são setados pelo backend — apenas armazena o usuário em state
     setUser(data.user)
     return { codigo: data.codigo, redirecionamento: data.redirecionamento }
   }
 
-  const loginDireto = (userData: User, tokens: { access: string; refresh: string }) => {
-    localStorage.setItem('access_token', tokens.access)
-    localStorage.setItem('refresh_token', tokens.refresh)
+  const loginDireto = (userData: User) => {
     setUser(userData)
   }
 
-  const logout = () => {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+  const logout = async () => {
+    try { await authAPI.logout() } catch { /* silencioso */ }
     setUser(null)
   }
 
-  // Acesso determinado pelos módulos retornados pelo backend (já intersectados com o plano)
   const temAcesso = (modulo: string): boolean => {
     if (!user) return false
     return user.modulos?.includes(modulo) ?? false

@@ -33,7 +33,7 @@ export default function AceitarConvite() {
     setEnviando(true)
     try {
       const r = await equipeAPI.aceitarConvite(token!, { nome: form.nome, senha: form.senha })
-      loginDireto(r.data.user, r.data.tokens)
+      loginDireto(r.data.user)
       toast.success(r.data.mensagem || 'Bem-vindo!')
       navigate('/dashboard')
     } catch (err: any) {

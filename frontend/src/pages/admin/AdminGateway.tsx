@@ -31,7 +31,6 @@ const GATEWAYS = [
 ]
 
 const WEBHOOK_URL = `${window.location.origin}/api/admin-panel/webhook/gateway/`
-const token = () => localStorage.getItem('admin_access_token') || ''
 
 export default function AdminGateway() {
   const [gatewayAtivo, setGatewayAtivo] = useState<GatewayTipo>('manual')
@@ -45,7 +44,7 @@ export default function AdminGateway() {
 
   useEffect(() => {
     fetch('/api/admin-panel/gateway/', {
-      headers: { Authorization: `Bearer ${token()}` },
+      credentials: 'include',
     })
       .then(r => r.json())
       .then(data => {
@@ -77,7 +76,8 @@ export default function AdminGateway() {
     try {
       const r = await fetch('/api/admin-panel/gateway/', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ gateway: selected, ...current }),
       })
       if (!r.ok) throw new Error()

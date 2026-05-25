@@ -26,3 +26,6 @@ boto3==1.38.0
 
 # QR code gerado localmente (fallback para Evolution API v2)
 qrcode[pil]==8.0
+
+# Criptografia em repouso (credenciais WhatsApp)
+cryptography==45.0.3

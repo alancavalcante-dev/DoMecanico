@@ -74,6 +74,68 @@ def get_tokens(user):
     }
 
 
+def _set_auth_cookies(response, access: str, refresh: str, prefix: str = '') -> None:
+    """Seta access_token e refresh_token como cookies httpOnly."""
+    from django.conf import settings
+    secure = not settings.DEBUG
+    response.set_cookie(
+        f'{prefix}access_token', access,
+        httponly=True, secure=secure, samesite='Lax',
+        max_age=60 * 30,
+    )
+    response.set_cookie(
+        f'{prefix}refresh_token', refresh,
+        httponly=True, secure=secure, samesite='Lax',
+        max_age=60 * 60 * 24 * 30,
+    )
+
+
+def _clear_auth_cookies(response, prefix: str = '') -> None:
+    response.delete_cookie(f'{prefix}access_token')
+    response.delete_cookie(f'{prefix}refresh_token')
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def refresh_token_cookie(request):
+    """Renova o access_token usando o refresh_token do cookie httpOnly."""
+    from rest_framework_simplejwt.tokens import RefreshToken as RT
+    from rest_framework_simplejwt.exceptions import TokenError
+    from django.conf import settings
+
+    prefix = request.data.get('admin', False) and 'admin_' or ''
+    cookie_name = f'{prefix}refresh_token'
+    raw = request.COOKIES.get(cookie_name)
+    if not raw:
+        return Response({'erro': 'Sessão expirada.'}, status=status.HTTP_401_UNAUTHORIZED)
+    try:
+        token = RT(raw)
+        access = str(token.access_token)
+    except TokenError:
+        resp = Response({'erro': 'Sessão expirada. Faça login novamente.'}, status=status.HTTP_401_UNAUTHORIZED)
+        _clear_auth_cookies(resp, prefix)
+        return resp
+
+    resp = Response({'ok': True})
+    from django.conf import settings as s
+    resp.set_cookie(
+        f'{prefix}access_token', access,
+        httponly=True, secure=not s.DEBUG, samesite='Lax',
+        max_age=60 * 30,
+    )
+    return resp
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def logout_view(request):
+    """Invalida a sessão limpando os cookies."""
+    resp = Response({'ok': True})
+    _clear_auth_cookies(resp)
+    _clear_auth_cookies(resp, 'admin_')
+    return resp
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def listar_planos(request):
@@ -143,11 +205,13 @@ def registrar(request):
         instance_name=_gerar_instance_name(oficina),
     )
 
-    return Response({
-        'tokens': get_tokens(user),
+    tokens = get_tokens(user)
+    resp = Response({
         'user': MeSerializer(user).data,
         'mensagem': f'Bem-vindo! Você tem 14 dias de teste grátis no plano {plano.nome}.',
     }, status=status.HTTP_201_CREATED)
+    _set_auth_cookies(resp, tokens['access'], tokens['refresh'])
+    return resp
 
 
 @api_view(['POST'])
@@ -174,10 +238,9 @@ def admin_login(request):
         return Response({'erro': 'Conta desativada.'}, status=status.HTTP_403_FORBIDDEN)
 
     tokens = get_tokens(user)
-    return Response({
-        'access': tokens['access'],
-        'refresh': tokens['refresh'],
-    })
+    resp = Response({'ok': True})
+    _set_auth_cookies(resp, tokens['access'], tokens['refresh'], prefix='admin_')
+    return resp
 
 
 @api_view(['POST'])
@@ -207,22 +270,23 @@ def login(request):
     if user.is_staff:
         return Response({'erro': 'Use o painel administrativo para acessar.'}, status=status.HTTP_403_FORBIDDEN)
 
+    tokens = get_tokens(user)
     try:
         assinatura = user.membro.oficina.assinatura
         if not assinatura.ativa:
-            return Response({
-                'tokens': get_tokens(user),
+            resp = Response({
                 'user': MeSerializer(user).data,
                 'codigo': 'assinatura_inativa',
                 'redirecionamento': '/assinatura',
             }, status=status.HTTP_200_OK)
+            _set_auth_cookies(resp, tokens['access'], tokens['refresh'])
+            return resp
     except Exception:
         pass
 
-    return Response({
-        'tokens': get_tokens(user),
-        'user': MeSerializer(user).data,
-    })
+    resp = Response({'user': MeSerializer(user).data})
+    _set_auth_cookies(resp, tokens['access'], tokens['refresh'])
+    return resp
 
 
 @api_view(['GET'])
@@ -581,11 +645,13 @@ def aceitar_convite(request, token):
     convite.aceito = True
     convite.save()
 
-    return Response({
+    tokens = get_tokens(user)
+    resp = Response({
         'mensagem': f'Bem-vindo à {convite.oficina.nome}!',
-        'tokens': get_tokens(user),
         'user': MeSerializer(user).data,
     }, status=status.HTTP_201_CREATED)
+    _set_auth_cookies(resp, tokens['access'], tokens['refresh'])
+    return resp
 
 
 @api_view(['POST'])

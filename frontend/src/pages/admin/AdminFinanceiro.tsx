@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, Component } from 'react'
+﻿import { useEffect, useState, useCallback, Component } from 'react'
 import type { ReactNode } from 'react'
 import {
   DollarSign, Clock, AlertTriangle, UserX,
@@ -44,7 +44,6 @@ type AbaAtiva = 'visao_geral' | 'faturas'
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-const token = () => localStorage.getItem('admin_access_token') || ''
 
 const fmt = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })
@@ -129,7 +128,7 @@ function AbaVisaoGeral() {
 
   useEffect(() => {
     fetch('/api/admin-panel/financeiro/resumo/', {
-      headers: { Authorization: `Bearer ${token()}` },
+      credentials: 'include',
     })
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -298,7 +297,7 @@ function AbaFaturas() {
     if (statusFiltro) params.set('status', statusFiltro)
     if (busca) params.set('busca', busca)
     fetch(`/api/admin-panel/faturas/?${params}`, {
-      headers: { Authorization: `Bearer ${token()}` },
+      credentials: 'include',
     })
       .then(r => r.json())
       .then(data => setFaturas(Array.isArray(data) ? data : data.results ?? []))
@@ -311,7 +310,7 @@ function AbaFaturas() {
   const abrirModalGerar = () => {
     setModalGerar(true)
     fetch('/api/admin-panel/oficinas/?page_size=999', {
-      headers: { Authorization: `Bearer ${token()}` },
+      credentials: 'include',
     })
       .then(r => r.json())
       .then(data => {
@@ -332,10 +331,8 @@ function AbaFaturas() {
     try {
       const r = await fetch('/api/admin-panel/faturas/gerar/', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token()}`,
-          'Content-Type': 'application/json',
-        },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           assinatura_id: Number(gerarForm.assinatura_id),
           vencimento: gerarForm.vencimento,
@@ -365,10 +362,8 @@ function AbaFaturas() {
         `/api/admin-panel/faturas/${modalPagamento.id}/registrar_pagamento/`,
         {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token()}`,
-            'Content-Type': 'application/json',
-          },
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             metodo: pagForm.metodo,
             valor: parseFloat(pagForm.valor),
@@ -391,7 +386,7 @@ function AbaFaturas() {
     try {
       const r = await fetch(`/api/admin-panel/faturas/${id}/cancelar/`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token()}` },
+        credentials: 'include',
       })
       if (!r.ok) throw new Error()
       toast.success('Fatura cancelada.')

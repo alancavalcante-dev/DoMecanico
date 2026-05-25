@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Q, F, Count, Sum, DecimalField
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse, JsonResponse
@@ -180,35 +181,43 @@ class PecaViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='movimentar')
     def movimentar(self, request, pk=None):
-        peca = self.get_object()
-        from decimal import Decimal
+        from decimal import Decimal, InvalidOperation
         tipo = request.data.get('tipo')
-        quantidade = Decimal(str(request.data.get('quantidade', 0)))
-        preco_unitario = Decimal(str(request.data.get('preco_unitario', 0)))
         motivo = request.data.get('motivo', '')
+        try:
+            quantidade = Decimal(str(request.data.get('quantidade', 0)))
+            preco_unitario = Decimal(str(request.data.get('preco_unitario', 0)))
+        except InvalidOperation:
+            return Response({'erro': 'Quantidade inválida.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if tipo not in ['entrada', 'saida', 'ajuste']:
             return Response({'erro': 'Tipo inválido.'}, status=status.HTTP_400_BAD_REQUEST)
         if quantidade <= 0:
             return Response({'erro': 'Quantidade deve ser maior que zero.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if tipo == 'entrada':
-            peca.quantidade += quantidade
-        elif tipo == 'saida':
-            if peca.quantidade < quantidade:
-                return Response({'erro': 'Estoque insuficiente.'}, status=status.HTTP_400_BAD_REQUEST)
-            peca.quantidade -= quantidade
-        else:
-            peca.quantidade = quantidade
+        oficina = get_oficina(request)
+        with transaction.atomic():
+            try:
+                peca = Peca.objects.select_for_update().get(pk=pk, oficina=oficina)
+            except Peca.DoesNotExist:
+                return Response({'erro': 'Peça não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
-        peca.save()
-        mov = MovimentacaoEstoque.objects.create(
-            peca=peca, tipo=tipo, quantidade=quantidade,
-            preco_unitario=preco_unitario, motivo=motivo
-        )
-        # Gera alerta se estoque ficou baixo
-        if peca.estoque_baixo:
-            AlertaEstoque.objects.create(peca=peca, quantidade_no_alerta=peca.quantidade)
+            if tipo == 'entrada':
+                peca.quantidade += quantidade
+            elif tipo == 'saida':
+                if peca.quantidade < quantidade:
+                    return Response({'erro': 'Estoque insuficiente.'}, status=status.HTTP_400_BAD_REQUEST)
+                peca.quantidade -= quantidade
+            else:
+                peca.quantidade = quantidade
+
+            peca.save()
+            mov = MovimentacaoEstoque.objects.create(
+                peca=peca, tipo=tipo, quantidade=quantidade,
+                preco_unitario=preco_unitario, motivo=motivo
+            )
+            if peca.estoque_baixo:
+                AlertaEstoque.objects.create(peca=peca, quantidade_no_alerta=peca.quantidade)
         return Response(MovimentacaoEstoqueSerializer(mov).data, status=status.HTTP_201_CREATED)
 
 
@@ -284,42 +293,47 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
     def adicionar_peca(self, request, pk=None):
         ordem = self.get_object()
         peca_id = request.data.get('peca') or None
-        from decimal import Decimal
-        quantidade = Decimal(str(request.data.get('quantidade', 1)))
-
-        # Verifica estoque antes de qualquer coisa
-        if peca_id:
-            try:
-                peca_obj = Peca.objects.get(id=peca_id, oficina=ordem.oficina)
-                if peca_obj.quantidade < quantidade:
-                    return Response({'erro': 'Estoque insuficiente.'}, status=status.HTTP_400_BAD_REQUEST)
-            except Peca.DoesNotExist:
-                return Response({'erro': 'Peça não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
-        else:
-            peca_obj = None
+        from decimal import Decimal, InvalidOperation
+        try:
+            quantidade = Decimal(str(request.data.get('quantidade', 1)))
+            preco_unitario = Decimal(str(request.data.get('preco_unitario', 0)))
+        except InvalidOperation:
+            return Response({'erro': 'Quantidade inválida.'}, status=status.HTTP_400_BAD_REQUEST)
 
         data = {
             'ordem': ordem.id,
             'peca': peca_id,
             'descricao': request.data.get('descricao', ''),
             'quantidade': quantidade,
-            'preco_unitario': request.data.get('preco_unitario', 0),
+            'preco_unitario': preco_unitario,
         }
         serializer = PecaOSSerializer(data=data)
-        if serializer.is_valid():
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            if peca_id:
+                try:
+                    peca_obj = Peca.objects.select_for_update().get(id=peca_id, oficina=ordem.oficina)
+                except Peca.DoesNotExist:
+                    return Response({'erro': 'Peça não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+                if peca_obj.quantidade < quantidade:
+                    return Response({'erro': 'Estoque insuficiente.'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                peca_obj = None
+
             serializer.save()
             if peca_obj:
                 peca_obj.quantidade -= quantidade
                 peca_obj.save()
                 MovimentacaoEstoque.objects.create(
                     peca=peca_obj, tipo='saida', quantidade=quantidade,
-                    preco_unitario=Decimal(str(request.data.get('preco_unitario', 0))),
+                    preco_unitario=preco_unitario,
                     motivo=f'OS {ordem.numero}'
                 )
                 if peca_obj.estoque_baixo:
                     AlertaEstoque.objects.create(peca=peca_obj, quantidade_no_alerta=peca_obj.quantidade)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['patch'], url_path='atualizar-status')
     def atualizar_status(self, request, pk=None):
