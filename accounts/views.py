@@ -17,7 +17,7 @@ class EsqueciSenhaThrottle(PublicWriteThrottle):
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
-class LoginRateThrottle(AnonRateThrottle):
+class LoginRateThrottle(PublicWriteThrottle):
     rate = '5/minute'
     scope = 'login'
 
