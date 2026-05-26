@@ -7,7 +7,7 @@ import {
 } from 'recharts'
 import {
   TrendingUp, ClipboardList, Package, DollarSign, Download,
-  Users, FileSpreadsheet, CalendarRange, UserCog, Check,
+  Users, FileSpreadsheet, CalendarRange, UserCog, Check, FileText,
 } from 'lucide-react'
 import * as XLSX from 'xlsx'
 
@@ -130,6 +130,7 @@ function AbaFaturamento() {
   const [inicio, setInicio] = useState(primeiroDiaMes())
   const [fim, setFim] = useState(hoje())
   const [loading, setLoading] = useState(true)
+  const [loadingPDF, setLoadingPDF] = useState(false)
 
   const carregar = useCallback(async () => {
     setLoading(true)
@@ -163,11 +164,34 @@ function AbaFaturamento() {
     })), `faturamento_${inicio}_${fim}`)
   }
 
+  const baixarPDF = async () => {
+    setLoadingPDF(true)
+    try {
+      const res = await dashboardAPI.relatorioPDF({ data_inicio: inicio, data_fim: fim })
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `faturamento_${inicio}_${fim}.pdf`
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch {
+      // silencioso
+    } finally {
+      setLoadingPDF(false)
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <FiltrosPeriodo inicio={inicio} fim={fim} onInicio={setInicio} onFim={setFim} />
-        <BtnExport onClick={exportar} label="Exportar OS" />
+        <div className="flex gap-2">
+          <button onClick={baixarPDF} disabled={loadingPDF}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-xs font-medium transition-colors">
+            <FileText size={13} /> {loadingPDF ? 'Gerando...' : 'Baixar PDF'}
+          </button>
+          <BtnExport onClick={exportar} label="Exportar OS" />
+        </div>
       </div>
 
       {loading ? (

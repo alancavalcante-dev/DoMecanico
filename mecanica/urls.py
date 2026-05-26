@@ -22,6 +22,8 @@ router.register(r'alertas-estoque', views.AlertaEstoqueViewSet, basename='alerta
 urlpatterns = [
     path('', include(router.urls)),
     path('dashboard/', views.dashboard_stats, name='dashboard'),
+    path('buscar/', views.busca_global, name='busca-global'),
+    path('relatorios/pdf/', views.relatorio_faturamento_pdf, name='relatorio-pdf'),
     path('checklist-publico/<str:token>/', views.checklist_publico, name='checklist-publico'),
     path('checklist-publico/<str:token>/assinar/', views.checklist_assinar_publico, name='checklist-assinar'),
     path('os-publica/buscar/', views.os_publica_buscar, name='os-publica-buscar'),

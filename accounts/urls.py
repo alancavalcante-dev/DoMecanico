@@ -6,6 +6,7 @@ urlpatterns = [
     path('registrar/', views.registrar, name='registrar'),
     path('login/', views.login, name='login'),
     path('admin-login/', views.admin_login, name='admin_login'),
+    path('admin-verify-otp/', views.admin_verify_otp, name='admin_verify_otp'),
     path('logout/', views.logout_view, name='logout'),
     path('token/refresh/', views.refresh_token_cookie, name='token_refresh'),
     path('me/', views.me, name='me'),

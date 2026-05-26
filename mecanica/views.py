@@ -60,6 +60,32 @@ def _validar_imagem(arquivo, formatos_permitidos=('JPEG', 'PNG', 'WEBP', 'GIF'))
         return False
 
 
+def _comprimir_imagem(arquivo, max_dim=1920, quality=80):
+    """Redimensiona e comprime imagem para economizar storage. GIF é retornado sem alteração."""
+    from PIL import Image
+    from django.core.files.uploadedfile import InMemoryUploadedFile
+    try:
+        arquivo.seek(0)
+        img = Image.open(arquivo)
+        fmt = img.format or 'JPEG'
+        if fmt == 'GIF':
+            arquivo.seek(0)
+            return arquivo
+        img.thumbnail((max_dim, max_dim), Image.LANCZOS)
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+            fmt = 'JPEG'
+        buf = io.BytesIO()
+        img.save(buf, format=fmt, quality=quality, optimize=True)
+        buf.seek(0)
+        ext = 'jpg' if fmt == 'JPEG' else fmt.lower()
+        nome = f"{arquivo.name.rsplit('.', 1)[0]}.{ext}"
+        return InMemoryUploadedFile(buf, 'ImageField', nome, f'image/{fmt.lower()}', buf.getbuffer().nbytes, None)
+    except Exception:
+        arquivo.seek(0)
+        return arquivo
+
+
 class ClienteViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
@@ -122,6 +148,7 @@ class VeiculoViewSet(viewsets.ModelViewSet):
                 return Response({'erro': 'Arquivo muito grande. Limite: 10 MB.'}, status=status.HTTP_400_BAD_REQUEST)
             if not _validar_imagem(foto):
                 return Response({'erro': 'Arquivo inválido. Envie uma imagem JPEG, PNG, WebP ou GIF.'}, status=status.HTTP_400_BAD_REQUEST)
+            foto = _comprimir_imagem(foto)
             obj = FotoVeiculo.objects.create(veiculo=veiculo, foto=foto, descricao=request.data.get('descricao', ''))
             criadas.append(FotoVeiculoSerializer(obj, context={'request': request}).data)
         return Response(criadas, status=status.HTTP_201_CREATED)
@@ -529,6 +556,188 @@ def dashboard_stats(request):
             ).select_related('cliente').order_by('data_hora')
         ],
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def busca_global(request):
+    q = request.query_params.get('q', '').strip()
+    if len(q) < 2:
+        return Response({'clientes': [], 'veiculos': [], 'ordens': []})
+    oficina = get_oficina(request)
+    clientes = Cliente.objects.filter(
+        oficina=oficina
+    ).filter(
+        Q(nome__icontains=q) | Q(cpf_cnpj__icontains=q) | Q(telefone__icontains=q) | Q(celular__icontains=q)
+    ).values('id', 'nome', 'cpf_cnpj', 'telefone')[:10]
+    veiculos = Veiculo.objects.filter(
+        oficina=oficina
+    ).filter(
+        Q(placa__icontains=q) | Q(marca__icontains=q) | Q(modelo__icontains=q) | Q(cliente__nome__icontains=q)
+    ).select_related('cliente').values('id', 'placa', 'marca', 'modelo', 'cliente__nome')[:10]
+    ordens = OrdemServico.objects.filter(
+        oficina=oficina
+    ).filter(
+        Q(numero__icontains=q) | Q(cliente__nome__icontains=q) | Q(veiculo__placa__icontains=q)
+    ).select_related('cliente', 'veiculo').values(
+        'id', 'numero', 'status', 'cliente__nome', 'veiculo__placa'
+    )[:10]
+    return Response({
+        'clientes': list(clientes),
+        'veiculos': list(veiculos),
+        'ordens': list(ordens),
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def relatorio_faturamento_pdf(request):
+    from datetime import datetime as dt
+    from django.utils import timezone as dtz
+
+    oficina = get_oficina(request)
+    inicio = request.query_params.get('data_inicio', '')
+    fim = request.query_params.get('data_fim', '')
+
+    qs = (
+        OrdemServico.objects
+        .filter(oficina=oficina, status='concluida')
+        .select_related('cliente', 'veiculo', 'mecanico')
+        .prefetch_related('servicos', 'pecas_usadas')
+        .order_by('data_entrada')
+    )
+    if inicio:
+        qs = qs.filter(data_entrada__date__gte=inicio)
+    if fim:
+        qs = qs.filter(data_entrada__date__lte=fim)
+
+    ordens = list(qs)
+    total_geral = sum(float(o.total_geral) for o in ordens)
+    media = total_geral / len(ordens) if ordens else 0
+
+    def _brl(v):
+        return f'R$ {v:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm,
+                            leftMargin=1.5*cm, rightMargin=1.5*cm)
+    styles = getSampleStyleSheet()
+    story = []
+
+    cor_hex = getattr(oficina, 'cor_primaria', '#2563eb') or '#2563eb'
+    cor = colors.HexColor(cor_hex)
+
+    info_oficina = Paragraph(
+        f'<b>{oficina.nome}</b><br/>'
+        f'<font size=8 color="#475569">CNPJ: {oficina.cnpj or "-"}  |  Tel: {oficina.telefone or "-"}</font>',
+        ParagraphStyle('cab', parent=styles['Normal'], fontSize=10, leading=14)
+    )
+    titulo_rel = Paragraph(
+        '<b>RELATÓRIO DE FATURAMENTO</b>',
+        ParagraphStyle('rel', parent=styles['Normal'], fontSize=12, alignment=2, textColor=cor)
+    )
+    logo_elem = None
+    if oficina.logo:
+        try:
+            import os as _os
+            from django.conf import settings as _s
+            from reportlab.platypus import Image as RLImage
+            _logo_path = _os.path.join(_s.MEDIA_ROOT, str(oficina.logo))
+            if _os.path.exists(_logo_path):
+                logo_elem = RLImage(_logo_path, width=2.5*cm, height=2*cm, kind='proportional')
+        except Exception:
+            pass
+
+    if logo_elem:
+        t_cab = Table([[logo_elem, info_oficina, titulo_rel]], colWidths=[2.5*cm, 9.5*cm, 6*cm])
+    else:
+        t_cab = Table([[info_oficina, titulo_rel]], colWidths=[12*cm, 6*cm])
+    t_cab.setStyle(TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LINEBELOW', (0, 0), (-1, 0), 1.5, cor),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    ]))
+    story.append(t_cab)
+    story.append(Spacer(1, 0.4*cm))
+
+    normal = ParagraphStyle('nr', parent=styles['Normal'], fontSize=9)
+    small = ParagraphStyle('sm', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#64748b'))
+
+    periodo_str = 'Todos os registros'
+    if inicio and fim:
+        try:
+            di = dt.strptime(inicio, '%Y-%m-%d').strftime('%d/%m/%Y')
+            df = dt.strptime(fim, '%Y-%m-%d').strftime('%d/%m/%Y')
+            periodo_str = f'{di} a {df}'
+        except Exception:
+            periodo_str = f'{inicio} a {fim}'
+    story.append(Paragraph(f'Período: <b>{periodo_str}</b>', normal))
+    story.append(Paragraph(f'Gerado em: {dtz.localtime(dtz.now()).strftime("%d/%m/%Y às %H:%M")}', small))
+    story.append(Spacer(1, 0.5*cm))
+
+    kpi_data = [
+        ['OS concluídas', 'Faturamento total', 'Ticket médio'],
+        [str(len(ordens)), _brl(total_geral), _brl(media)],
+    ]
+    t_kpi = Table(kpi_data, colWidths=[6*cm, 6*cm, 6*cm])
+    t_kpi.setStyle(TableStyle([
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('FONTSIZE', (0, 1), (-1, 1), 13),
+        ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, 0), (-1, 0), cor),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ('PADDING', (0, 0), (-1, -1), 8),
+        ('ROWBACKGROUNDS', (0, 1), (-1, 1), [colors.HexColor('#f0f9ff')]),
+    ]))
+    story.append(t_kpi)
+    story.append(Spacer(1, 0.6*cm))
+
+    story.append(Paragraph('<b>Ordens de Serviço Concluídas</b>',
+                           ParagraphStyle('sub', parent=styles['Heading2'], fontSize=10,
+                                          spaceAfter=4, textColor=cor)))
+    if not ordens:
+        story.append(Paragraph('Nenhuma OS concluída no período.', normal))
+    else:
+        rows = [['Nº OS', 'Cliente', 'Placa', 'Mecânico', 'Entrada', 'Conclusão', 'Total']]
+        for o in ordens:
+            nome = o.cliente.nome if len(o.cliente.nome) <= 22 else o.cliente.nome[:20] + '...'
+            rows.append([
+                o.numero, nome, o.veiculo.placa,
+                o.mecanico.nome.split()[0] if o.mecanico else '-',
+                o.data_entrada.strftime('%d/%m/%Y'),
+                o.data_conclusao.strftime('%d/%m/%Y') if o.data_conclusao else '-',
+                _brl(float(o.total_geral)),
+            ])
+        rows.append(['', '', '', '', '', 'TOTAL:', _brl(total_geral)])
+
+        t = Table(rows, colWidths=[2*cm, 5.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 3.5*cm], repeatRows=1)
+        t.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 8),
+            ('BACKGROUND', (0, 0), (-1, 0), cor),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('GRID', (0, 0), (-1, -2), 0.3, colors.HexColor('#e2e8f0')),
+            ('ALIGN', (6, 0), (6, -1), 'RIGHT'),
+            ('ALIGN', (5, -1), (6, -1), 'RIGHT'),
+            ('FONTNAME', (5, -1), (6, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (5, -1), (6, -1), 9),
+            ('LINEABOVE', (5, -1), (6, -1), 1, colors.black),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f8fafc')]),
+            ('PADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, -1), (-1, -1), 6),
+        ]))
+        story.append(t)
+
+    doc.build(story)
+    buffer.seek(0)
+    nome = f'faturamento_{inicio or "all"}_{fim or "all"}.pdf'
+    resp = HttpResponse(buffer, content_type='application/pdf')
+    resp['Content-Disposition'] = f'attachment; filename="{nome}"'
+    return resp
 
 
 # ─── PDF helpers ──────────────────────────────────────────────────────────────

@@ -1,18 +1,32 @@
 import axios from 'axios'
 
+// ── Rastreamento de inatividade (30 min) ─────────────────────────────────────
+const INATIVIDADE_MS = 30 * 60 * 1000
+let ultimaAtividade = Date.now()
+
+const registrarAtividade = () => { ultimaAtividade = Date.now() }
+const estaInativo = () => Date.now() - ultimaAtividade > INATIVIDADE_MS
+
+if (typeof window !== 'undefined') {
+  ;['click', 'keydown', 'mousemove', 'touchstart'].forEach(ev =>
+    window.addEventListener(ev, registrarAtividade, { passive: true })
+  )
+}
+
 // ── API para oficinas (usuários comuns) ───────────────────────────────────────
 const api = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: true,  // envia cookies httpOnly automaticamente
+  withCredentials: true,
 })
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => { registrarAtividade(); return res },
   async (error) => {
     const original = error.config
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
+      if (estaInativo()) { window.location.href = '/login'; return Promise.reject(error) }
       try {
         await axios.post('/api/auth/token/refresh/', {}, { withCredentials: true })
         return api(original)
@@ -34,11 +48,12 @@ const adminApi = axios.create({
 })
 
 adminApi.interceptors.response.use(
-  (res) => res,
+  (res) => { registrarAtividade(); return res },
   async (error) => {
     const original = error.config
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
+      if (estaInativo()) { window.location.href = '/admin-panel/login'; return Promise.reject(error) }
       try {
         await axios.post('/api/auth/token/refresh/', { admin: true }, { withCredentials: true })
         return adminApi(original)
@@ -173,6 +188,8 @@ export const notasAPI = {
 export const dashboardAPI = {
   stats: () => api.get('/dashboard/'),
   exportar: () => api.get('/exportar/', { responseType: 'blob' }),
+  buscaGlobal: (q: string) => api.get('/buscar/', { params: { q } }),
+  relatorioPDF: (params: object) => api.get('/relatorios/pdf/', { params, responseType: 'blob' }),
 }
 
 export const adminAPI = {

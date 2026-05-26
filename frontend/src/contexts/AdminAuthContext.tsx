@@ -14,7 +14,8 @@ interface AdminAuthContextType {
   admin: AdminUser | null
   loading: boolean
   notifNaoLidas: number
-  login: (email: string, senha: string) => Promise<void>
+  login: (email: string, senha: string) => Promise<{ mfa_required?: boolean; user_id?: number }>
+  verifyOtp: (userId: number, code: string) => Promise<void>
   logout: () => void
   refreshNotifs: () => void
 }
@@ -48,9 +49,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { carregarAdmin() }, [])
 
-  const login = async (email: string, senha: string) => {
-    // Backend seta o cookie admin_access_token httpOnly
-    await axios.post('/api/auth/admin-login/', { email, senha }, { withCredentials: true })
+  const login = async (email: string, senha: string): Promise<{ mfa_required?: boolean; user_id?: number }> => {
+    const res = await axios.post('/api/auth/admin-login/', { email, senha }, { withCredentials: true })
+    if (res.data.mfa_required) {
+      return { mfa_required: true, user_id: res.data.user_id }
+    }
+    const me = await adminAPI.me()
+    setAdmin(me.data)
+    refreshNotifs()
+    return {}
+  }
+
+  const verifyOtp = async (userId: number, code: string): Promise<void> => {
+    await axios.post('/api/auth/admin-verify-otp/', { user_id: userId, code }, { withCredentials: true })
     const me = await adminAPI.me()
     setAdmin(me.data)
     refreshNotifs()
@@ -64,7 +75,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AdminAuthContext.Provider value={{ admin, loading, notifNaoLidas, login, logout, refreshNotifs }}>
+    <AdminAuthContext.Provider value={{ admin, loading, notifNaoLidas, login, verifyOtp, logout, refreshNotifs }}>
       {children}
     </AdminAuthContext.Provider>
   )

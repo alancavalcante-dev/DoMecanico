@@ -285,6 +285,22 @@ export default function Perfil() {
                 type="text"
                 value={form.cep}
                 onChange={(e) => setForm(p => ({ ...p, cep: e.target.value }))}
+                onBlur={async (e) => {
+                  const cep = e.target.value.replace(/\D/g, '')
+                  if (cep.length !== 8) return
+                  try {
+                    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                    const data = await res.json()
+                    if (!data.erro) {
+                      setForm(p => ({
+                        ...p,
+                        endereco: data.logradouro ? `${data.logradouro}, ${data.bairro}` : p.endereco,
+                        cidade: data.localidade || p.cidade,
+                        estado: data.uf || p.estado,
+                      }))
+                    }
+                  } catch {}
+                }}
                 placeholder="00000-000"
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />

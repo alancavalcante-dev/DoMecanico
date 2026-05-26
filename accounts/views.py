@@ -53,6 +53,29 @@ def _validar_imagem(arquivo):
         return False
 
 
+def _comprimir_imagem(arquivo, max_dim=800, quality=85):
+    from PIL import Image
+    import io
+    from django.core.files.uploadedfile import InMemoryUploadedFile
+    try:
+        arquivo.seek(0)
+        img = Image.open(arquivo)
+        fmt = img.format or 'JPEG'
+        img.thumbnail((max_dim, max_dim), Image.LANCZOS)
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+            fmt = 'JPEG'
+        buf = io.BytesIO()
+        img.save(buf, format=fmt, quality=quality, optimize=True)
+        buf.seek(0)
+        ext = 'jpg' if fmt == 'JPEG' else fmt.lower()
+        nome = f"{arquivo.name.rsplit('.', 1)[0]}.{ext}"
+        return InMemoryUploadedFile(buf, 'ImageField', nome, f'image/{fmt.lower()}', buf.getbuffer().nbytes, None)
+    except Exception:
+        arquivo.seek(0)
+        return arquivo
+
+
 def _evolution_url_global():
     return env('EVOLUTION_API_URL', default='http://localhost:8080')
 
@@ -224,7 +247,10 @@ def registrar(request):
 @permission_classes([AllowAny])
 @throttle_classes([LoginRateThrottle])
 def admin_login(request):
-    """Login exclusivo para a equipe DoMecânico (is_staff=True)."""
+    """Login admin — 1ª etapa: valida credenciais e envia OTP por e-mail."""
+    import random
+    from django.core.cache import cache
+
     email = request.data.get('email', '')
     senha = request.data.get('senha', '')
 
@@ -242,6 +268,60 @@ def admin_login(request):
 
     if not user.is_active:
         return Response({'erro': 'Conta desativada.'}, status=status.HTTP_403_FORBIDDEN)
+
+    otp = f'{random.randint(0, 999999):06d}'
+    cache.set(f'admin_otp_{user.id}', otp, 600)
+
+    try:
+        from .email_assinatura import _get_connection
+        from django.core.mail import EmailMultiAlternatives
+        conn, from_email = _get_connection()
+        if conn:
+            html = (
+                f'<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">'
+                f'<h2 style="color:#2563eb">Código de acesso — DoMecânico</h2>'
+                f'<p>Use o código abaixo para acessar o painel administrativo:</p>'
+                f'<div style="font-size:36px;font-weight:bold;letter-spacing:10px;color:#1e40af;padding:16px;'
+                f'background:#f0f9ff;border-radius:8px;text-align:center">{otp}</div>'
+                f'<p style="color:#6b7280;font-size:13px;margin-top:16px">Válido por 10 minutos. Não compartilhe este código.</p>'
+                f'</div>'
+            )
+            msg = EmailMultiAlternatives(
+                'Código de acesso — DoMecânico Admin', otp, from_email, [user.email], connection=conn
+            )
+            msg.attach_alternative(html, 'text/html')
+            msg.send()
+    except Exception:
+        pass
+
+    return Response({'mfa_required': True, 'user_id': user.id})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+@throttle_classes([LoginRateThrottle])
+def admin_verify_otp(request):
+    """Login admin — 2ª etapa: verifica o OTP e emite o cookie de sessão."""
+    from django.core.cache import cache
+
+    user_id = request.data.get('user_id')
+    code = str(request.data.get('code', '')).strip()
+
+    if not user_id or not code:
+        return Response({'erro': 'Dados inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    cache_key = f'admin_otp_{user_id}'
+    otp_armazenado = cache.get(cache_key)
+
+    if not otp_armazenado or otp_armazenado != code:
+        return Response({'erro': 'Código inválido ou expirado.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    cache.delete(cache_key)
+
+    try:
+        user = User.objects.get(pk=user_id, is_staff=True, is_active=True)
+    except User.DoesNotExist:
+        return Response({'erro': 'Usuário não encontrado.'}, status=status.HTTP_403_FORBIDDEN)
 
     tokens = get_tokens(user)
     resp = Response({'ok': True})
@@ -840,7 +920,7 @@ def upload_logo_oficina(request):
     if oficina.logo:
         oficina.logo.delete(save=False)
 
-    oficina.logo = logo
+    oficina.logo = _comprimir_imagem(logo)
     oficina.save()
     return Response({'logo_url': request.build_absolute_uri(oficina.logo.url)})
 
