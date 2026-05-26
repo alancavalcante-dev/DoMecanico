@@ -3,7 +3,7 @@ import { registerRoute } from 'workbox-routing'
 import { NetworkFirst, CacheFirst } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 
-declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: { url: string; revision: string | null }[] }
+declare const self: ServiceWorkerGlobalScope & typeof globalThis & { __WB_MANIFEST: { url: string; revision: string | null }[] }
 
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
