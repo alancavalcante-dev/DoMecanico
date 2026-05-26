@@ -1098,9 +1098,11 @@ def admin_configuracao_sistema(request):
             'mensagem_manutencao': cfg.mensagem_manutencao,
             'banner_homologacao': cfg.banner_homologacao,
             'mensagem_banner': cfg.mensagem_banner,
+            'push_notifications_ativas': cfg.push_notifications_ativas,
         })
     for field in ['bloquear_cadastros', 'bloquear_login', 'bloquear_pagamentos',
-                  'modo_manutencao', 'mensagem_manutencao', 'banner_homologacao', 'mensagem_banner']:
+                  'modo_manutencao', 'mensagem_manutencao', 'banner_homologacao', 'mensagem_banner',
+                  'push_notifications_ativas']:
         if field in request.data:
             setattr(cfg, field, request.data[field])
     cfg.save()

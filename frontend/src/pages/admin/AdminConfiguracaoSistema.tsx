@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { adminAPI } from '../../api'
-import { Settings, Save, ShieldAlert } from 'lucide-react'
+import { Settings, Save, ShieldAlert, Bell } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface Config {
@@ -11,6 +11,7 @@ interface Config {
   mensagem_manutencao: string
   banner_homologacao: boolean
   mensagem_banner: string
+  push_notifications_ativas: boolean
 }
 
 function Toggle({ label, description, checked, onChange }: {
@@ -167,6 +168,22 @@ export default function AdminConfiguracaoSistema() {
             Preview: {config.mensagem_banner || 'Texto do banner'}
           </div>
         )}
+      </div>
+
+      {/* Notificações Push */}
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+        <h2 className="text-white font-semibold mb-1 flex items-center gap-2">
+          <Bell size={15} /> Notificações Push PWA
+        </h2>
+        <p className="text-gray-500 text-xs mb-4">
+          Quando ativo, admins recebem alertas no navegador ao concluir OS ou aprovar orçamentos
+        </p>
+        <Toggle
+          label="Notificações Push"
+          description="Desativar não remove inscrições existentes — apenas para o envio"
+          checked={config.push_notifications_ativas}
+          onChange={v => set('push_notifications_ativas', v)}
+        />
       </div>
 
       <button

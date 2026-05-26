@@ -7,6 +7,10 @@ def enviar_push_oficina(oficina, titulo, corpo, url='/'):
         from decouple import config as env
         from accounts.models import PushSubscription, MembroOficina
 
+        from adminpanel.models import ConfiguracaoSistema
+        if not ConfiguracaoSistema.get().push_notifications_ativas:
+            return
+
         vapid_key = env('VAPID_PRIVATE_KEY', default='')
         if not vapid_key:
             return

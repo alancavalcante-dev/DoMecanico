@@ -170,6 +170,7 @@ class ConfiguracaoSistema(models.Model):
     mensagem_manutencao = models.TextField(blank=True, default='Sistema em manutenção. Voltamos em breve.')
     banner_homologacao = models.BooleanField(default=False)
     mensagem_banner = models.CharField(max_length=200, default='Ambiente de homologação — sistema em testes')
+    push_notifications_ativas = models.BooleanField(default=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:
