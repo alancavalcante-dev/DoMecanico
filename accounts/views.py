@@ -26,7 +26,7 @@ import string
 import re
 import unicodedata
 from decouple import config as env
-from .models import Plano, Oficina, MembroOficina, Assinatura, PagamentoSimulado, ConfiguracaoWhatsApp, PermissaoMembro, PERFIS_PADRAO, MODULOS
+from .models import Plano, Oficina, MembroOficina, Assinatura, PagamentoSimulado, ConfiguracaoWhatsApp, PermissaoMembro, PERFIS_PADRAO, MODULOS, PushSubscription
 
 
 def _gerar_instance_name(oficina):
@@ -1336,4 +1336,37 @@ def redefinir_senha(request, uidb64, token):
 
     user.set_password(nova_senha)
     user.save()
+    return Response({'ok': True})
+
+
+# ── Push notifications ────────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def push_vapid_key(request):
+    from decouple import config as env
+    return Response({'publicKey': env('VAPID_PUBLIC_KEY', default='')})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def push_subscribe(request):
+    sub = request.data
+    endpoint = sub.get('endpoint', '')
+    keys = sub.get('keys', {})
+    if not endpoint or not keys.get('auth') or not keys.get('p256dh'):
+        return Response({'erro': 'Dados de subscrição inválidos.'}, status=400)
+    membro = request.user.membro
+    PushSubscription.objects.update_or_create(
+        membro=membro, endpoint=endpoint,
+        defaults={'auth': keys['auth'], 'p256dh': keys['p256dh']},
+    )
+    return Response({'ok': True})
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def push_unsubscribe(request):
+    endpoint = request.data.get('endpoint', '')
+    PushSubscription.objects.filter(membro=request.user.membro, endpoint=endpoint).delete()
     return Response({'ok': True})

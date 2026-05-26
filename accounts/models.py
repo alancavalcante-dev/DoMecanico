@@ -197,6 +197,20 @@ class PermissaoMembro(models.Model):
         return f'Permissões de {self.membro}'
 
 
+class PushSubscription(models.Model):
+    membro = models.ForeignKey(MembroOficina, on_delete=models.CASCADE, related_name='push_subscriptions')
+    endpoint = models.TextField()
+    auth = models.CharField(max_length=300)
+    p256dh = models.CharField(max_length=300)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('membro', 'endpoint')]
+
+    def __str__(self):
+        return f'PushSub {self.membro}'
+
+
 class ConfiguracaoWhatsApp(models.Model):
     oficina = models.OneToOneField(Oficina, on_delete=models.CASCADE, related_name='whatsapp_config')
     ativo = models.BooleanField(default=False)

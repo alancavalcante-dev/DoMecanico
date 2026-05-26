@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Car, Package, UserCog,
   ClipboardList, FileText, BarChart3,  LogOut, CreditCard, AlertTriangle, ClipboardCheck,
   Calendar, FileCheck, ShieldCheck, DollarSign, BookOpen, UsersRound, MessageCircle, KeyRound, Eye, EyeOff,
-  Building2, ChevronDown, X, Globe,
+  Building2, ChevronDown, X, Globe, Wrench,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
@@ -247,6 +247,21 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <LayoutDashboard size={18} />
             Dashboard
           </NavLink>
+
+          {user?.papel === 'mecanico' && (
+            <NavLink
+              to="/meu-painel"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-colors ${
+                  isActive ? 'bg-blue-600 text-white font-medium' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`
+              }
+            >
+              <Wrench size={18} />
+              Meu Painel
+            </NavLink>
+          )}
 
           <div className="space-y-1">
             {GROUPS.map((group, i) => (

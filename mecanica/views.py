@@ -26,7 +26,7 @@ from .models import (
     ServicoOS, PecaOS, NotaFiscal,
     ChecklistEntrada, DanoChecklist,
     Agendamento, Orcamento, ItemOrcamento,
-    GarantiaServico, GarantiaDefault, ComissaoMecanico, AlertaEstoque,
+    GarantiaServico, GarantiaDefault, ComissaoMecanico, AlertaEstoque, LogAuditoria,
 )
 from .serializers import (
     ClienteSerializer, ClienteListSerializer,
@@ -44,6 +44,20 @@ from .serializers import (
 
 def get_oficina(request):
     return request.user.membro.oficina
+
+
+def _log(request, acao, modelo, descricao, detalhe=''):
+    try:
+        LogAuditoria.objects.create(
+            oficina=get_oficina(request),
+            usuario_nome=request.user.get_full_name() or request.user.email,
+            acao=acao,
+            modelo=modelo,
+            objeto_descricao=str(descricao)[:200],
+            detalhe=detalhe,
+        )
+    except Exception:
+        pass
 
 
 def _validar_imagem(arquivo, formatos_permitidos=('JPEG', 'PNG', 'WEBP', 'GIF')):
@@ -109,6 +123,10 @@ class ClienteViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(oficina=get_oficina(self.request))
 
+    def perform_destroy(self, instance):
+        _log(self.request, 'deletado', 'Cliente', instance.nome)
+        instance.delete()
+
 
 class VeiculoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -134,6 +152,11 @@ class VeiculoViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(oficina=get_oficina(self.request))
+
+    def perform_destroy(self, instance):
+        _log(self.request, 'deletado', 'Veiculo',
+             f'{instance.placa} — {instance.marca} {instance.modelo}')
+        instance.delete()
 
     @action(detail=True, methods=['post'], url_path='upload-foto')
     def upload_foto(self, request, pk=None):
@@ -206,6 +229,10 @@ class PecaViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(oficina=get_oficina(self.request))
+
+    def perform_destroy(self, instance):
+        _log(self.request, 'deletado', 'Peca', f'{instance.nome} ({instance.codigo})')
+        instance.delete()
 
     @action(detail=True, methods=['post'], url_path='movimentar')
     def movimentar(self, request, pk=None):
@@ -302,6 +329,11 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         numero = f'OS{str((ultimo.id if ultimo else 0) + 1).zfill(6)}'
         serializer.save(oficina=oficina, numero=numero)
 
+    def perform_destroy(self, instance):
+        _log(self.request, 'deletado', 'OrdemServico',
+             f'OS #{instance.numero} — {instance.cliente.nome}')
+        instance.delete()
+
     @action(detail=True, methods=['post'], url_path='adicionar-servico')
     def adicionar_servico(self, request, pk=None):
         ordem = self.get_object()
@@ -369,6 +401,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         novo_status = request.data.get('status')
         if novo_status not in dict(OrdemServico.STATUS_CHOICES):
             return Response({'erro': 'Status inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+        old_status = ordem.status
         ordem.status = novo_status
         if novo_status == 'concluida' and not ordem.data_conclusao:
             ordem.data_conclusao = timezone.now()
@@ -384,6 +417,9 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                 defaults={'percentual': ordem.mecanico.percentual_comissao, 'valor': round(valor, 2)},
             )
         # Notificações ao concluir OS
+        _log(self.request, 'status_alterado', 'OrdemServico',
+             f'OS #{ordem.numero}', f'{old_status} → {novo_status}')
+
         if novo_status == 'concluida':
             try:
                 from .whatsapp import notificar_os_concluida
@@ -393,6 +429,16 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             try:
                 from .email_os import notificar_os_concluida_email
                 notificar_os_concluida_email(ordem)
+            except Exception:
+                pass
+            try:
+                from .push import enviar_push_oficina
+                enviar_push_oficina(
+                    ordem.oficina,
+                    'OS Concluída',
+                    f'OS #{ordem.numero} — {ordem.cliente.nome} concluída.',
+                    f'/ordens/{ordem.id}',
+                )
             except Exception:
                 pass
         return Response(OrdemServicoSerializer(ordem).data)
@@ -738,6 +784,62 @@ def relatorio_faturamento_pdf(request):
     resp = HttpResponse(buffer, content_type='application/pdf')
     resp['Content-Disposition'] = f'attachment; filename="{nome}"'
     return resp
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def logs_auditoria(request):
+    if request.user.membro.papel != 'admin':
+        return Response({'erro': 'Acesso restrito ao administrador.'}, status=403)
+    oficina = get_oficina(request)
+    logs = LogAuditoria.objects.filter(oficina=oficina).values(
+        'usuario_nome', 'acao', 'modelo', 'objeto_descricao', 'detalhe', 'criado_em'
+    )[:200]
+    return Response(list(logs))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def meu_painel_mecanico(request):
+    oficina = get_oficina(request)
+    try:
+        func = Funcionario.objects.get(oficina=oficina, email=request.user.email, ativo=True)
+    except Funcionario.DoesNotExist:
+        return Response({'erro': 'Nenhum funcionário vinculado a este e-mail.'}, status=404)
+
+    hoje = timezone.now()
+    inicio_mes = hoje.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    os_abertas = OrdemServico.objects.filter(
+        oficina=oficina, mecanico=func,
+        status__in=['aberta', 'em_andamento', 'aguardando_peca']
+    ).select_related('cliente', 'veiculo').order_by('-data_entrada')
+
+    os_mes = OrdemServico.objects.filter(
+        oficina=oficina, mecanico=func, status='concluida',
+        data_entrada__gte=inicio_mes
+    )
+
+    comissoes = ComissaoMecanico.objects.filter(
+        funcionario=func
+    ).select_related('ordem').order_by('-criado_em')[:30]
+
+    fat_gerado = sum(float(o.total_geral) for o in os_mes)
+    comissao_pendente = sum(float(c.valor) for c in comissoes if not c.pago)
+    comissao_paga = sum(float(c.valor) for c in comissoes if c.pago)
+
+    return Response({
+        'funcionario': {'id': func.id, 'nome': func.nome, 'cargo': func.cargo},
+        'resumo': {
+            'os_abertas': os_abertas.count(),
+            'os_concluidas_mes': os_mes.count(),
+            'faturamento_gerado_mes': fat_gerado,
+            'comissao_pendente': comissao_pendente,
+            'comissao_paga': comissao_paga,
+        },
+        'os_abertas': OrdemServicoListSerializer(os_abertas[:20], many=True).data,
+        'comissoes_recentes': ComissaoMecanicoSerializer(comissoes, many=True).data,
+    })
 
 
 # ─── PDF helpers ──────────────────────────────────────────────────────────────
@@ -1793,6 +1895,16 @@ class OrcamentoViewSet(viewsets.ModelViewSet):
             return Response({'erro': 'Só orçamentos pendentes podem ser aprovados.'}, status=400)
         orc.status = 'aprovado'
         orc.save()
+        try:
+            from .push import enviar_push_oficina
+            enviar_push_oficina(
+                orc.oficina,
+                'Orçamento Aprovado',
+                f'Orç. #{orc.numero} — {orc.cliente.nome} aprovado pelo cliente.',
+                f'/orcamentos',
+            )
+        except Exception:
+            pass
         return Response(OrcamentoSerializer(orc, context={'request': request}).data)
 
     @action(detail=True, methods=['post'])
@@ -1800,6 +1912,16 @@ class OrcamentoViewSet(viewsets.ModelViewSet):
         orc = self.get_object()
         orc.status = 'rejeitado'
         orc.save()
+        try:
+            from .push import enviar_push_oficina
+            enviar_push_oficina(
+                orc.oficina,
+                'Orçamento Recusado',
+                f'Orç. #{orc.numero} — {orc.cliente.nome} recusado pelo cliente.',
+                f'/orcamentos',
+            )
+        except Exception:
+            pass
         return Response(OrcamentoSerializer(orc, context={'request': request}).data)
 
     @action(detail=True, methods=['patch'])

@@ -190,6 +190,8 @@ export const dashboardAPI = {
   exportar: () => api.get('/exportar/', { responseType: 'blob' }),
   buscaGlobal: (q: string) => api.get('/buscar/', { params: { q } }),
   relatorioPDF: (params: object) => api.get('/relatorios/pdf/', { params, responseType: 'blob' }),
+  auditoria: () => api.get('/auditoria/'),
+  meuPainel: () => api.get('/meu-painel/'),
 }
 
 export const adminAPI = {

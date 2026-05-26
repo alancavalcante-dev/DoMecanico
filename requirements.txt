@@ -29,3 +29,6 @@ qrcode[pil]==8.0
 
 # Criptografia em repouso (credenciais WhatsApp)
 cryptography==45.0.3
+
+# Push notifications PWA
+pywebpush==1.14.1

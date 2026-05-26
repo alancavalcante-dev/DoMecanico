@@ -40,6 +40,10 @@ urlpatterns = [
     # Recuperação de senha
     path('esqueci-senha/', views.esqueci_senha),
     path('redefinir-senha/<str:uidb64>/<str:token>/', views.redefinir_senha),
+    # Push notifications
+    path('push/vapid-public-key/', views.push_vapid_key),
+    path('push/subscribe/', views.push_subscribe),
+    path('push/unsubscribe/', views.push_unsubscribe),
     # Erros do frontend
     path('client-error/', views.client_error),
     # Perfil público

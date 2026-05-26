@@ -60,8 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, senha: string): Promise<{ codigo?: string; redirecionamento?: string }> => {
     const { data } = await authAPI.login({ email, senha })
-    // Cookies são setados pelo backend — apenas armazena o usuário em state
     setUser(data.user)
+    import('../hooks/usePushNotifications').then(m => m.subscribeToPush()).catch(() => {})
     return { codigo: data.codigo, redirecionamento: data.redirecionamento }
   }
 

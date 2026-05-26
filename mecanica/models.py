@@ -469,3 +469,26 @@ class AlertaEstoque(models.Model):
 
     def __str__(self):
         return f'Alerta estoque: {self.peca.nome}'
+
+
+class LogAuditoria(models.Model):
+    ACOES = [
+        ('criado', 'Criado'),
+        ('atualizado', 'Atualizado'),
+        ('deletado', 'Deletado'),
+        ('status_alterado', 'Status alterado'),
+    ]
+    oficina = models.ForeignKey('accounts.Oficina', on_delete=models.CASCADE, related_name='logs_auditoria')
+    usuario_nome = models.CharField(max_length=150)
+    acao = models.CharField(max_length=20, choices=ACOES)
+    modelo = models.CharField(max_length=50)
+    objeto_descricao = models.CharField(max_length=200)
+    detalhe = models.TextField(blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-criado_em']
+        indexes = [models.Index(fields=['oficina', 'criado_em'])]
+
+    def __str__(self):
+        return f'{self.acao} {self.modelo}: {self.objeto_descricao}'

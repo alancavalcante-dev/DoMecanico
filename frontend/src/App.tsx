@@ -44,6 +44,7 @@ const Orcamentos            = lazy(() => import('./pages/Orcamentos'))
 const Garantias             = lazy(() => import('./pages/Garantias'))
 const Comissoes             = lazy(() => import('./pages/Comissoes'))
 const Ajuda                 = lazy(() => import('./pages/Ajuda'))
+const MeuPainel             = lazy(() => import('./pages/MeuPainel'))
 const Equipe                = lazy(() => import('./pages/Equipe'))
 const ConfiguracaoWhatsApp  = lazy(() => import('./pages/ConfiguracaoWhatsApp'))
 const Perfil                = lazy(() => import('./pages/Perfil'))
@@ -122,6 +123,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/garantias':      'Garantias — DoMecânico',
   '/comissoes':      'Comissões — DoMecânico',
   '/ajuda':          'Ajuda — DoMecânico',
+  '/meu-painel':     'Meu Painel — DoMecânico',
   '/equipe':         'Equipe — DoMecânico',
   '/whatsapp':       'WhatsApp — DoMecânico',
   '/perfil':         'Perfil da Loja — DoMecânico',
@@ -221,6 +223,7 @@ function AppRoutes() {
           <Route path="/garantias"      element={<Garantias />} />
           <Route path="/comissoes"      element={<Comissoes />} />
           <Route path="/ajuda"          element={<Ajuda />} />
+          <Route path="/meu-painel"     element={<MeuPainel />} />
           <Route path="/equipe"         element={<AdminOnlyGuard><Equipe /></AdminOnlyGuard>} />
           <Route path="/whatsapp"       element={<AdminOnlyGuard><ConfiguracaoWhatsApp /></AdminOnlyGuard>} />
           <Route path="/perfil"         element={<AdminOnlyGuard><Perfil /></AdminOnlyGuard>} />

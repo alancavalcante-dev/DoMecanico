@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { dashboardAPI, ordensAPI, pecasAPI, comissoesAPI, funcionariosAPI } from '../api'
+import { useAuth } from '../contexts/AuthContext'
 import type { OrdemServico, Peca, Funcionario } from '../types'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -746,19 +747,93 @@ function AbaOS() {
   )
 }
 
+// ── ABA 5: Auditoria ─────────────────────────────────────────────────────────
+
+const ACAO_CORES: Record<string, string> = {
+  deletado: 'bg-red-100 text-red-700',
+  status_alterado: 'bg-amber-100 text-amber-700',
+  criado: 'bg-green-100 text-green-700',
+  atualizado: 'bg-blue-100 text-blue-700',
+}
+const ACAO_LABELS: Record<string, string> = {
+  deletado: 'Deletado', status_alterado: 'Status', criado: 'Criado', atualizado: 'Atualizado',
+}
+
+function AbaAuditoria() {
+  const [logs, setLogs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    dashboardAPI.auditoria()
+      .then(r => setLogs(r.data))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-slate-500">Últimas 200 ações críticas registradas na sua oficina.</p>
+      {loading ? (
+        <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
+      ) : logs.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm flex flex-col items-center py-16 text-slate-400">
+          <p className="text-sm">Nenhum evento registrado ainda.</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
+                <tr>
+                  <th className="px-4 py-3 text-left">Data/Hora</th>
+                  <th className="px-4 py-3 text-left">Usuário</th>
+                  <th className="px-4 py-3 text-left">Ação</th>
+                  <th className="px-4 py-3 text-left">Registro</th>
+                  <th className="px-4 py-3 text-left">Objeto</th>
+                  <th className="px-4 py-3 text-left">Detalhe</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {logs.map((log, i) => (
+                  <tr key={i} className="hover:bg-slate-50/50">
+                    <td className="px-4 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+                      {new Date(log.criado_em).toLocaleString('pt-BR')}
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-700 text-xs">{log.usuario_nome}</td>
+                    <td className="px-4 py-2.5">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${ACAO_CORES[log.acao] || 'bg-slate-100 text-slate-600'}`}>
+                        {ACAO_LABELS[log.acao] || log.acao}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-slate-500">{log.modelo}</td>
+                    <td className="px-4 py-2.5 text-slate-700 text-xs">{log.objeto_descricao}</td>
+                    <td className="px-4 py-2.5 text-xs text-slate-400">{log.detalhe}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
-type Aba = 'faturamento' | 'mecanico' | 'estoque' | 'os'
-
-const abas: { id: Aba; label: string; icon: React.ElementType }[] = [
-  { id: 'faturamento', label: 'Faturamento', icon: DollarSign },
-  { id: 'os', label: 'Ordens de Serviço', icon: ClipboardList },
-  { id: 'mecanico', label: 'Por Mecânico', icon: Users },
-  { id: 'estoque', label: 'Estoque', icon: Package },
-]
+type Aba = 'faturamento' | 'mecanico' | 'estoque' | 'os' | 'auditoria'
 
 export default function Relatorios() {
+  const { user } = useAuth()
   const [aba, setAba] = useState<Aba>('faturamento')
+
+  const abas: { id: Aba; label: string; icon: React.ElementType }[] = [
+    { id: 'faturamento', label: 'Faturamento', icon: DollarSign },
+    { id: 'os', label: 'Ordens de Serviço', icon: ClipboardList },
+    { id: 'mecanico', label: 'Por Mecânico', icon: Users },
+    { id: 'estoque', label: 'Estoque', icon: Package },
+    ...(user?.papel === 'admin' ? [{ id: 'auditoria' as Aba, label: 'Auditoria', icon: FileText }] : []),
+  ]
 
   return (
     <div className="space-y-5">
@@ -774,12 +849,12 @@ export default function Relatorios() {
       </div>
 
       {/* Abas */}
-      <div className="flex gap-1 border-b border-slate-200">
+      <div className="flex gap-1 border-b border-slate-200 overflow-x-auto">
         {abas.map(a => {
           const Icon = a.icon
           return (
             <button key={a.id} onClick={() => setAba(a.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px whitespace-nowrap ${
                 aba === a.id
                   ? 'border-blue-600 text-blue-700'
                   : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
@@ -796,6 +871,7 @@ export default function Relatorios() {
       {aba === 'os' && <AbaOS />}
       {aba === 'mecanico' && <AbaMecanico />}
       {aba === 'estoque' && <AbaEstoque />}
+      {aba === 'auditoria' && <AbaAuditoria />}
     </div>
   )
 }
