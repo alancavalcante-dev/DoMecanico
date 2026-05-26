@@ -1,5 +1,6 @@
 from pathlib import Path
 from decouple import config, Csv
+import sentry_sdk
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -10,6 +11,14 @@ SECRET_KEY = config('SECRET_KEY')
 FERNET_KEY = config('FERNET_KEY', default='')
 
 DEBUG = config('DEBUG', default=False, cast=bool)
+
+_sentry_dsn = config('SENTRY_DSN', default='')
+if _sentry_dsn:
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
