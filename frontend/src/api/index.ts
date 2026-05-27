@@ -26,6 +26,8 @@ api.interceptors.response.use(
     const original = error.config
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
+      // Verificação inicial de sessão — apenas rejeita, sem redirecionar
+      if (original.url?.includes('/auth/me/')) return Promise.reject(error)
       if (estaInativo()) { window.location.href = '/login'; return Promise.reject(error) }
       try {
         await axios.post('/api/auth/token/refresh/', {}, { withCredentials: true })
@@ -53,6 +55,8 @@ adminApi.interceptors.response.use(
     const original = error.config
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
+      // Verificação inicial de sessão — apenas rejeita, sem redirecionar
+      if (original.url?.includes('/admin-panel/me/')) return Promise.reject(error)
       if (estaInativo()) { window.location.href = '/admin-panel/login'; return Promise.reject(error) }
       try {
         await axios.post('/api/auth/token/refresh/', { admin: true }, { withCredentials: true })
