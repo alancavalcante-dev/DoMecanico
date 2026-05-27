@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { authAPI } from '../api'
 import { useAuth } from '../contexts/AuthContext'
-import { CreditCard, Check, X, AlertTriangle, RefreshCw, ExternalLink, Loader2, Receipt, Copy, CheckCircle } from 'lucide-react'
+import { CreditCard, Check, X, AlertTriangle, RefreshCw, ExternalLink, Loader2, Receipt, Copy, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
 
 
 interface Plano {
@@ -50,7 +50,7 @@ const STATUS_FATURA: Record<string, { label: string; cls: string }> = {
   cancelada:{ label: 'Cancelada',cls: 'bg-slate-100 text-slate-600' },
 }
 
-const getBeneficios = (p: Plano): { texto: string; ativo: boolean }[] => {
+const getRecursos = (p: Plano): { texto: string; ativo: boolean }[] => {
   const items: { texto: string; ativo: boolean }[] = [
     { texto: p.max_clientes === -1 ? 'Clientes ilimitados' : `Até ${p.max_clientes} clientes`, ativo: true },
     { texto: p.max_usuarios === -1 ? 'Usuários ilimitados' : `Até ${p.max_usuarios} usuários`, ativo: true },
@@ -60,7 +60,6 @@ const getBeneficios = (p: Plano): { texto: string; ativo: boolean }[] => {
   items.push({ texto: 'Nota fiscal', ativo: p.tem_nota_fiscal })
   items.push({ texto: 'Relatórios avançados', ativo: p.tem_relatorios })
   items.push({ texto: 'Fotos de veículos', ativo: p.tem_fotos_veiculo })
-  ;(p.modulos_disponiveis || []).forEach(m => items.push({ texto: m, ativo: true }))
   return items
 }
 
@@ -74,6 +73,7 @@ export default function Assinatura() {
   const [showPagar, setShowPagar] = useState(false)
   const [linkCopiado, setLinkCopiado] = useState<number | null>(null)
   const [cancelando, setCancelando] = useState<number | null>(null)
+  const [modulosExpandidos, setModulosExpandidos] = useState<Record<string, boolean>>({})
 
   const carregarFaturas = () =>
     authAPI.minhasFaturas().then(({ data }) => setFaturas(data)).catch(() => {})
@@ -193,9 +193,11 @@ export default function Assinatura() {
 
       {/* Trocar plano */}
       <h2 className="text-slate-800 font-semibold mb-4">Alterar plano</h2>
-      <div className={`grid gap-4 mb-6 ${planos.length === 1 ? 'grid-cols-1 max-w-sm' : 'grid-cols-1 sm:grid-cols-2'}`}>
+      <div className={`grid gap-4 mb-6 ${planos.length > 1 ? 'sm:grid-cols-2' : ''} grid-cols-1`}>
         {planos.map((p) => {
           const atual = p.slug === assinatura?.plano?.slug
+          const modulos = p.modulos_disponiveis || []
+          const expandido = modulosExpandidos[p.slug] ?? false
           return (
             <div
               key={p.slug}
@@ -210,8 +212,9 @@ export default function Assinatura() {
               <div className="text-blue-600 font-bold text-2xl">
                 {fmt(p.preco)}<span className="text-sm text-slate-500 font-normal">/mês</span>
               </div>
-              <ul className="mt-3 space-y-1 text-sm mb-4">
-                {getBeneficios(p).map((b, i) => (
+
+              <ul className="mt-3 space-y-1 text-sm mb-3">
+                {getRecursos(p).map((b, i) => (
                   <li key={i} className={`flex items-center gap-2 ${b.ativo ? 'text-slate-700' : 'text-slate-400 line-through'}`}>
                     {b.ativo
                       ? <Check className="w-4 h-4 text-green-500 shrink-0" />
@@ -221,6 +224,29 @@ export default function Assinatura() {
                   </li>
                 ))}
               </ul>
+
+              {modulos.length > 0 && (
+                <div className="border-t border-slate-200 pt-3 mb-4">
+                  <button
+                    onClick={() => setModulosExpandidos(prev => ({ ...prev, [p.slug]: !expandido }))}
+                    className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium transition"
+                  >
+                    {expandido ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    {expandido ? 'Ocultar módulos' : `Ver ${modulos.length} módulos incluídos`}
+                  </button>
+                  {expandido && (
+                    <ul className="mt-2 space-y-1 text-sm">
+                      {modulos.map((m, i) => (
+                        <li key={i} className="flex items-center gap-2 text-slate-600">
+                          <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                          {m}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
               {atual ? (
                 <span className="text-blue-600 text-sm font-semibold">Plano atual</span>
               ) : (
