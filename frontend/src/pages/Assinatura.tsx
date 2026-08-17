@@ -192,7 +192,7 @@ export default function Assinatura() {
       )}
 
       {/* Trocar plano */}
-      <h2 className="text-slate-800 font-semibold mb-4">Alterar plano</h2>
+      <h2 className="text-slate-800 font-semibold mb-4">{planos.length > 1 ? 'Alterar plano' : 'Seu plano'}</h2>
       <div className={`grid gap-4 mb-6 ${planos.length > 1 ? 'sm:grid-cols-2' : ''} grid-cols-1`}>
         {planos.map((p) => {
           const atual = p.slug === assinatura?.plano?.slug
