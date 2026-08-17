@@ -1,3 +1,5 @@
+import logging
+
 from django.db import transaction
 from django.db.models import Q, F, Count, Sum, DecimalField
 from django.db.models.functions import Coalesce
@@ -40,6 +42,9 @@ from .serializers import (
     OrcamentoPublicoSerializer, GarantiaServicoSerializer,
     ComissaoMecanicoSerializer, AlertaEstoqueSerializer,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_oficina(request):
@@ -425,12 +430,12 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                 from .whatsapp import notificar_os_concluida
                 notificar_os_concluida(ordem)
             except Exception:
-                pass
+                logger.exception('Falha ao notificar OS concluída via WhatsApp (OS #%s)', ordem.numero)
             try:
                 from .email_os import notificar_os_concluida_email
                 notificar_os_concluida_email(ordem)
             except Exception:
-                pass
+                logger.exception('Falha ao notificar OS concluída via e-mail (OS #%s)', ordem.numero)
             try:
                 from .push import enviar_push_oficina
                 enviar_push_oficina(
@@ -440,7 +445,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
                     f'/ordens/{ordem.id}',
                 )
             except Exception:
-                pass
+                logger.exception('Falha ao enviar push de OS concluída (OS #%s)', ordem.numero)
         return Response(OrdemServicoSerializer(ordem).data)
 
     @action(detail=True, methods=['get'], url_path='gerar-pdf')

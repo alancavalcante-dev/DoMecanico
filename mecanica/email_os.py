@@ -1,4 +1,8 @@
+import logging
+
 from django.core.mail import get_connection, EmailMultiAlternatives
+
+logger = logging.getLogger(__name__)
 
 
 def _get_connection():
@@ -151,4 +155,4 @@ def notificar_os_concluida_email(ordem):
         msg.attach_alternative(html, 'text/html')
         msg.send()
     except Exception:
-        pass
+        logger.exception('Falha ao enviar e-mail de OS concluída (OS #%s)', ordem.numero)

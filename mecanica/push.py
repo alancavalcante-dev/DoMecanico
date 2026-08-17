@@ -1,4 +1,7 @@
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def enviar_push_oficina(oficina, titulo, corpo, url='/'):
@@ -39,4 +42,4 @@ def enviar_push_oficina(oficina, titulo, corpo, url='/'):
         if stale:
             PushSubscription.objects.filter(id__in=stale).delete()
     except Exception:
-        pass
+        logger.exception('Falha no envio de push para oficina %s', getattr(oficina, 'id', '?'))
