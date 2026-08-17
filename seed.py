@@ -11,27 +11,24 @@ django.setup()
 
 from django.contrib.auth.models import User
 from django.utils import timezone
-from accounts.models import Plano, Oficina, MembroOficina, Assinatura
+from accounts.models import Plano, Oficina, MembroOficina, Assinatura, MODULOS
 from mecanica.models import (
     Cliente, Veiculo, Funcionario, Peca, MovimentacaoEstoque
 )
 
 print("=== Seed DoMecanico ===\n")
 
-# Planos
-plano_starter, _ = Plano.objects.update_or_create(
-    slug='starter',
-    defaults=dict(nome='Starter', preco='99.00', max_usuarios=1, max_clientes=50,
-                  max_os_mes=100, max_pecas=200, tem_nota_fiscal=False,
-                  tem_relatorios=False, tem_fotos_veiculo=False, destaque=False)
-)
-plano_pro, _ = Plano.objects.update_or_create(
-    slug='pro',
-    defaults=dict(nome='Pro', preco='199.00', max_usuarios=5, max_clientes=-1,
+# Plano único (MVP) — R$ 80/mês com acesso completo a todos os módulos
+TODOS_MODULOS = [m[0] for m in MODULOS]
+plano_mvp, _ = Plano.objects.update_or_create(
+    slug='mensal',
+    defaults=dict(nome='Plano Mensal', preco='80.00', max_usuarios=-1, max_clientes=-1,
                   max_os_mes=-1, max_pecas=-1, tem_nota_fiscal=True,
-                  tem_relatorios=True, tem_fotos_veiculo=True, destaque=True)
+                  tem_relatorios=True, tem_fotos_veiculo=True, destaque=True,
+                  modulos_disponiveis=TODOS_MODULOS,
+                  descricao='Acesso completo a todos os recursos do DoMecânico.')
 )
-print("OK: Planos criados")
+print("OK: Plano único MVP criado (R$ 80/mês)")
 
 # Oficina demo
 oficina, criada = Oficina.objects.get_or_create(
@@ -62,17 +59,20 @@ if not User.objects.filter(username='admin_demo').exists():
 else:
     print("OK: Usuario admin ja existia")
 
-# Assinatura Pro ativa
+# Assinatura ativa no plano único
 Assinatura.objects.update_or_create(
     oficina=oficina,
     defaults=dict(
-        plano=plano_pro,
+        plano=plano_mvp,
         status='ativa',
         data_inicio=timezone.now() - timedelta(days=10),
         data_fim=timezone.now() + timedelta(days=20),
     )
 )
-print("OK: Assinatura Pro ativa")
+print("OK: Assinatura ativa")
+
+# Mantém o MVP com um plano só: remove planos legados sem assinaturas vinculadas
+Plano.objects.exclude(slug='mensal').filter(assinatura__isnull=True).delete()
 
 # Clientes
 clientes_data = [
