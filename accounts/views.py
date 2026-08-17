@@ -1224,10 +1224,6 @@ def client_error(request):
 @permission_classes([AllowAny])
 @throttle_classes([EsqueciSenhaThrottle])
 def esqueci_senha(request):
-    from django.contrib.auth.tokens import default_token_generator
-    from django.utils.http import urlsafe_base64_encode
-    from django.utils.encoding import force_bytes
-
     email = request.data.get('email', '').strip().lower()
     if not email:
         return Response({'erro': 'Informe o e-mail.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -1237,11 +1233,20 @@ def esqueci_senha(request):
     except User.DoesNotExist:
         return Response({'ok': True})
 
+    _enviar_email_redefinicao(user, user.email)
+    return Response({'ok': True})
+
+
+def _enviar_email_redefinicao(user, to_email):
+    """Gera token de redefinição e envia o e-mail de recuperação para `to_email` (em segundo plano)."""
+    from django.contrib.auth.tokens import default_token_generator
+    from django.utils.http import urlsafe_base64_encode
+    from django.utils.encoding import force_bytes
+
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
     link = f'https://domecanico.net/redefinir-senha/{uid}/{token}/'
 
-    user_email = user.email
     user_nome = user.first_name or user.email
 
     def _enviar():
@@ -1295,7 +1300,7 @@ def esqueci_senha(request):
                 subject='Redefinição de senha — DoMecânico',
                 body=f'Acesse o link para redefinir sua senha (válido por 1 hora):\n{link}',
                 from_email=from_email,
-                to=[user_email],
+                to=[to_email],
                 connection=conn,
             )
             msg.attach_alternative(html, 'text/html')
@@ -1305,8 +1310,6 @@ def esqueci_senha(request):
 
     import threading
     threading.Thread(target=_enviar, daemon=True).start()
-
-    return Response({'ok': True})
 
 
 @api_view(['POST'])

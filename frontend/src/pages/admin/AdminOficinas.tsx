@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { adminAPI } from '../../api'
-import { Search, Users, ChevronRight, X, AlertTriangle, CheckCircle, Ban } from 'lucide-react'
+import { Search, Users, ChevronRight, X, AlertTriangle, CheckCircle, Ban, KeyRound, Mail, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal'
 
@@ -71,6 +71,7 @@ export default function AdminOficinas() {
   const [diasExtender, setDiasExtender] = useState(7)
   const [planoTrocar, setPlanoTrocar] = useState('')
   const [planos, setPlanos] = useState<{ id: number; slug: string; nome: string }[]>([])
+  const [senhaGerada, setSenhaGerada] = useState<{ email: string; senha: string } | null>(null)
 
   const carregar = (params?: object) => {
     setLoading(true)
@@ -96,16 +97,22 @@ export default function AdminOficinas() {
       let data: Record<string, unknown> = { acao: acao.tipo }
       if (acao.tipo === 'extender_trial') data.dias = diasExtender
       if (acao.tipo === 'trocar_plano') data.plano_slug = planoTrocar
-      await adminAPI.oficinaAcao(acao.oficina.id, data)
-      toast.success('Ação executada com sucesso.')
+      const r = await adminAPI.oficinaAcao(acao.oficina.id, data)
+      if (acao.tipo === 'resetar_senha') {
+        setSenhaGerada({ email: r.data.email, senha: r.data.senha_gerada })
+      } else if (acao.tipo === 'enviar_email_recuperacao') {
+        toast.success(`E-mail de recuperação enviado para ${r.data.email}.`)
+      } else {
+        toast.success('Ação executada com sucesso.')
+      }
       setAcao(null)
       buscar()
       if (detalhe?.id === acao.oficina.id) {
-        const r = await adminAPI.oficina(acao.oficina.id)
-        setDetalhe(r.data)
+        const d = await adminAPI.oficina(acao.oficina.id)
+        setDetalhe(d.data)
       }
-    } catch {
-      toast.error('Erro ao executar ação.')
+    } catch (err: any) {
+      toast.error(err?.response?.data?.erro || 'Erro ao executar ação.')
     }
   }
 
@@ -274,6 +281,22 @@ export default function AdminOficinas() {
               ))}
             </div>
 
+            {/* Acesso do administrador */}
+            <div className="bg-gray-800 rounded-xl p-4 space-y-2">
+              <h3 className="text-white font-semibold flex items-center gap-2"><KeyRound size={15} /> Acesso do administrador</h3>
+              <p className="text-gray-500 text-xs">Redefina a senha da conta administradora desta oficina em caso de perda de acesso.</p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <button onClick={() => setAcao({ tipo: 'resetar_senha', oficina: detalhe as unknown as Oficina })}
+                  className="flex items-center gap-1 bg-orange-900/40 text-orange-300 hover:bg-orange-900/60 px-3 py-1.5 rounded-lg text-xs font-medium">
+                  <KeyRound size={13} /> Redefinir senha (gerar nova)
+                </button>
+                <button onClick={() => setAcao({ tipo: 'enviar_email_recuperacao', oficina: detalhe as unknown as Oficina })}
+                  className="flex items-center gap-1 bg-blue-900/40 text-blue-300 hover:bg-blue-900/60 px-3 py-1.5 rounded-lg text-xs font-medium">
+                  <Mail size={13} /> Enviar e-mail de recuperação
+                </button>
+              </div>
+            </div>
+
             {/* Membros */}
             <div>
               <h3 className="text-white font-semibold mb-2 flex items-center gap-2"><Users size={15} /> Membros</h3>
@@ -323,6 +346,8 @@ export default function AdminOficinas() {
               {acao.tipo === 'cancelar' && `Cancelar assinatura de "${acao.oficina.nome}"?`}
               {acao.tipo === 'extender_trial' && `Extender trial de "${acao.oficina.nome}":`}
               {acao.tipo === 'trocar_plano' && `Trocar plano de "${acao.oficina.nome}" para:`}
+              {acao.tipo === 'resetar_senha' && `Gerar uma nova senha para o administrador de "${acao.oficina.nome}"? A senha atual deixará de funcionar imediatamente.`}
+              {acao.tipo === 'enviar_email_recuperacao' && `Enviar o e-mail de redefinição de senha para o e-mail principal de "${acao.oficina.nome}"?`}
             </p>
             {acao.tipo === 'extender_trial' && (
               <input type="number" value={diasExtender} onChange={e => setDiasExtender(+e.target.value)} min={1} max={90}
@@ -340,6 +365,29 @@ export default function AdminOficinas() {
                 Confirmar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal senha gerada */}
+      {senhaGerada && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold">Nova senha gerada</h3>
+              <button onClick={() => setSenhaGerada(null)}><X size={18} className="text-gray-400" /></button>
+            </div>
+            <p className="text-gray-400 text-sm mb-1">Conta: <span className="text-white">{senhaGerada.email}</span></p>
+            <p className="text-gray-500 text-xs mb-3">Copie e envie esta senha ao responsável pela oficina. Ela não será exibida novamente.</p>
+            <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2.5">
+              <code className="flex-1 text-white text-sm font-mono break-all">{senhaGerada.senha}</code>
+              <button onClick={() => { navigator.clipboard.writeText(senhaGerada.senha); toast.success('Senha copiada.') }}
+                className="text-violet-400 hover:text-violet-300 shrink-0"><Copy size={15} /></button>
+            </div>
+            <button onClick={() => setSenhaGerada(null)}
+              className="w-full mt-4 bg-violet-600 hover:bg-violet-700 text-white rounded-xl py-2.5 text-sm font-medium">
+              Fechar
+            </button>
           </div>
         </div>
       )}

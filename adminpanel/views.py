@@ -363,6 +363,29 @@ def admin_oficina_acao(request, pk):
         registrar_log('info', 'assinatura', f'Trial da oficina "{of.nome}" extendido por {dias} dias.', request.user, request=request)
         return Response({'ok': True, 'trial_fim': ass.trial_fim})
 
+    elif acao == 'resetar_senha':
+        from accounts.views import _gerar_senha
+        admin_membro = of.membros.filter(papel='admin').order_by('criado_em').first()
+        if not admin_membro:
+            return Response({'erro': 'Esta oficina não possui um administrador.'}, status=400)
+        nova_senha = _gerar_senha()
+        admin_membro.user.set_password(nova_senha)
+        admin_membro.user.save()
+        registrar_log('aviso', 'auth', f'Senha do administrador da oficina "{of.nome}" redefinida pelo painel.', request.user, request=request)
+        return Response({'ok': True, 'senha_gerada': nova_senha, 'email': admin_membro.user.email})
+
+    elif acao == 'enviar_email_recuperacao':
+        from accounts.views import _enviar_email_redefinicao
+        admin_membro = of.membros.filter(papel='admin').order_by('criado_em').first()
+        if not admin_membro:
+            return Response({'erro': 'Esta oficina não possui um administrador.'}, status=400)
+        destino = of.email or admin_membro.user.email
+        if not destino:
+            return Response({'erro': 'Oficina sem e-mail cadastrado para envio.'}, status=400)
+        _enviar_email_redefinicao(admin_membro.user, destino)
+        registrar_log('info', 'auth', f'E-mail de recuperação enviado para a oficina "{of.nome}" ({destino}).', request.user, request=request)
+        return Response({'ok': True, 'email': destino})
+
     return Response({'erro': 'Ação inválida.'}, status=400)
 
 
