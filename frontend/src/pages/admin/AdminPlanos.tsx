@@ -52,7 +52,7 @@ const TODOS_MODULOS = [
   { key: 'checklist',     label: 'Checklist de Entrada' },
   { key: 'garantias',     label: 'Garantias' },
   { key: 'comissoes',     label: 'Comissões' },
-  { key: 'notas_fiscais', label: 'Notas Fiscais' },
+  { key: 'notas_fiscais', label: 'Comprovantes de Serviço' },
   { key: 'relatorios',    label: 'Relatórios' },
   { key: 'equipe',        label: 'Equipe' },
   { key: 'whatsapp',      label: 'WhatsApp' },
@@ -180,7 +180,7 @@ function FormCampos({
       <div>
         <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Funcionalidades especiais</p>
         <div className="bg-gray-800/40 rounded-xl divide-y divide-gray-800">
-          <Toggle label="Nota Fiscal" checked={form.tem_nota_fiscal}
+          <Toggle label="Comprovante de serviço" checked={form.tem_nota_fiscal}
             onChange={v => setForm({ ...form, tem_nota_fiscal: v })} />
           <Toggle label="Relatórios avançados" checked={form.tem_relatorios}
             onChange={v => setForm({ ...form, tem_relatorios: v })} />
@@ -376,7 +376,7 @@ export default function AdminPlanos() {
                   <span className="flex items-center gap-1.5"><Package size={13} />Peças</span>
                   <Limite val={p.max_pecas} />
                 </div>
-                <div className="flex justify-between"><span>Nota fiscal</span><Bool val={p.tem_nota_fiscal} /></div>
+                <div className="flex justify-between"><span>Comprovante de serviço</span><Bool val={p.tem_nota_fiscal} /></div>
                 <div className="flex justify-between"><span>Relatórios</span><Bool val={p.tem_relatorios} /></div>
                 <div className="flex justify-between"><span>Fotos de veículo</span><Bool val={p.tem_fotos_veiculo} /></div>
               </div>

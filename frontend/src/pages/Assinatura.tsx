@@ -57,7 +57,7 @@ const getRecursos = (p: Plano): { texto: string; ativo: boolean }[] => {
   ]
   if (p.max_os_mes !== undefined) items.push({ texto: p.max_os_mes === -1 ? 'OS ilimitadas/mês' : `Até ${p.max_os_mes} OS/mês`, ativo: true })
   if (p.max_pecas !== undefined) items.push({ texto: p.max_pecas === -1 ? 'Peças ilimitadas' : `Até ${p.max_pecas} peças no estoque`, ativo: true })
-  items.push({ texto: 'Nota fiscal', ativo: p.tem_nota_fiscal })
+  items.push({ texto: 'Comprovante de serviço', ativo: p.tem_nota_fiscal })
   items.push({ texto: 'Relatórios avançados', ativo: p.tem_relatorios })
   items.push({ texto: 'Fotos de veículos', ativo: p.tem_fotos_veiculo })
   return items

@@ -488,11 +488,11 @@ class NotaFiscalViewSet(viewsets.ModelViewSet):
         except OrdemServico.DoesNotExist:
             return Response({'erro': 'OS não encontrada.'}, status=400)
         if ordem.status != 'concluida':
-            return Response({'erro': 'Só é possível emitir nota para OS com status Concluída.'}, status=400)
+            return Response({'erro': 'Só é possível gerar o comprovante para OS com status Concluída.'}, status=400)
         if hasattr(ordem, 'nota_fiscal'):
-            return Response({'erro': 'Esta OS já possui uma nota fiscal emitida.'}, status=400)
+            return Response({'erro': 'Esta OS já possui um comprovante gerado.'}, status=400)
         ultima = NotaFiscal.objects.filter(ordem__oficina=oficina).order_by('-id').first()
-        numero = f'NF{str((ultima.id if ultima else 0) + 1).zfill(6)}'
+        numero = f'CS{str((ultima.id if ultima else 0) + 1).zfill(6)}'
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save(numero_nota=numero)
@@ -1026,7 +1026,7 @@ def _gerar_pdf_nf(nf):
         ParagraphStyle('cab', parent=styles['Normal'], fontSize=11, leading=14)
     )
     titulo_nf = Paragraph(
-        f'<b>NOTA FISCAL DE SERVIÇO</b><br/>'
+        f'<b>COMPROVANTE DE SERVIÇO</b><br/>'
         f'<font size=10>Nº {nf.numero_nota}</font><br/>'
         f'<font size=8>Emissão: {nf.data_emissao.strftime("%d/%m/%Y %H:%M")}</font>',
         ParagraphStyle('nfl', parent=styles['Normal'], fontSize=12, alignment=2, leading=16, textColor=cor_primaria)
@@ -1127,10 +1127,17 @@ def _gerar_pdf_nf(nf):
     ]))
     story.append(t)
 
+    story.append(Spacer(1, 0.7*cm))
+    story.append(Paragraph(
+        '<font size=8 color="#64748b"><b>Documento sem valor fiscal.</b> '
+        'Este comprovante de serviço não substitui a nota fiscal (NF-e/NFS-e).</font>',
+        ParagraphStyle('disclaimer', parent=styles['Normal'], fontSize=8, alignment=1, leading=11)
+    ))
+
     doc.build(story)
     buffer.seek(0)
     response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'inline; filename="NF_{nf.numero_nota}.pdf"'
+    response['Content-Disposition'] = f'inline; filename="Comprovante_{nf.numero_nota}.pdf"'
     return response
 
 

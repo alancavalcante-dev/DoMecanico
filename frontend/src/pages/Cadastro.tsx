@@ -109,7 +109,7 @@ export default function Cadastro() {
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-green-400" />
-                  {p.tem_nota_fiscal ? 'Nota fiscal inclusa' : 'Sem nota fiscal'}
+                  {p.tem_nota_fiscal ? 'Comprovante de serviço incluso' : 'Sem comprovante'}
                 </li>
                 <li className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-green-400" />

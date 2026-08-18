@@ -41,11 +41,11 @@ export default function NotasFiscais() {
     setSalvando(true)
     try {
       await notasAPI.criar(form)
-      toast.success('Nota fiscal gerada!')
+      toast.success('Comprovante gerado!')
       setModalOpen(false)
       carregar()
     } catch (err: any) {
-      const msg = err?.response?.data?.erro || err?.response?.data?.detail || 'Erro ao gerar nota fiscal.'
+      const msg = err?.response?.data?.erro || err?.response?.data?.detail || 'Erro ao gerar comprovante.'
       toast.error(msg)
     } finally {
       setSalvando(false)
@@ -58,7 +58,7 @@ export default function NotasFiscais() {
       const url = URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }))
       window.open(url, '_blank')
     } catch {
-      toast.error('Erro ao imprimir nota.')
+      toast.error('Erro ao imprimir o comprovante.')
     }
   }
 
@@ -71,18 +71,18 @@ export default function NotasFiscais() {
   return (
     <div>
       <PageHeader
-        title="Notas Fiscais"
-        subtitle={`${notas.length} nota(s) emitida(s)`}
+        title="Comprovantes de Serviço"
+        subtitle={`${notas.length} comprovante(s) gerado(s)`}
         action={
           <button onClick={abrirNova} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            <Plus size={16} /> Gerar Nota Fiscal
+            <Plus size={16} /> Gerar Comprovante
           </button>
         }
       />
 
       <div className="relative max-w-sm mb-5">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nº nota, cliente, OS..."
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nº, cliente, OS..."
           className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
 
@@ -92,15 +92,15 @@ export default function NotasFiscais() {
         ) : notasFiltradas.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-slate-400">
             <FileText size={40} className="mb-3" />
-            <p className="text-sm">Nenhuma nota fiscal encontrada.</p>
-            <p className="text-xs mt-1">Gere notas a partir de OS concluídas.</p>
+            <p className="text-sm">Nenhum comprovante encontrado.</p>
+            <p className="text-xs mt-1">Gere comprovantes a partir de OS concluídas.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
               <tr>
-                <th className="px-5 py-3 text-left">Nº Nota</th>
+                <th className="px-5 py-3 text-left">Nº</th>
                 <th className="px-5 py-3 text-left">OS Ref.</th>
                 <th className="px-5 py-3 text-left">Cliente</th>
                 <th className="px-5 py-3 text-left">Emissão</th>
@@ -129,13 +129,13 @@ export default function NotasFiscais() {
         )}
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Gerar Nota Fiscal" size="sm">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Gerar Comprovante" size="sm">
         <form onSubmit={salvar} className="space-y-4">
           <div>
             <label className="text-sm font-medium text-slate-700">Ordem de Serviço Concluída *</label>
             {ordensDisponiveis.length === 0 ? (
               <p className="mt-2 text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
-                Não há OS concluídas disponíveis para emissão de nota fiscal.
+                Não há OS concluídas disponíveis para gerar comprovante.
               </p>
             ) : (
               <select required value={form.ordem} onChange={e => setForm(p => ({ ...p, ordem: e.target.value }))}
@@ -155,7 +155,7 @@ export default function NotasFiscais() {
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 border border-slate-200 rounded-lg text-sm">Cancelar</button>
             <button type="submit" disabled={salvando || ordensDisponiveis.length === 0} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-60">
-              {salvando ? 'Gerando...' : 'Gerar Nota'}
+              {salvando ? 'Gerando...' : 'Gerar Comprovante'}
             </button>
           </div>
         </form>

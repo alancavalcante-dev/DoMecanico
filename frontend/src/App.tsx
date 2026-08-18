@@ -114,7 +114,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/estoque':        'Estoque — DoMecânico',
   '/funcionarios':   'Funcionários — DoMecânico',
   '/ordens':         'Ordens de Serviço — DoMecânico',
-  '/notas-fiscais':  'Notas Fiscais — DoMecânico',
+  '/notas-fiscais':  'Comprovantes de Serviço — DoMecânico',
   '/relatorios':     'Relatórios — DoMecânico',
   '/assinatura':     'Assinatura — DoMecânico',
   '/checklist':      'Checklist — DoMecânico',

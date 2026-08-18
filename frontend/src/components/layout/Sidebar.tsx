@@ -47,7 +47,7 @@ const GROUPS: Group[] = [
     label: 'Financeiro',
     icon: DollarSign,
     items: [
-      { to: '/notas-fiscais', icon: FileText,   label: 'Notas Fiscais', modulo: 'notas_fiscais' },
+      { to: '/notas-fiscais', icon: FileText,   label: 'Comprovantes', modulo: 'notas_fiscais' },
       { to: '/comissoes',     icon: DollarSign, label: 'Comissões',     modulo: 'comissoes' },
       { to: '/relatorios',    icon: BarChart3,  label: 'Relatórios',    modulo: 'relatorios' },
     ],

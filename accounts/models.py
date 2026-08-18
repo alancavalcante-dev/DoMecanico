@@ -170,7 +170,7 @@ MODULOS = [
     ('checklist',     'Checklist de Entrada'),
     ('garantias',     'Garantias'),
     ('comissoes',     'Comissões'),
-    ('notas_fiscais', 'Notas Fiscais'),
+    ('notas_fiscais', 'Comprovantes de Serviço'),
     ('relatorios',    'Relatórios'),
     ('equipe',        'Equipe'),
     ('whatsapp',      'WhatsApp'),

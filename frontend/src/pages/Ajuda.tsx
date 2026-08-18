@@ -121,7 +121,7 @@ const sections: Section[] = [
             ['Veículo vinculado', 'Agendamento ou entrada direta'],
             ['Entrada do veículo', 'Checklist de danos assinado pelo cliente'],
             ['OS aberta', 'Mecânico designado, serviços e peças lançados'],
-            ['OS concluída', 'Nota fiscal gerada, comissão calculada automaticamente'],
+            ['OS concluída', 'Comprovante gerado, comissão calculada automaticamente'],
             ['Cliente acompanha', 'Portal público com link ou placa + CPF'],
           ].map(([de, para], i) => (
             <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
@@ -147,7 +147,7 @@ const sections: Section[] = [
             ['Checklist', 'Vistoria de entrada assinada digitalmente'],
             ['Garantias', 'Registro de garantias por serviço'],
             ['Comissões', 'Cálculo automático ao concluir OS'],
-            ['Notas Fiscais', 'Emissão de NF simplificada em PDF'],
+            ['Comprovantes de Serviço', 'Comprovante detalhado em PDF, sem valor fiscal'],
             ['Relatórios', 'Faturamento, OS por período e estoque'],
           ].map(([mod, desc]) => (
             <div key={mod} className="flex gap-2 bg-slate-50 rounded-lg p-3">
@@ -731,31 +731,33 @@ const sections: Section[] = [
   {
     id: 'notas-fiscais',
     icon: FileText,
-    label: 'Notas Fiscais',
+    label: 'Comprovantes de Serviço',
     color: 'blue',
     content: (
       <div>
         <P>
-          Emita notas fiscais simplificadas em PDF vinculadas a OS concluídas.
-          Cada OS pode ter apenas uma nota fiscal.
+          Gere comprovantes de serviço em PDF vinculados a OS concluídas, com peças e
+          mão de obra discriminadas item a item e o valor total. Cada OS pode ter apenas
+          um comprovante.
         </P>
 
-        <H2>Gerando uma nota fiscal</H2>
-        <Step n={1}>Clique em <strong>"Gerar Nota Fiscal"</strong>.</Step>
-        <Step n={2}>Selecione a OS concluída (somente OS finalizadas sem nota aparecem).</Step>
+        <H2>Gerando um comprovante</H2>
+        <Step n={1}>Clique em <strong>"Gerar Comprovante"</strong>.</Step>
+        <Step n={2}>Selecione a OS concluída (somente OS finalizadas sem comprovante aparecem).</Step>
         <Step n={3}>Adicione observações opcionais.</Step>
-        <Step n={4}>Clique em <strong>"Gerar Nota"</strong> — um número sequencial é atribuído automaticamente.</Step>
+        <Step n={4}>Clique em <strong>"Gerar Comprovante"</strong> — um número sequencial é atribuído automaticamente.</Step>
 
         <H2>Imprimindo em PDF</H2>
         <P>
-          Na tabela de notas fiscais, clique em <strong>"Imprimir PDF"</strong> na linha
+          Na tabela de comprovantes, clique em <strong>"Imprimir PDF"</strong> na linha
           desejada. O PDF abrirá em uma nova aba com os dados da OS, cliente, veículo,
-          serviços e total.
+          peças, mão de obra e total.
         </P>
 
         <Alert>
-          Esta é uma nota fiscal simplificada para controle interno. Para fins fiscais
-          legais (NF-e), você precisará de um sistema contábil homologado pela Receita Federal.
+          O comprovante de serviço <strong>não tem valor fiscal</strong> e não substitui a
+          nota fiscal (NF-e/NFS-e). Para emissão fiscal, use o sistema do seu contador ou um
+          emissor homologado.
         </Alert>
 
         <H2>Buscando notas</H2>

@@ -161,7 +161,7 @@ export default function Perfil() {
 
           <div className="flex-1 space-y-3">
             <p className="text-sm text-slate-600">
-              A logo aparecerá no cabeçalho de todos os PDFs gerados (Ordens de Serviço, Notas Fiscais e Checklists).
+              A logo aparecerá no cabeçalho de todos os PDFs gerados (Ordens de Serviço, Comprovantes e Checklists).
             </p>
             <p className="text-xs text-slate-400">
               Formatos aceitos: JPEG, PNG, WebP. Tamanho máximo: 2 MB.

@@ -28,7 +28,7 @@ const MODULO_LABEL: Record<string, string> = {
   estoque: 'Estoque',
   funcionarios: 'Funcionários',
   ordens: 'Ordens de Serviço',
-  notas_fiscais: 'Notas Fiscais',
+  notas_fiscais: 'Comprovantes de Serviço',
   relatorios: 'Relatórios',
   checklist: 'Checklist de Entrada',
   agendamentos: 'Agendamentos',
