@@ -57,7 +57,15 @@ export default function Estoque() {
 
   useEffect(() => { carregar(search, filtroEstoqueBaixo, filtroMarca, ordenar, page) }, [page]) // eslint-disable-line
 
-  const abrirNovo = () => { setEditando(null); setForm({ ...EMPTY }); setModalOpen(true) }
+  const abrirNovo = async () => {
+    setEditando(null)
+    setForm({ ...EMPTY })
+    setModalOpen(true)
+    try {
+      const { data } = await pecasAPI.proximoCodigo()
+      setForm(p => ({ ...p, codigo: data.proximo }))
+    } catch { /* segue sem sugestão — usuário digita o código */ }
+  }
   const abrirEditar = (p: Peca) => {
     setEditando(p)
     setForm({
@@ -258,6 +266,7 @@ export default function Estoque() {
               <label className="text-sm font-medium text-slate-700">Código *</label>
               <input required value={form.codigo} onChange={f('codigo')}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              {!editando && <p className="mt-1 text-xs text-slate-400">Sugerido automaticamente — pode alterar (ex: A33).</p>}
             </div>
             <div>
               <label className="text-sm font-medium text-slate-700">Nome *</label>

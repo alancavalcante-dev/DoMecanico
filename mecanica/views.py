@@ -239,6 +239,17 @@ class PecaViewSet(viewsets.ModelViewSet):
         _log(self.request, 'deletado', 'Peca', f'{instance.nome} ({instance.codigo})')
         instance.delete()
 
+    @action(detail=False, methods=['get'], url_path='proximo-codigo')
+    def proximo_codigo(self, request):
+        """Sugere o próximo código numérico sequencial (o usuário pode sobrescrever)."""
+        import re
+        oficina = get_oficina(request)
+        maior = 0
+        for c in Peca.objects.filter(oficina=oficina).values_list('codigo', flat=True):
+            if c and re.fullmatch(r'\d+', c.strip()):
+                maior = max(maior, int(c.strip()))
+        return Response({'proximo': str(maior + 1)})
+
     @action(detail=True, methods=['post'], url_path='movimentar')
     def movimentar(self, request, pk=None):
         from decimal import Decimal, InvalidOperation
@@ -1863,6 +1874,42 @@ class AgendamentoViewSet(viewsets.ModelViewSet):
 
 # ── Orçamento Digital ──────────────────────────────────────────────────────────
 
+def _converter_orcamento_em_os(orc):
+    """Cria uma OS a partir de um orçamento aprovado.
+
+    Idempotente: se o orçamento já foi convertido, retorna a OS existente.
+    """
+    if orc.ordem_id:
+        return orc.ordem
+    with transaction.atomic():
+        ultimo = OrdemServico.objects.filter(oficina=orc.oficina).order_by('-id').values_list('id', flat=True).first() or 0
+        numero = f'OS{ultimo + 1:06d}'
+        os_obj = OrdemServico.objects.create(
+            oficina=orc.oficina,
+            numero=numero,
+            cliente=orc.cliente,
+            veiculo=orc.veiculo,
+            mecanico=orc.mecanico,
+            problema_relatado=orc.problema_relatado,
+            observacoes=orc.observacoes,
+            desconto=orc.desconto,
+        )
+        for item in orc.itens.all():
+            if item.tipo == 'servico':
+                ServicoOS.objects.create(
+                    ordem=os_obj, descricao=item.descricao,
+                    quantidade=item.quantidade, preco_unitario=item.preco_unitario,
+                )
+            else:
+                PecaOS.objects.create(
+                    ordem=os_obj, descricao=item.descricao,
+                    quantidade=item.quantidade, preco_unitario=item.preco_unitario,
+                )
+        orc.ordem = os_obj
+        orc.save(update_fields=['ordem'])
+    return os_obj
+
+
 class OrcamentoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = OrcamentoSerializer
@@ -1910,17 +1957,21 @@ class OrcamentoViewSet(viewsets.ModelViewSet):
             return Response({'erro': 'Só orçamentos pendentes podem ser aprovados.'}, status=400)
         orc.status = 'aprovado'
         orc.save()
+        os_obj = _converter_orcamento_em_os(orc)
         try:
             from .push import enviar_push_oficina
             enviar_push_oficina(
                 orc.oficina,
                 'Orçamento Aprovado',
-                f'Orç. #{orc.numero} — {orc.cliente.nome} aprovado pelo cliente.',
-                f'/orcamentos',
+                f'Orç. #{orc.numero} — {orc.cliente.nome} aprovado. OS {os_obj.numero} criada.',
+                f'/ordens',
             )
         except Exception:
             pass
-        return Response(OrcamentoSerializer(orc, context={'request': request}).data)
+        data = OrcamentoSerializer(orc, context={'request': request}).data
+        data['os_id'] = os_obj.id
+        data['os_numero'] = os_obj.numero
+        return Response(data)
 
     @action(detail=True, methods=['post'])
     def rejeitar(self, request, pk=None):
@@ -1951,34 +2002,9 @@ class OrcamentoViewSet(viewsets.ModelViewSet):
         orc = self.get_object()
         if orc.status != 'aprovado':
             return Response({'erro': 'Orçamento precisa estar aprovado.'}, status=400)
-        if orc.ordem:
+        if orc.ordem_id:
             return Response({'erro': 'Já convertido em OS.'}, status=400)
-        oficina = get_oficina(request)
-        ultimo = OrdemServico.objects.filter(oficina=oficina).order_by('-id').values_list('id', flat=True).first() or 0
-        numero = f'OS{ultimo + 1:06d}'
-        os_obj = OrdemServico.objects.create(
-            oficina=oficina,
-            numero=numero,
-            cliente=orc.cliente,
-            veiculo=orc.veiculo,
-            mecanico=orc.mecanico,
-            problema_relatado=orc.problema_relatado,
-            observacoes=orc.observacoes,
-            desconto=orc.desconto,
-        )
-        for item in orc.itens.all():
-            if item.tipo == 'servico':
-                ServicoOS.objects.create(
-                    ordem=os_obj, descricao=item.descricao,
-                    quantidade=item.quantidade, preco_unitario=item.preco_unitario,
-                )
-            else:
-                PecaOS.objects.create(
-                    ordem=os_obj, descricao=item.descricao,
-                    quantidade=item.quantidade, preco_unitario=item.preco_unitario,
-                )
-        orc.ordem = os_obj
-        orc.save()
+        os_obj = _converter_orcamento_em_os(orc)
         return Response({'os_id': os_obj.id, 'os_numero': os_obj.numero})
 
 
@@ -2008,6 +2034,22 @@ def orcamento_responder(request, token):
         return Response({'erro': 'Resposta inválida.'}, status=400)
     orc.status = resposta
     orc.save()
+    if resposta == 'aprovado':
+        try:
+            os_obj = _converter_orcamento_em_os(orc)
+        except Exception:
+            os_obj = None
+        try:
+            from .push import enviar_push_oficina
+            enviar_push_oficina(
+                orc.oficina,
+                'Orçamento Aprovado',
+                f'Orç. #{orc.numero} — {orc.cliente.nome} aprovado pelo cliente.'
+                + (f' OS {os_obj.numero} criada.' if os_obj else ''),
+                '/ordens',
+            )
+        except Exception:
+            pass
     return Response({'status': orc.status})
 
 

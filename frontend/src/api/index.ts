@@ -153,6 +153,7 @@ export const pecasAPI = {
   deletar: (id: number) => api.delete(`/pecas/${id}/`),
   movimentar: (id: number, data: object) => api.post(`/pecas/${id}/movimentar/`, data),
   movimentacoes: (params?: object) => api.get('/movimentacoes/', { params }),
+  proximoCodigo: () => api.get('/pecas/proximo-codigo/'),
 }
 
 export const ordensAPI = {
