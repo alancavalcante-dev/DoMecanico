@@ -187,24 +187,43 @@ export default function Clientes() {
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="sm:col-span-2">
+              <label className="text-sm font-medium text-slate-700">CEP</label>
+              <input value={form.cep}
+                onChange={e => setForm(f => ({ ...f, cep: e.target.value }))}
+                onBlur={async e => {
+                  const cep = e.target.value.replace(/\D/g, '')
+                  if (cep.length !== 8) return
+                  try {
+                    const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                    const data = await res.json()
+                    if (!data.erro) {
+                      setForm(f => ({
+                        ...f,
+                        endereco: data.logradouro ? `${data.logradouro}${data.bairro ? ', ' + data.bairro : ''}` : f.endereco,
+                        cidade: data.localidade || f.cidade,
+                        estado: data.uf || f.estado,
+                      }))
+                    }
+                  } catch { /* silencioso — o usuário pode preencher manualmente */ }
+                }}
+                placeholder="Digite o CEP para preencher o endereço"
+                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              <p className="mt-1 text-xs text-slate-400">Preenche endereço, cidade e estado automaticamente.</p>
+            </div>
+            <div className="sm:col-span-2">
               <label className="text-sm font-medium text-slate-700">Endereço</label>
               <input value={form.endereco} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div>
-              <label className="text-sm font-medium text-slate-700">Cidade</label>
-              <input value={form.cidade} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))}
-                className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:col-span-2">
               <div>
-                <label className="text-sm font-medium text-slate-700">Estado</label>
-                <input maxLength={2} value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value.toUpperCase() }))}
+                <label className="text-sm font-medium text-slate-700">Cidade</label>
+                <input value={form.cidade} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))}
                   className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700">CEP</label>
-                <input value={form.cep} onChange={e => setForm(f => ({ ...f, cep: e.target.value }))}
+                <label className="text-sm font-medium text-slate-700">Estado</label>
+                <input maxLength={2} value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value.toUpperCase() }))}
                   className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
             </div>

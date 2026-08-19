@@ -270,6 +270,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </div>
 
           <div className="pt-2 space-y-0.5">
+            {user?.papel === 'admin' && (
             <NavLink to="/assinatura" onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-colors ${
@@ -280,6 +281,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
               <CreditCard size={18} />
               Assinatura
             </NavLink>
+            )}
             <NavLink to="/ajuda" onClick={onClose}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-colors ${

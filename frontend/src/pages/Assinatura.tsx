@@ -64,7 +64,7 @@ const getRecursos = (p: Plano): { texto: string; ativo: boolean }[] => {
 }
 
 export default function Assinatura() {
-  const { refreshUser } = useAuth()
+  const { refreshUser, user } = useAuth()
   const [assinatura, setAssinatura] = useState<Assinatura | null>(null)
   const [planos, setPlanos] = useState<Plano[]>([])
   const [faturas, setFaturas] = useState<Fatura[]>([])
@@ -146,6 +146,20 @@ export default function Assinatura() {
     : assinatura?.status === 'trial'
     ? 'text-amber-600'
     : 'text-red-600'
+
+  if (user && user.papel !== 'admin') {
+    return (
+      <div className="p-6 max-w-3xl mx-auto">
+        <h1 className="text-2xl font-bold text-slate-800 mb-6">Assinatura</h1>
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm text-center">
+          <p className="text-slate-600 text-sm">
+            Apenas o <strong>administrador da oficina</strong> pode gerenciar a assinatura e os pagamentos.
+            Fale com o responsável para regularizar.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
