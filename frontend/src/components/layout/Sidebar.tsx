@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Car, Package, UserCog,
   ClipboardList, FileText, BarChart3,  LogOut, CreditCard, AlertTriangle, ClipboardCheck,
   Calendar, FileCheck, ShieldCheck, DollarSign, BookOpen, UsersRound, MessageCircle, KeyRound, Eye, EyeOff,
-  Building2, ChevronDown, X, Globe, Wrench,
+  Building2, ChevronDown, X, Globe, Wrench, Bug,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
@@ -138,6 +138,51 @@ function ModalSenha({ onClose }: { onClose: () => void }) {
   )
 }
 
+function ModalReportar({ onClose }: { onClose: () => void }) {
+  const [mensagem, setMensagem] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  const enviar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!mensagem.trim()) { toast.error('Descreva o problema.'); return }
+    setEnviando(true)
+    try {
+      await authAPI.reportarProblema(mensagem)
+      toast.success('Problema enviado ao suporte. Obrigado!')
+      onClose()
+    } catch (err: any) {
+      toast.error(err.response?.data?.erro || 'Erro ao enviar.')
+    } finally {
+      setEnviando(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <h2 className="text-base font-semibold text-slate-800 mb-1">Reportar problema</h2>
+        <p className="text-xs text-slate-500 mb-4">Descreva o que aconteceu — vai direto para o suporte do DoMecânico.</p>
+        <form onSubmit={enviar} className="space-y-3">
+          <textarea required rows={5} value={mensagem}
+            onChange={e => setMensagem(e.target.value)}
+            placeholder="Ex: ao concluir uma OS apareceu um erro..."
+            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          <div className="flex justify-end gap-2 pt-1">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-slate-50">
+              Cancelar
+            </button>
+            <button type="submit" disabled={enviando}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium disabled:opacity-60">
+              {enviando ? 'Enviando...' : 'Enviar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function NavGroup({ group, defaultOpen, onNavigate }: { group: Group; defaultOpen: boolean; onNavigate: () => void }) {
   const { temAcesso, user } = useAuth()
   const [open, setOpen] = useState(defaultOpen)
@@ -195,6 +240,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [modalSenha, setModalSenha] = useState(false)
+  const [modalReportar, setModalReportar] = useState(false)
 
   const handleLogout = () => { logout().then(() => navigate('/login')) }
 
@@ -310,6 +356,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <KeyRound size={14} className="shrink-0 opacity-40 group-hover:opacity-100 transition-opacity" />
           </button>
           <button
+            onClick={() => setModalReportar(true)}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors w-full"
+          >
+            <Bug size={18} />
+            Reportar problema
+          </button>
+          <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition-colors w-full"
           >
@@ -320,6 +373,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       </aside>
 
       {modalSenha && <ModalSenha onClose={() => setModalSenha(false)} />}
+      {modalReportar && <ModalReportar onClose={() => setModalReportar(false)} />}
     </>
   )
 }

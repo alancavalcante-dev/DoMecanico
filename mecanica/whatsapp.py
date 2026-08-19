@@ -108,11 +108,11 @@ def notificar_os_concluida(ordem, base_url: str = ''):
 def notificar_orcamento(orcamento, base_url: str = ''):
     config = _get_config(orcamento.oficina)
     if not config or not config.ativo or not config.msg_orcamento_enviado:
-        return
+        return False
     cliente = orcamento.cliente
     telefone = cliente.celular or cliente.telefone
     if not telefone:
-        return
+        return False
     base_url = base_url or _frontend_url()
     link = f'{base_url}/orcamento/{orcamento.token_publico}' if orcamento.token_publico else ''
     veiculo = f'{orcamento.veiculo.marca} {orcamento.veiculo.modelo}'
@@ -126,7 +126,7 @@ def notificar_orcamento(orcamento, base_url: str = ''):
         link=link,
         validade=validade,
     )
-    enviar_mensagem(config, telefone, mensagem)
+    return enviar_mensagem(config, telefone, mensagem)
 
 
 def notificar_agendamento(agendamento, base_url: str = ''):

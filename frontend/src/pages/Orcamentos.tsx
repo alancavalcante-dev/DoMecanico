@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal'
 import {
   Plus, Eye, Trash2, Link2, ArrowRight, PlusCircle, X,
   Wrench, Package, CheckCircle2, XCircle, Clock, Edit2, Check,
+  MessageCircle, Mail,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -97,6 +98,7 @@ function DetalheModal({ detalhe, onClose, onUpdate, onConverterOS }: {
   const [descontoVal, setDescontoVal] = useState(detalhe.desconto)
   const [convertendo, setConvertendo] = useState(false)
   const [aprovando, setAprovando] = useState(false)
+  const [enviando, setEnviando] = useState<'whatsapp' | 'email' | null>(null)
 
   const readonly = detalhe.status !== 'pendente'
   const servicos = detalhe.itens.filter(i => i.tipo === 'servico')
@@ -135,7 +137,7 @@ function DetalheModal({ detalhe, onClose, onUpdate, onConverterOS }: {
     try {
       const r = await orcamentosAPI.aprovar(detalhe.id)
       onUpdate(r.data)
-      toast.success('Orçamento aprovado!')
+      toast.success(r.data.os_numero ? `Aprovado! OS ${r.data.os_numero} criada.` : 'Orçamento aprovado!')
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { erro?: string } } })?.response?.data?.erro
       toast.error(msg || 'Erro ao aprovar.')
@@ -171,6 +173,17 @@ function DetalheModal({ detalhe, onClose, onUpdate, onConverterOS }: {
       .catch(() => toast.error('Erro ao copiar.'))
   }
 
+  const enviarLink = async (canal: 'whatsapp' | 'email') => {
+    setEnviando(canal)
+    try {
+      await orcamentosAPI.enviarLink(detalhe.id, canal)
+      toast.success(canal === 'whatsapp' ? 'Enviado por WhatsApp!' : 'Enviado por e-mail!')
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { erro?: string } } })?.response?.data?.erro
+      toast.error(msg || 'Falha ao enviar.')
+    } finally { setEnviando(null) }
+  }
+
   const StatusIcon = STATUS_ICON[detalhe.status] ?? Clock
 
   return (
@@ -186,7 +199,15 @@ function DetalheModal({ detalhe, onClose, onUpdate, onConverterOS }: {
           <div className="flex gap-2 ml-auto flex-wrap">
             <button onClick={copiarLink}
               className="flex items-center gap-1.5 text-xs border border-slate-200 hover:bg-slate-50 text-slate-600 px-3 py-1.5 rounded-lg">
-              <Link2 size={13} /> Compartilhar com cliente
+              <Link2 size={13} /> Copiar link
+            </button>
+            <button onClick={() => enviarLink('whatsapp')} disabled={enviando !== null}
+              className="flex items-center gap-1.5 text-xs border border-green-200 hover:bg-green-50 text-green-700 px-3 py-1.5 rounded-lg disabled:opacity-50">
+              <MessageCircle size={13} /> {enviando === 'whatsapp' ? 'Enviando...' : 'WhatsApp'}
+            </button>
+            <button onClick={() => enviarLink('email')} disabled={enviando !== null}
+              className="flex items-center gap-1.5 text-xs border border-blue-200 hover:bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg disabled:opacity-50">
+              <Mail size={13} /> {enviando === 'email' ? 'Enviando...' : 'E-mail'}
             </button>
 
             {detalhe.status === 'pendente' && (

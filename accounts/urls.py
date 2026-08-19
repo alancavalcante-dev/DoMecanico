@@ -10,6 +10,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('token/refresh/', views.refresh_token_cookie, name='token_refresh'),
     path('me/', views.me, name='me'),
+    path('reportar-problema/', views.reportar_problema, name='reportar_problema'),
     path('alterar-senha/', views.alterar_senha, name='alterar_senha'),
     path('oficina/', views.atualizar_oficina, name='oficina'),
     path('oficina/logo/', views.upload_logo_oficina),

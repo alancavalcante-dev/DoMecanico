@@ -2007,6 +2007,27 @@ class OrcamentoViewSet(viewsets.ModelViewSet):
         os_obj = _converter_orcamento_em_os(orc)
         return Response({'os_id': os_obj.id, 'os_numero': os_obj.numero})
 
+    @action(detail=True, methods=['post'], url_path='enviar-link')
+    def enviar_link(self, request, pk=None):
+        """Envia o link público do orçamento ao cliente por WhatsApp ou e-mail."""
+        orc = self.get_object()
+        canal = request.data.get('canal', 'whatsapp')
+        if canal == 'whatsapp':
+            if not (orc.cliente.celular or orc.cliente.telefone):
+                return Response({'erro': 'Cliente sem telefone/celular cadastrado.'}, status=400)
+            from .whatsapp import notificar_orcamento
+            if not notificar_orcamento(orc):
+                return Response({'erro': 'WhatsApp não está ativo ou o envio falhou. Verifique a conexão em Configurações de WhatsApp.'}, status=400)
+            return Response({'ok': True, 'canal': 'whatsapp'})
+        if canal == 'email':
+            if not orc.cliente.email:
+                return Response({'erro': 'Cliente sem e-mail cadastrado.'}, status=400)
+            from .email_os import notificar_orcamento_email
+            if not notificar_orcamento_email(orc):
+                return Response({'erro': 'E-mail não configurado ou falha no envio.'}, status=400)
+            return Response({'ok': True, 'canal': 'email'})
+        return Response({'erro': 'Canal inválido.'}, status=400)
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])

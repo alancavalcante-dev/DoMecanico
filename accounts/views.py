@@ -389,6 +389,27 @@ def me(request):
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+def reportar_problema(request):
+    """Usuário da oficina reporta um bug/problema — vira notificação no painel admin."""
+    from adminpanel.models import NotificacaoAdmin
+    mensagem = (request.data.get('mensagem') or '').strip()
+    if not mensagem:
+        return Response({'erro': 'Descreva o problema antes de enviar.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        oficina = request.user.membro.oficina
+        origem = f'{request.user.get_full_name() or request.user.email} ({oficina.nome})'
+    except Exception:
+        origem = request.user.email
+    NotificacaoAdmin.objects.create(
+        tipo='erro_sistema',
+        titulo=f'Problema reportado — {origem}',
+        mensagem=mensagem[:2000],
+    )
+    return Response({'ok': True})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def alterar_senha(request):
     senha_atual = request.data.get('senha_atual', '')
     nova_senha = request.data.get('nova_senha', '')
@@ -1052,6 +1073,7 @@ def whatsapp_conectar(request):
 
     # Busca o QR via connect com retry (o QR demora ~3s para gerar)
     last_response = ''
+    recriou = False
     for attempt in range(5):
         try:
             time.sleep(2)
@@ -1065,6 +1087,18 @@ def whatsapp_conectar(request):
                 state = data.get('instance', {}).get('state', '')
                 if state == 'open':
                     return Response({'ja_conectado': True})
+            elif r.status_code == 404 and not recriou:
+                # A instância sumiu no Evolution — recria e continua tentando,
+                # em vez de derrubar o acesso ao WhatsApp da oficina.
+                recriou = True
+                try:
+                    req.post(f"{base}/instance/create", json={
+                        'instanceName': config.instance_name,
+                        'qrcode': True,
+                        'integration': 'WHATSAPP-BAILEYS',
+                    }, headers=headers, timeout=15)
+                except Exception:
+                    pass
         except Exception:
             pass
 

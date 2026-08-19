@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { dashboardAPI, alertasEstoqueAPI } from '../api'
 import type { DashboardStats } from '../types'
+import { useAuth } from '../contexts/AuthContext'
 import {
   Users, Car, ClipboardList, DollarSign, Package, UserCog,
   TrendingUp, TrendingDown, AlertTriangle, X, Calendar, Download,
@@ -75,6 +76,8 @@ interface Alerta {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth()
+  const isAdmin = user?.papel === 'admin'
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [alertas, setAlertas] = useState<Alerta[]>([])
@@ -201,6 +204,7 @@ export default function Dashboard() {
           icon={<ClipboardList size={22} className="text-orange-600" />} color="bg-orange-50" />
         <StatCard title="Funcionários Ativos" value={resumo.total_funcionarios}
           icon={<UserCog size={22} className="text-green-600" />} color="bg-green-50" />
+        {isAdmin && (
         <StatCard title="Faturamento do Mês" value={fmt(resumo.faturamento_mes)}
           icon={<DollarSign size={22} className="text-emerald-600" />} color="bg-emerald-50"
           sub={
@@ -212,6 +216,7 @@ export default function Dashboard() {
             )
           }
         />
+        )}
         <StatCard title="OS Concluídas (mês)" value={resumo.ordens_concluidas_mes}
           icon={<ClipboardList size={22} className="text-green-600" />} color="bg-green-50" />
         <StatCard title="Peças c/ Estoque Baixo" value={resumo.pecas_estoque_baixo}
@@ -222,7 +227,7 @@ export default function Dashboard() {
       </div>
 
       {/* Agenda do dia + Gráficos */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'lg:grid-cols-3' : ''}`}>
 
         {/* Agenda do dia */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
@@ -262,6 +267,7 @@ export default function Dashboard() {
         </div>
 
         {/* Faturamento */}
+        {isAdmin && (
         <div className="lg:col-span-2 bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-slate-100">
           <h2 className="text-base font-semibold text-slate-700 mb-4">Faturamento Mensal (últimos 6 meses)</h2>
           <ResponsiveContainer width="100%" height={220}>
@@ -274,6 +280,7 @@ export default function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+        )}
       </div>
 
       {/* OS por status + últimas OS */}

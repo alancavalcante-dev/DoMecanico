@@ -156,3 +156,69 @@ def notificar_os_concluida_email(ordem):
         msg.send()
     except Exception:
         logger.exception('Falha ao enviar e-mail de OS concluída (OS #%s)', ordem.numero)
+
+
+def notificar_orcamento_email(orc):
+    """Envia o link público do orçamento para o e-mail do cliente. Retorna True se enviou."""
+    if not orc.cliente or not orc.cliente.email:
+        return False
+
+    conn, from_email, _ = _get_connection()
+    if not conn:
+        return False
+
+    from django.conf import settings
+    base_url = getattr(settings, 'FRONTEND_URL', 'https://domecanico.net')
+    link = f'{base_url}/orcamento/{orc.token_publico}'
+    validade = orc.validade.strftime('%d/%m/%Y') if orc.validade else 'Não informada'
+    oficina = orc.oficina
+    veiculo = f'{orc.veiculo.marca} {orc.veiculo.modelo} — {orc.veiculo.placa}'
+
+    html = f'''<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;max-width:600px;width:100%">
+        <tr><td style="background:#2563eb;padding:28px 32px">
+          <h1 style="margin:0;color:#ffffff;font-size:22px">Orçamento #{orc.numero}</h1>
+          <p style="margin:6px 0 0;color:#bfdbfe;font-size:14px">{oficina.nome}</p>
+        </td></tr>
+        <tr><td style="padding:28px 32px">
+          <p style="margin:0 0 16px;color:#374151;font-size:15px">Olá, <strong>{orc.cliente.nome}</strong>!</p>
+          <p style="margin:0 0 20px;color:#374151;font-size:15px">
+            Preparamos o orçamento do seu veículo <strong>{veiculo}</strong>.
+            Clique no botão abaixo para ver os itens e <strong>aprovar ou recusar</strong>.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+            <a href="{link}" style="display:inline-block;background:#2563eb;color:#ffffff;font-weight:700;font-size:15px;padding:14px 36px;border-radius:8px;text-decoration:none">
+              Ver orçamento →
+            </a>
+          </td></tr></table>
+          <p style="margin:22px 0 0;font-size:13px;color:#6b7280;text-align:center">Válido até <strong>{validade}</strong>.</p>
+        </td></tr>
+        <tr><td style="padding:16px 32px;background:#f9fafb;border-top:1px solid #e5e7eb">
+          <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">{oficina.nome} &bull; Enviado automaticamente pelo DoMecânico.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>'''
+
+    texto = (
+        f'Olá {orc.cliente.nome}!\n\n'
+        f'Seu orçamento #{orc.numero} está disponível para aprovação:\n{link}\n\n'
+        f'Válido até {validade}. — {oficina.nome}'
+    )
+
+    try:
+        msg = EmailMultiAlternatives(
+            subject=f'Orçamento #{orc.numero} — {oficina.nome}',
+            body=texto, from_email=from_email, to=[orc.cliente.email], connection=conn,
+        )
+        msg.attach_alternative(html, 'text/html')
+        msg.send()
+        return True
+    except Exception:
+        logger.exception('Falha ao enviar e-mail de orçamento (#%s)', orc.numero)
+        return False
