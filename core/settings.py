@@ -22,6 +22,9 @@ if _sentry_dsn:
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
+# URL pública do frontend — usada em links de notificação (WhatsApp/e-mail)
+FRONTEND_URL = config('FRONTEND_URL', default='https://domecanico.net')
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

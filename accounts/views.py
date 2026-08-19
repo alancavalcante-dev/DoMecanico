@@ -323,6 +323,9 @@ def admin_verify_otp(request):
     except User.DoesNotExist:
         return Response({'erro': 'Usuário não encontrado.'}, status=status.HTTP_403_FORBIDDEN)
 
+    user.last_login = timezone.now()
+    user.save(update_fields=['last_login'])
+
     tokens = get_tokens(user)
     resp = Response({'ok': True})
     _set_auth_cookies(resp, tokens['access'], tokens['refresh'], prefix='admin_')
@@ -355,6 +358,9 @@ def login(request):
     # Equipe interna (is_staff) não pode logar pelo sistema de oficinas
     if user.is_staff:
         return Response({'erro': 'Use o painel administrativo para acessar.'}, status=status.HTTP_403_FORBIDDEN)
+
+    user.last_login = timezone.now()
+    user.save(update_fields=['last_login'])
 
     tokens = get_tokens(user)
     try:

@@ -1777,7 +1777,6 @@ def os_publica_por_placa_oficina(request, slug):
     """Busca OS por placa e/ou CPF dentro de uma oficina específica (mini-site público)."""
     import re
     from accounts.models import Oficina
-    from django.db.models import Q
 
     placa_raw = request.query_params.get('placa', '').strip().upper()
     cpf_raw = request.query_params.get('cpf', '').strip()
@@ -1792,15 +1791,19 @@ def os_publica_por_placa_oficina(request, slug):
     except Oficina.DoesNotExist:
         return Response({'erro': 'Oficina não encontrada.'}, status=404)
 
-    qs = OrdemServico.objects.select_related('veiculo', 'cliente').filter(oficina=oficina)
+    qs = OrdemServico.objects.select_related('veiculo', 'cliente').filter(
+        oficina=oficina
+    ).order_by('-criado_em')
 
-    filtro = Q()
-    if placa_norm:
-        filtro |= Q(veiculo__placa__iexact=placa_norm)
-    if cpf_norm:
-        filtro |= Q(cliente__cpf_cnpj__icontains=cpf_norm)
-
-    ordens = qs.filter(filtro).order_by('-criado_em')[:5]
+    # Compara placa/CPF normalizados (sem máscara) — o banco guarda com formatação
+    ordens = []
+    for o in qs:
+        placa_ok = bool(placa_norm) and re.sub(r'[^A-Z0-9]', '', (o.veiculo.placa or '').upper()) == placa_norm
+        cpf_ok = bool(cpf_norm) and re.sub(r'\D', '', o.cliente.cpf_cnpj or '') == cpf_norm
+        if placa_ok or cpf_ok:
+            ordens.append(o)
+        if len(ordens) >= 5:
+            break
 
     resultado = [
         {

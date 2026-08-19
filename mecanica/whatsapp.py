@@ -4,6 +4,12 @@ import re
 
 logger = logging.getLogger(__name__)
 
+
+def _frontend_url():
+    from django.conf import settings
+    return getattr(settings, 'FRONTEND_URL', 'https://domecanico.net')
+
+
 DEFAULT_TEMPLATES = {
     'os_concluida': (
         "Olá {cliente_nome}! 👋\n\n"
@@ -85,6 +91,7 @@ def notificar_os_concluida(ordem, base_url: str = ''):
     telefone = cliente.celular or cliente.telefone
     if not telefone:
         return
+    base_url = base_url or _frontend_url()
     link = f'{base_url}/acompanhar/{ordem.token_publico}' if ordem.token_publico else ''
     veiculo = f'{ordem.veiculo.marca} {ordem.veiculo.modelo} ({ordem.veiculo.placa})'
     template = config.template_os_concluida or DEFAULT_TEMPLATES['os_concluida']
@@ -106,6 +113,7 @@ def notificar_orcamento(orcamento, base_url: str = ''):
     telefone = cliente.celular or cliente.telefone
     if not telefone:
         return
+    base_url = base_url or _frontend_url()
     link = f'{base_url}/orcamento/{orcamento.token_publico}' if orcamento.token_publico else ''
     veiculo = f'{orcamento.veiculo.marca} {orcamento.veiculo.modelo}'
     validade = orcamento.validade.strftime('%d/%m/%Y') if orcamento.validade else 'Não informada'
