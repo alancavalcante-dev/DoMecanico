@@ -44,6 +44,7 @@ const Orcamentos            = lazy(() => import('./pages/Orcamentos'))
 const Garantias             = lazy(() => import('./pages/Garantias'))
 const Comissoes             = lazy(() => import('./pages/Comissoes'))
 const Ajuda                 = lazy(() => import('./pages/Ajuda'))
+const Suporte               = lazy(() => import('./pages/Suporte'))
 const MeuPainel             = lazy(() => import('./pages/MeuPainel'))
 const Equipe                = lazy(() => import('./pages/Equipe'))
 const ConfiguracaoWhatsApp  = lazy(() => import('./pages/ConfiguracaoWhatsApp'))
@@ -60,6 +61,7 @@ const AdminLogs         = lazy(() => import('./pages/admin/AdminLogs'))
 const AdminUsuarios     = lazy(() => import('./pages/admin/AdminUsuarios'))
 const AdminEquipe       = lazy(() => import('./pages/admin/AdminEquipe'))
 const AdminNotificacoes = lazy(() => import('./pages/admin/AdminNotificacoes'))
+const AdminChamados     = lazy(() => import('./pages/admin/AdminChamados'))
 const AdminFinanceiro   = lazy(() => import('./pages/admin/AdminFinanceiro'))
 const AdminGateway              = lazy(() => import('./pages/admin/AdminGateway'))
 const AdminConfiguracaoSistema  = lazy(() => import('./pages/admin/AdminConfiguracaoSistema'))
@@ -123,6 +125,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/garantias':      'Garantias — DoMecânico',
   '/comissoes':      'Comissões — DoMecânico',
   '/ajuda':          'Ajuda — DoMecânico',
+  '/suporte':        'Suporte — DoMecânico',
   '/meu-painel':     'Meu Painel — DoMecânico',
   '/equipe':         'Equipe — DoMecânico',
   '/whatsapp':       'WhatsApp — DoMecânico',
@@ -137,6 +140,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin-panel/email':       'E-mail — Admin',
   '/admin-panel/logs':        'Logs — Admin',
   '/admin-panel/notificacoes':'Notificações — Admin',
+  '/admin-panel/chamados':    'Chamados — Admin',
   '/admin-panel/financeiro':  'Financeiro — Admin',
   '/admin-panel/gateway':     'Gateway — Admin',
   '/admin-panel/sistema':     'Sistema — Admin',
@@ -223,6 +227,7 @@ function AppRoutes() {
           <Route path="/garantias"      element={<Garantias />} />
           <Route path="/comissoes"      element={<Comissoes />} />
           <Route path="/ajuda"          element={<Ajuda />} />
+          <Route path="/suporte"        element={<Suporte />} />
           <Route path="/meu-painel"     element={<MeuPainel />} />
           <Route path="/equipe"         element={<AdminOnlyGuard><Equipe /></AdminOnlyGuard>} />
           <Route path="/whatsapp"       element={<AdminOnlyGuard><ConfiguracaoWhatsApp /></AdminOnlyGuard>} />
@@ -241,6 +246,7 @@ function AppRoutes() {
           <Route path="email"             element={<AdminEmail />} />
           <Route path="logs"              element={<AdminLogs />} />
           <Route path="notificacoes"      element={<AdminNotificacoes />} />
+          <Route path="chamados"          element={<AdminChamados />} />
           <Route path="financeiro"        element={<AdminFinanceiro />} />
           <Route path="gateway"           element={<AdminGateway />} />
           <Route path="sistema"           element={<AdminConfiguracaoSistema />} />

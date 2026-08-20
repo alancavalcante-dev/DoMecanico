@@ -19,6 +19,7 @@ interface User {
   papel: string
   membro_id: number
   modulos: string[]
+  chamados_nao_lidos?: number
   oficina: Oficina | null
   assinatura: {
     status: string

@@ -2,7 +2,7 @@ import { NavLink, useNavigate, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, Building2, CreditCard, Users, Mail,
   ScrollText, Bell, LogOut, ChevronRight, Shield,
-  TrendingUp, Plug, Settings
+  TrendingUp, Plug, Settings, LifeBuoy
 } from 'lucide-react'
 import { useAdminAuth } from '../../contexts/AdminAuthContext'
 
@@ -17,6 +17,7 @@ const links = [
   { to: '/admin-panel/email', icon: Mail, label: 'E-mail' },
   { to: '/admin-panel/logs', icon: ScrollText, label: 'Logs' },
   { to: '/admin-panel/notificacoes', icon: Bell, label: 'Notificações' },
+  { to: '/admin-panel/chamados', icon: LifeBuoy, label: 'Chamados' },
   { to: '/admin-panel/sistema', icon: Settings, label: 'Sistema' },
 ]
 

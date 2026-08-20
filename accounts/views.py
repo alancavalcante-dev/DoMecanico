@@ -390,22 +390,52 @@ def me(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def reportar_problema(request):
-    """Usuário da oficina reporta um bug/problema — vira notificação no painel admin."""
-    from adminpanel.models import NotificacaoAdmin
+    """Usuário da oficina abre um chamado de suporte (e notifica o painel admin)."""
+    from adminpanel.models import NotificacaoAdmin, Chamado
     mensagem = (request.data.get('mensagem') or '').strip()
     if not mensagem:
         return Response({'erro': 'Descreva o problema antes de enviar.'}, status=status.HTTP_400_BAD_REQUEST)
     try:
         oficina = request.user.membro.oficina
-        origem = f'{request.user.get_full_name() or request.user.email} ({oficina.nome})'
     except Exception:
-        origem = request.user.email
+        return Response({'erro': 'Oficina não encontrada.'}, status=status.HTTP_400_BAD_REQUEST)
+    autor = request.user.get_full_name() or request.user.email
+    chamado = Chamado.objects.create(
+        oficina=oficina,
+        autor_nome=autor,
+        autor_email=request.user.email,
+        mensagem=mensagem[:5000],
+    )
     NotificacaoAdmin.objects.create(
         tipo='erro_sistema',
-        titulo=f'Problema reportado — {origem}',
-        mensagem=mensagem[:2000],
+        titulo=f'Novo chamado — {oficina.nome}',
+        mensagem=f'{autor}: {mensagem[:300]}',
     )
-    return Response({'ok': True})
+    return Response({'ok': True, 'chamado_id': chamado.id})
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def meus_chamados(request):
+    """Lista os chamados da oficina e marca as respostas como lidas."""
+    from adminpanel.models import Chamado
+    try:
+        oficina = request.user.membro.oficina
+    except Exception:
+        return Response([])
+    qs = Chamado.objects.filter(oficina=oficina)
+    data = [{
+        'id': c.id,
+        'mensagem': c.mensagem,
+        'status': c.status,
+        'status_display': c.get_status_display(),
+        'resposta': c.resposta,
+        'respondido_em': c.respondido_em,
+        'criado_em': c.criado_em,
+        'autor_nome': c.autor_nome,
+    } for c in qs]
+    qs.filter(lido_pela_oficina=False).update(lido_pela_oficina=True)
+    return Response(data)
 
 
 @api_view(['POST'])

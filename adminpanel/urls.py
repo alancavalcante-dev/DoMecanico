@@ -42,6 +42,10 @@ urlpatterns = [
     path('notificacoes/<int:pk>/lida/', views.admin_notificacao_lida),
     path('notificacoes/limpar/', views.admin_notificacoes_limpar),
 
+    # Chamados de suporte
+    path('chamados/', views.admin_chamados),
+    path('chamados/<int:pk>/responder/', views.admin_chamado_responder),
+
     # Gateway de pagamento
     path('gateway/', views.GatewayConfigView.as_view()),
 

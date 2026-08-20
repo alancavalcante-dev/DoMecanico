@@ -91,10 +91,11 @@ class MeSerializer(serializers.ModelSerializer):
     membro_id = serializers.IntegerField(source='membro.id', read_only=True)
     assinatura = serializers.SerializerMethodField()
     modulos = serializers.SerializerMethodField()
+    chamados_nao_lidos = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'oficina', 'papel', 'membro_id', 'assinatura', 'modulos']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'oficina', 'papel', 'membro_id', 'assinatura', 'modulos', 'chamados_nao_lidos']
 
     def get_oficina(self, obj):
         try:
@@ -129,6 +130,12 @@ class MeSerializer(serializers.ModelSerializer):
             return permissoes_membro
         except Exception:
             return []
+
+    def get_chamados_nao_lidos(self, obj):
+        try:
+            return obj.membro.oficina.chamados.filter(lido_pela_oficina=False).count()
+        except Exception:
+            return 0
 
 
 class MembroOficinaSerializer(serializers.ModelSerializer):

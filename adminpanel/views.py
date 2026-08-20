@@ -1147,3 +1147,50 @@ def configuracao_sistema_publica(request):
         'banner_homologacao': cfg.banner_homologacao,
         'mensagem_banner': cfg.mensagem_banner,
     })
+
+
+# ── Chamados de suporte ───────────────────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsStaff])
+def admin_chamados(request):
+    from .models import Chamado
+    status_f = request.query_params.get('status')
+    qs = Chamado.objects.select_related('oficina').all()
+    if status_f:
+        qs = qs.filter(status=status_f)
+    data = [{
+        'id': c.id,
+        'oficina': c.oficina.nome,
+        'autor_nome': c.autor_nome,
+        'autor_email': c.autor_email,
+        'mensagem': c.mensagem,
+        'status': c.status,
+        'status_display': c.get_status_display(),
+        'resposta': c.resposta,
+        'respondido_em': c.respondido_em,
+        'criado_em': c.criado_em,
+    } for c in qs[:200]]
+    return Response(data)
+
+
+@api_view(['POST'])
+@permission_classes([IsStaff])
+def admin_chamado_responder(request, pk):
+    from .models import Chamado
+    try:
+        chamado = Chamado.objects.select_related('oficina').get(pk=pk)
+    except Chamado.DoesNotExist:
+        return Response({'erro': 'Chamado não encontrado.'}, status=404)
+    resposta = (request.data.get('resposta') or '').strip()
+    novo_status = request.data.get('status', 'resolvido')
+    if novo_status not in dict(Chamado.STATUS):
+        novo_status = 'resolvido'
+    chamado.status = novo_status
+    if resposta:
+        chamado.resposta = resposta
+        chamado.respondido_em = timezone.now()
+        chamado.lido_pela_oficina = False
+    chamado.save()
+    registrar_log('info', 'sistema', f'Chamado #{chamado.pk} da oficina "{chamado.oficina.nome}" atualizado para {novo_status}.', request.user, request=request)
+    return Response({'ok': True})

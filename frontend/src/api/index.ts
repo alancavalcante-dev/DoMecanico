@@ -77,6 +77,7 @@ export const authAPI = {
   logout: () => api.post('/auth/logout/'),
   me: () => api.get('/auth/me/'),
   reportarProblema: (mensagem: string) => api.post('/auth/reportar-problema/', { mensagem }),
+  meusChamados: () => api.get('/auth/chamados/'),
   assinatura: () => api.get('/auth/assinatura/'),
   pagar: (data: object) => api.post('/auth/assinatura/pagar/', data),
   gerarLinkPagamento: (data: object) => api.post('/auth/assinatura/gerar-link-pagamento/', data),
@@ -243,6 +244,10 @@ export const adminAPI = {
   notificacoes: () => adminApi.get('/admin-panel/notificacoes/'),
   notificacaoLida: (id: number) => adminApi.post(`/admin-panel/notificacoes/${id}/lida/`),
   notificacoesLimpar: () => adminApi.post('/admin-panel/notificacoes/limpar/'),
+
+  // Chamados de suporte
+  chamados: (params?: object) => adminApi.get('/admin-panel/chamados/', { params }),
+  chamadoResponder: (id: number, data: object) => adminApi.post(`/admin-panel/chamados/${id}/responder/`, data),
 }
 
 export const agendamentosAPI = {

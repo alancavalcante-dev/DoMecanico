@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Car, Package, UserCog,
   ClipboardList, FileText, BarChart3,  LogOut, CreditCard, AlertTriangle, ClipboardCheck,
   Calendar, FileCheck, ShieldCheck, DollarSign, BookOpen, UsersRound, MessageCircle, KeyRound, Eye, EyeOff,
-  Building2, ChevronDown, X, Globe, Wrench, Bug,
+  Building2, ChevronDown, X, Globe, Wrench, Bug, LifeBuoy,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
@@ -337,6 +337,21 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             >
               <BookOpen size={18} />
               Ajuda / Tutoriais
+            </NavLink>
+            <NavLink to="/suporte" onClick={onClose}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-colors ${
+                  isActive ? 'bg-blue-600 text-white font-medium' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`
+              }
+            >
+              <LifeBuoy size={18} />
+              <span className="flex-1">Suporte</span>
+              {(user?.chamados_nao_lidos ?? 0) > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold rounded-full px-1.5 min-w-[18px] text-center">
+                  {user?.chamados_nao_lidos}
+                </span>
+              )}
             </NavLink>
           </div>
         </nav>

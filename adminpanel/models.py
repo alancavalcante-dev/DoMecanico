@@ -206,3 +206,28 @@ class Pagamento(models.Model):
 
     def __str__(self):
         return f'Pagamento {self.valor} - {self.fatura.numero}'
+
+
+class Chamado(models.Model):
+    """Chamado de suporte aberto por uma oficina; a equipe responde e resolve."""
+    STATUS = [
+        ('aberto', 'Aberto'),
+        ('em_analise', 'Em análise'),
+        ('resolvido', 'Resolvido'),
+    ]
+    oficina = models.ForeignKey('accounts.Oficina', on_delete=models.CASCADE, related_name='chamados', db_index=True)
+    autor_nome = models.CharField(max_length=200, blank=True)
+    autor_email = models.EmailField(blank=True)
+    mensagem = models.TextField()
+    status = models.CharField(max_length=15, choices=STATUS, default='aberto', db_index=True)
+    resposta = models.TextField(blank=True)
+    respondido_em = models.DateTimeField(null=True, blank=True)
+    lido_pela_oficina = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-criado_em']
+        verbose_name = 'Chamado de Suporte'
+
+    def __str__(self):
+        return f'Chamado #{self.pk} — {self.oficina.nome}'
