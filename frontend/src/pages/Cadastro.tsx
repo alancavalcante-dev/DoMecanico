@@ -36,10 +36,22 @@ export default function Cadastro() {
   })
 
   useEffect(() => {
-    authAPI.planos().then(({ data }) => setPlanos(data))
+    authAPI.planos().then(({ data }) => {
+      setPlanos(data)
+      if (data.length === 1) setPlanoSlug(data[0].slug)
+    })
   }, [])
 
   const set = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }))
+
+  const maskCnpj = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 14)
+    if (d.length > 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
+    if (d.length > 8)  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`
+    if (d.length > 5)  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`
+    if (d.length > 2)  return `${d.slice(0, 2)}.${d.slice(2)}`
+    return d
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -138,8 +150,9 @@ export default function Cadastro() {
                 <label className="block text-sm text-gray-400 mb-1">CNPJ *</label>
                 <input
                   required
+                  inputMode="numeric"
                   value={form.cnpj}
-                  onChange={(e) => set('cnpj', e.target.value)}
+                  onChange={(e) => set('cnpj', maskCnpj(e.target.value))}
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500"
                   placeholder="00.000.000/0001-00"
                 />

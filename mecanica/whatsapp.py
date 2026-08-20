@@ -63,7 +63,8 @@ def enviar_mensagem(config, telefone: str, mensagem: str) -> bool:
         return False
     endpoint = f'{url}/message/sendText/{instance}'
     headers = {'apikey': api_key, 'Content-Type': 'application/json'}
-    payload = {'number': numero, 'textMessage': {'text': mensagem}}
+    # Envia nos dois formatos (v2 usa "text", v1 usa "textMessage") para robustez entre versões da Evolution
+    payload = {'number': numero, 'text': mensagem, 'textMessage': {'text': mensagem}}
     try:
         resp = requests.post(endpoint, json=payload, headers=headers, timeout=10)
         if resp.status_code in (200, 201):

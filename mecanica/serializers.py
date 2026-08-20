@@ -55,7 +55,7 @@ class ClienteListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Cliente
-        fields = ['id', 'nome', 'cpf_cnpj', 'telefone', 'celular', 'email', 'cidade', 'estado', 'total_veiculos']
+        fields = ['id', 'nome', 'cpf_cnpj', 'telefone', 'celular', 'email', 'endereco', 'cep', 'cidade', 'estado', 'total_veiculos']
 
     def get_total_veiculos(self, obj):
         return obj.veiculos.count()
