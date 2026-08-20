@@ -1057,19 +1057,21 @@ def whatsapp_conectar(request):
             return 'data:image/png;base64,' + b64.b64encode(buf.getvalue()).decode()
         return None
 
+    # Payload de criação (Evolution v1.x — SEM "integration", que é parâmetro da v2)
+    create_payload = {'instanceName': config.instance_name, 'qrcode': True}
+
     # Tenta criar a instância (ignora 403 se já existir)
+    create_erro = ''
     try:
-        cr = req.post(f"{base}/instance/create", json={
-            'instanceName': config.instance_name,
-            'qrcode': True,
-            'integration': 'WHATSAPP-BAILEYS',
-        }, headers=headers, timeout=15)
+        cr = req.post(f"{base}/instance/create", json=create_payload, headers=headers, timeout=15)
         if cr.status_code in (200, 201):
             qr = _qr_from_data(cr.json())
             if qr:
                 return Response({'qr': qr})
-    except Exception:
-        pass
+        else:
+            create_erro = f'create {cr.status_code}: {cr.text[:200]}'
+    except Exception as e:
+        create_erro = f'create exception: {e}'
 
     # Busca o QR via connect com retry (o QR demora ~3s para gerar)
     last_response = ''
@@ -1087,22 +1089,23 @@ def whatsapp_conectar(request):
                 state = data.get('instance', {}).get('state', '')
                 if state == 'open':
                     return Response({'ja_conectado': True})
-            elif r.status_code == 404 and not recriou:
-                # A instância sumiu no Evolution — recria e continua tentando,
+            elif not recriou and (r.status_code in (400, 404) or 'exist' in last_response.lower()):
+                # A instância sumiu/corrompeu no Evolution — apaga e recria,
                 # em vez de derrubar o acesso ao WhatsApp da oficina.
                 recriou = True
                 try:
-                    req.post(f"{base}/instance/create", json={
-                        'instanceName': config.instance_name,
-                        'qrcode': True,
-                        'integration': 'WHATSAPP-BAILEYS',
-                    }, headers=headers, timeout=15)
+                    req.delete(f"{base}/instance/delete/{config.instance_name}", headers=headers, timeout=8)
+                except Exception:
+                    pass
+                try:
+                    req.post(f"{base}/instance/create", json=create_payload, headers=headers, timeout=15)
                 except Exception:
                     pass
         except Exception:
             pass
 
-    return Response({'erro': f'QR não gerado após retries. Último retorno: {last_response}'}, status=status.HTTP_502_BAD_GATEWAY)
+    detalhe = last_response + (f' | {create_erro}' if create_erro else '')
+    return Response({'erro': f'QR não gerado após retries. Último retorno: {detalhe}'}, status=status.HTTP_502_BAD_GATEWAY)
 
 
 @api_view(['POST'])
