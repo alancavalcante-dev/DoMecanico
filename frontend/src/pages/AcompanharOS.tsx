@@ -45,6 +45,7 @@ interface ItemOrcamento {
 
 interface OrcamentoPublico {
   numero: string
+  token_publico: string
   status: string
   status_display: string
   validade: string | null
@@ -491,8 +492,10 @@ function SecaoChecklist({ checklist, onAssinado }: {
 
 // ── Seção Orçamento ───────────────────────────────────────────────────────────
 
-function SecaoOrcamento({ orc }: { orc: OrcamentoPublico }) {
+function SecaoOrcamento({ orc, cor }: { orc: OrcamentoPublico; cor: string }) {
   const [aberto, setAberto] = useState(true)
+  const [status, setStatus] = useState(orc.status)
+  const [respondendo, setRespondendo] = useState<'aprovado' | 'rejeitado' | null>(null)
   const servicosItens = orc.itens.filter(i => i.tipo === 'servico')
   const pecasItens = orc.itens.filter(i => i.tipo === 'peca')
 
@@ -502,6 +505,22 @@ function SecaoOrcamento({ orc }: { orc: OrcamentoPublico }) {
     rejeitado: 'bg-red-100 text-red-700',
     expirado:  'bg-gray-100 text-gray-500',
   }
+  const ORC_LABEL: Record<string, string> = {
+    pendente: 'Pendente', aprovado: 'Aprovado', rejeitado: 'Rejeitado', expirado: 'Expirado',
+  }
+
+  const responder = async (resposta: 'aprovado' | 'rejeitado') => {
+    if (!confirm(resposta === 'aprovado' ? 'Confirmar a aprovação deste orçamento?' : 'Recusar este orçamento?')) return
+    setRespondendo(resposta)
+    try {
+      await axios.post(`/api/orcamento-publico/${orc.token_publico}/responder/`, { resposta })
+      setStatus(resposta)
+    } catch {
+      alert('Não foi possível registrar sua resposta. Tente novamente.')
+    } finally {
+      setRespondendo(null)
+    }
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -509,8 +528,8 @@ function SecaoOrcamento({ orc }: { orc: OrcamentoPublico }) {
         className="w-full px-4 py-3 border-b border-gray-100 flex items-center gap-2 text-left">
         <FileText size={15} className="text-violet-500" />
         <h3 className="font-semibold text-gray-800 text-sm flex-1">Orçamento {orc.numero}</h3>
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full mr-2 ${ORC_BADGE[orc.status] ?? 'bg-gray-100 text-gray-500'}`}>
-          {orc.status_display}
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full mr-2 ${ORC_BADGE[status] ?? 'bg-gray-100 text-gray-500'}`}>
+          {ORC_LABEL[status] ?? orc.status_display}
         </span>
         {aberto ? <ChevronUp size={15} className="text-gray-400" /> : <ChevronDown size={15} className="text-gray-400" />}
       </button>
@@ -558,6 +577,30 @@ function SecaoOrcamento({ orc }: { orc: OrcamentoPublico }) {
             </div>
           </div>
           {orc.observacoes && <p className="text-xs text-gray-500">{orc.observacoes}</p>}
+
+          {status === 'pendente' && orc.token_publico && (
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => responder('rejeitado')} disabled={respondendo !== null}
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50">
+                {respondendo === 'rejeitado' ? 'Recusando...' : 'Recusar'}
+              </button>
+              <button onClick={() => responder('aprovado')} disabled={respondendo !== null}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50"
+                style={{ backgroundColor: cor }}>
+                {respondendo === 'aprovado' ? 'Aprovando...' : 'Aprovar orçamento'}
+              </button>
+            </div>
+          )}
+          {status === 'aprovado' && orc.status === 'pendente' && (
+            <p className="text-sm text-green-700 bg-green-50 rounded-xl p-3 text-center font-medium">
+              ✓ Orçamento aprovado! A oficina foi avisada.
+            </p>
+          )}
+          {status === 'rejeitado' && orc.status === 'pendente' && (
+            <p className="text-sm text-gray-500 bg-gray-50 rounded-xl p-3 text-center">
+              Orçamento recusado.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -657,7 +700,7 @@ function DetalheOS({ os: initialOs, onVoltar }: { os: OSPublica; onVoltar?: () =
         )}
 
         {/* Orçamento */}
-        {os.orcamento && <SecaoOrcamento orc={os.orcamento} />}
+        {os.orcamento && <SecaoOrcamento orc={os.orcamento} cor={os.oficina_cor_primaria || '#2563eb'} />}
 
         {/* Diagnóstico */}
         {os.status === 'concluida' && os.diagnostico && (

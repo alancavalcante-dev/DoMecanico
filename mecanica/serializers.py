@@ -359,6 +359,7 @@ class OSPublicaSerializer(serializers.ModelSerializer):
         ]
         return {
             'numero': orc.numero,
+            'token_publico': orc.token_publico,
             'status': orc.status,
             'status_display': orc.get_status_display(),
             'validade': orc.validade,
