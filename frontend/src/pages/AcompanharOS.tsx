@@ -647,71 +647,121 @@ function SecaoGarantias({ garantias }: { garantias: Garantia[] }) {
 
 function DetalheOS({ os: initialOs, onVoltar }: { os: OSPublica; onVoltar?: () => void }) {
   const [os, setOs] = useState(initialOs)
+  const cor = os.oficina_cor_primaria || '#2563eb'
+  const concluida = os.status === 'concluida'
+
+  const abas = [
+    { id: 'resumo', label: 'Resumo', icon: Gauge, show: true, alerta: false },
+    { id: 'servicos', label: 'Serviços', icon: Wrench, show: concluida && os.servicos.length > 0, alerta: false },
+    { id: 'checklist', label: 'Checklist', icon: ClipboardCheck, show: !!os.checklist, alerta: os.checklist?.status === 'pendente' },
+    { id: 'orcamento', label: 'Orçamento', icon: FileText, show: !!os.orcamento, alerta: os.orcamento?.status === 'pendente' },
+    { id: 'garantias', label: 'Garantias', icon: ShieldCheck, show: concluida && os.garantias.length > 0, alerta: false },
+  ].filter(a => a.show)
+
+  const [aba, setAba] = useState('resumo')
 
   return (
     <div className="min-h-screen bg-gray-50">
       <CabecalhoOficina os={os} onVoltar={onVoltar} />
       <HeroVeiculo os={os} />
 
+      {/* Navegação por abas */}
+      <div className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-lg mx-auto px-3 py-2.5 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+          {abas.map(a => {
+            const ativa = aba === a.id
+            const Icon = a.icon
+            return (
+              <button key={a.id} onClick={() => setAba(a.id)}
+                className={`relative flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold px-3.5 py-2 rounded-full transition-all ${ativa ? 'text-white shadow-sm' : 'text-gray-500 bg-white border border-gray-200 hover:border-gray-300'}`}
+                style={ativa ? { backgroundColor: cor } : undefined}>
+                <Icon size={14} />
+                {a.label}
+                {a.alerta && !ativa && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-gray-50" />}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="max-w-lg mx-auto px-4 pt-4 pb-8 space-y-3">
 
-        {/* Datas */}
-        <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: 'Entrada', val: fmt(os.data_entrada), icon: Calendar },
-            { label: 'Previsão', val: fmt(os.data_previsao), icon: Clock },
-            { label: 'Conclusão', val: fmt(os.data_conclusao), icon: CheckCircle },
-          ].map(({ label, val, icon: Icon }) => (
-            <div key={label} className="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
-              <Icon size={14} className="text-gray-400 mx-auto mb-1" />
-              <p className="text-gray-400 text-[10px] mb-0.5">{label}</p>
-              <p className="font-semibold text-gray-700 text-xs">{val}</p>
+        {aba === 'resumo' && (
+          <>
+            {/* Datas */}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: 'Entrada', val: fmt(os.data_entrada), icon: Calendar },
+                { label: 'Previsão', val: fmt(os.data_previsao), icon: Clock },
+                { label: 'Conclusão', val: fmt(os.data_conclusao), icon: CheckCircle },
+              ].map(({ label, val, icon: Icon }) => (
+                <div key={label} className="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm text-center">
+                  <Icon size={14} className="text-gray-400 mx-auto mb-1" />
+                  <p className="text-gray-400 text-[10px] mb-0.5">{label}</p>
+                  <p className="font-semibold text-gray-700 text-xs">{val}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Problema relatado */}
-        {os.problema_relatado && (
-          <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-            <p className="text-xs text-gray-400 mb-1 font-medium uppercase tracking-wide">Problema relatado</p>
-            <p className="text-gray-700 text-sm leading-relaxed">{os.problema_relatado}</p>
-          </div>
+            {os.problema_relatado && (
+              <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+                <p className="text-xs text-gray-400 mb-1 font-medium uppercase tracking-wide">Problema relatado</p>
+                <p className="text-gray-700 text-sm leading-relaxed">{os.problema_relatado}</p>
+              </div>
+            )}
+
+            {os.mecanico_nome && (
+              <div className="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: cor + '22' }}>
+                  <Wrench size={15} style={{ color: cor }} />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400">Mecânico responsável</p>
+                  <p className="font-semibold text-gray-800 text-sm">{os.mecanico_nome}</p>
+                </div>
+              </div>
+            )}
+
+            {concluida && os.diagnostico && (
+              <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm border-l-4" style={{ borderLeftColor: cor }}>
+                <p className="text-xs text-gray-400 mb-1 font-medium uppercase tracking-wide">Diagnóstico da oficina</p>
+                <p className="text-gray-700 text-sm leading-relaxed">{os.diagnostico}</p>
+              </div>
+            )}
+
+            {concluida && os.observacoes && (
+              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+                <p className="text-xs text-amber-500 mb-1 font-medium uppercase tracking-wide">Observações</p>
+                <p className="text-amber-800 text-sm leading-relaxed">{os.observacoes}</p>
+              </div>
+            )}
+
+            {/* Atalhos para as outras seções */}
+            {abas.length > 1 && (
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {abas.filter(a => a.id !== 'resumo').map(a => {
+                  const Icon = a.icon
+                  return (
+                    <button key={a.id} onClick={() => setAba(a.id)}
+                      className="relative flex items-center gap-2.5 bg-white rounded-2xl p-3 border border-gray-100 shadow-sm hover:shadow-md transition text-left">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: cor + '18' }}>
+                        <Icon size={16} style={{ color: cor }} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-gray-800 text-sm truncate">{a.label}</p>
+                        <p className="text-[11px]" style={{ color: a.alerta ? '#d97706' : '#9ca3af' }}>
+                          {a.alerta ? 'Requer sua ação' : 'Ver detalhes'}
+                        </p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
 
-        {/* Mecânico */}
-        {os.mecanico_nome && (
-          <div className="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
-              <Wrench size={15} className="text-blue-600" />
-            </div>
-            <div>
-              <p className="text-xs text-gray-400">Mecânico responsável</p>
-              <p className="font-semibold text-gray-800 text-sm">{os.mecanico_nome}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Checklist */}
-        {os.checklist && (
-          <SecaoChecklist
-            checklist={os.checklist}
-            onAssinado={c => setOs(prev => ({ ...prev, checklist: c }))}
-          />
-        )}
-
-        {/* Orçamento */}
-        {os.orcamento && <SecaoOrcamento orc={os.orcamento} cor={os.oficina_cor_primaria || '#2563eb'} />}
-
-        {/* Diagnóstico */}
-        {os.status === 'concluida' && os.diagnostico && (
-          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-            <p className="text-xs text-blue-400 mb-1 font-medium uppercase tracking-wide">Diagnóstico da oficina</p>
-            <p className="text-blue-800 text-sm leading-relaxed">{os.diagnostico}</p>
-          </div>
-        )}
-
-        {/* Serviços realizados */}
-        {os.status === 'concluida' && os.servicos.length > 0 && (
+        {aba === 'servicos' && (
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
             <p className="text-xs text-gray-400 mb-3 font-medium uppercase tracking-wide flex items-center gap-1">
               <Wrench size={12} /> Serviços realizados
@@ -728,21 +778,23 @@ function DetalheOS({ os: initialOs, onVoltar }: { os: OSPublica; onVoltar?: () =
           </div>
         )}
 
-        {/* Garantias */}
-        {os.status === 'concluida' && os.garantias.length > 0 && (
+        {aba === 'checklist' && os.checklist && (
+          <SecaoChecklist
+            checklist={os.checklist}
+            onAssinado={c => setOs(prev => ({ ...prev, checklist: c }))}
+          />
+        )}
+
+        {aba === 'orcamento' && os.orcamento && (
+          <SecaoOrcamento orc={os.orcamento} cor={cor} />
+        )}
+
+        {aba === 'garantias' && os.garantias.length > 0 && (
           <SecaoGarantias garantias={os.garantias} />
         )}
 
-        {/* Observações */}
-        {os.status === 'concluida' && os.observacoes && (
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
-            <p className="text-xs text-amber-500 mb-1 font-medium uppercase tracking-wide">Observações</p>
-            <p className="text-amber-800 text-sm leading-relaxed">{os.observacoes}</p>
-          </div>
-        )}
-
         {/* Rodapé */}
-        <div className="pt-2 flex flex-col items-center gap-1">
+        <div className="pt-4 flex flex-col items-center gap-1">
           {os.oficina_logo_url ? (
             <img src={os.oficina_logo_url} alt={os.oficina_nome} className="h-6 object-contain opacity-50" />
           ) : (
