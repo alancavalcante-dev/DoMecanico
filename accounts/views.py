@@ -1090,18 +1090,35 @@ def whatsapp_conectar(request):
     # Payload de criação (Evolution v1.x — SEM "integration", que é parâmetro da v2)
     create_payload = {'instanceName': config.instance_name, 'qrcode': True}
 
-    # Tenta criar a instância (ignora 403 se já existir)
-    create_erro = ''
-    try:
-        cr = req.post(f"{base}/instance/create", json=create_payload, headers=headers, timeout=15)
-        if cr.status_code in (200, 201):
-            qr = _qr_from_data(cr.json())
-            if qr:
-                return Response({'qr': qr})
-        else:
-            create_erro = f'create {cr.status_code}: {cr.text[:200]}'
-    except Exception as e:
-        create_erro = f'create exception: {e}'
+    def _criar_instancia(payload):
+        try:
+            cr = req.post(f"{base}/instance/create", json=payload, headers=headers, timeout=15)
+            if cr.status_code in (200, 201):
+                return _qr_from_data(cr.json()), ''
+            return None, f'create {cr.status_code}: {cr.text[:200]}'
+        except Exception as e:
+            return None, f'create exception: {e}'
+
+    qr, create_erro = _criar_instancia(create_payload)
+    if qr:
+        return Response({'qr': qr})
+
+    # Estado corrompido no Evolution (ex: instância sumiu mas "Token already
+    # exists"). Apaga o que der e gera um NOME NOVO de instância para a oficina.
+    if 'exist' in create_erro.lower():
+        import secrets as _secrets
+        try:
+            req.delete(f"{base}/instance/delete/{config.instance_name}", headers=headers, timeout=8)
+        except Exception:
+            pass
+        novo_nome = f"{_gerar_instance_name(config.oficina)}-{_secrets.token_hex(2)}"
+        config.instance_name = novo_nome
+        config.save(update_fields=['instance_name'])
+        create_payload = {'instanceName': novo_nome, 'qrcode': True}
+        qr, create_erro_novo = _criar_instancia(create_payload)
+        if qr:
+            return Response({'qr': qr})
+        create_erro = f'{create_erro} | novo nome "{novo_nome}": {create_erro_novo}'
 
     # Busca o QR via connect com retry (o QR demora ~3s para gerar)
     last_response = ''
