@@ -471,6 +471,26 @@ class AlertaEstoque(models.Model):
         return f'Alerta estoque: {self.peca.nome}'
 
 
+class ServicoCatalogo(models.Model):
+    """Serviço pré-cadastrado com preço padrão, para agilizar a criação de OS/orçamentos."""
+    oficina = models.ForeignKey('accounts.Oficina', on_delete=models.CASCADE, related_name='catalogo_servicos', db_index=True)
+    nome = models.CharField(max_length=200)
+    descricao = models.TextField(blank=True)
+    categoria = models.CharField(max_length=100, blank=True)
+    preco = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['categoria', 'nome']
+        verbose_name = 'Serviço do Catálogo'
+        verbose_name_plural = 'Catálogo de Serviços'
+
+    def __str__(self):
+        return self.nome
+
+
 class LogAuditoria(models.Model):
     ACOES = [
         ('criado', 'Criado'),

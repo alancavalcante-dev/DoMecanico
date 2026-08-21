@@ -30,6 +30,7 @@ from .models import (
     ChecklistEntrada, DanoChecklist,
     Agendamento, Orcamento, ItemOrcamento,
     GarantiaServico, GarantiaDefault, ComissaoMecanico, AlertaEstoque, LogAuditoria,
+    ServicoCatalogo,
 )
 from .serializers import (
     ClienteSerializer, ClienteListSerializer,
@@ -42,6 +43,7 @@ from .serializers import (
     AgendamentoSerializer, OrcamentoSerializer, ItemOrcamentoSerializer,
     OrcamentoPublicoSerializer, GarantiaServicoSerializer,
     ComissaoMecanicoSerializer, AlertaEstoqueSerializer,
+    ServicoCatalogoSerializer,
 )
 
 
@@ -197,6 +199,57 @@ class VeiculoViewSet(viewsets.ModelViewSet):
     def saude(self, request, pk=None):
         veiculo = self.get_object()
         return _gerar_pdf_saude(veiculo)
+
+    @action(detail=True, methods=['get'], url_path='historico')
+    def historico(self, request, pk=None):
+        """Prontuário do veículo: linha do tempo de todas as OS + resumo."""
+        from decimal import Decimal
+        veiculo = self.get_object()
+        ordens = OrdemServico.objects.filter(veiculo=veiculo).select_related('mecanico').prefetch_related(
+            'servicos', 'pecas_usadas'
+        ).order_by('-data_entrada')
+
+        total_gasto = Decimal('0')
+        total_km = 0
+        timeline = []
+        for o in ordens:
+            if o.status == 'concluida':
+                total_gasto += Decimal(str(o.total_geral))
+            timeline.append({
+                'id': o.id,
+                'numero': o.numero,
+                'status': o.status,
+                'status_display': o.get_status_display(),
+                'data_entrada': o.data_entrada,
+                'data_conclusao': o.data_conclusao,
+                'quilometragem_entrada': o.quilometragem_entrada,
+                'quilometragem_saida': o.quilometragem_saida,
+                'mecanico_nome': o.mecanico.nome if o.mecanico else None,
+                'problema_relatado': o.problema_relatado,
+                'diagnostico': o.diagnostico,
+                'total_geral': str(o.total_geral),
+                'servicos': [{'descricao': s.descricao, 'quantidade': str(s.quantidade)} for s in o.servicos.all()],
+                'pecas': [{'descricao': p.descricao, 'quantidade': str(p.quantidade)} for p in o.pecas_usadas.all()],
+            })
+
+        concluidas = sum(1 for o in ordens if o.status == 'concluida')
+        return Response({
+            'veiculo': {
+                'id': veiculo.id,
+                'placa': veiculo.placa,
+                'marca': veiculo.marca,
+                'modelo': veiculo.modelo,
+                'ano': veiculo.ano,
+                'cor': veiculo.cor,
+                'quilometragem': veiculo.quilometragem,
+                'cliente_nome': veiculo.cliente.nome,
+            },
+            'total_ordens': len(timeline),
+            'total_concluidas': concluidas,
+            'total_gasto': str(total_gasto),
+            'ultima_visita': ordens[0].data_entrada if timeline else None,
+            'timeline': timeline,
+        })
 
 
 class FuncionarioViewSet(viewsets.ModelViewSet):
@@ -1761,25 +1814,33 @@ def os_publica_buscar(request):
     if not placa_norm or not cpf_cnpj_norm:
         return Response({'erro': 'Informe a placa e o CPF/CNPJ.'}, status=400)
 
-    # Filter by placa at DB level (placa stored without special chars), then verify CPF in Python
-    candidatos = OrdemServico.objects.select_related(
+    # 1) Identifica os clientes (em qualquer oficina) cujo CPF/CNPJ normalizado bate.
+    #    Só carrega id+cpf (leve) e normaliza em Python (o banco guarda com máscara).
+    clientes_ids = [
+        c.id for c in Cliente.objects.only('id', 'cpf_cnpj')
+        if re.sub(r'\D', '', c.cpf_cnpj or '') == cpf_cnpj_norm
+    ]
+    if not clientes_ids:
+        return Response({'erro': 'Nenhuma OS encontrada com esses dados. Verifique a placa e o CPF/CNPJ.'}, status=404)
+
+    # 2) Todas as OS desses clientes (todos os veículos, em todas as oficinas).
+    candidatos = list(OrdemServico.objects.select_related(
         'cliente', 'veiculo', 'mecanico', 'oficina'
     ).prefetch_related(
         'veiculo__fotos', 'servicos', 'servicos__garantia',
         'checklist', 'checklist__danos', 'orcamento_origem', 'orcamento_origem__itens',
-    ).filter(
-        veiculo__placa__iexact=placa_norm,
-    ).order_by('-criado_em')
+    ).filter(cliente_id__in=clientes_ids).order_by('-criado_em'))
 
-    ordens = [
-        o for o in candidatos
-        if re.sub(r'\D', '', o.cliente.cpf_cnpj or '') == cpf_cnpj_norm
-    ]
-
-    if not ordens:
+    # 3) Prova de posse: a placa informada precisa existir entre os veículos do CPF.
+    placa_confere = any(
+        re.sub(r'[^A-Z0-9]', '', (o.veiculo.placa or '').upper()) == placa_norm
+        for o in candidatos
+    )
+    if not placa_confere:
         return Response({'erro': 'Nenhuma OS encontrada com esses dados. Verifique a placa e o CPF/CNPJ.'}, status=404)
 
-    return Response(OSPublicaSerializer(ordens, many=True, context={'request': request}).data)
+    # Retorna todas as OS do CPF — o front agrupa por veículo/oficina.
+    return Response(OSPublicaSerializer(candidatos, many=True, context={'request': request}).data)
 
 
 @api_view(['GET'])
@@ -2240,6 +2301,25 @@ class ComissaoViewSet(viewsets.ModelViewSet):
 
 
 # ── Alertas de Estoque ─────────────────────────────────────────────────────────
+
+class ServicoCatalogoViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated, ModuloRequerido]
+    serializer_class = ServicoCatalogoSerializer
+
+    def get_queryset(self):
+        oficina = get_oficina(self.request)
+        qs = ServicoCatalogo.objects.filter(oficina=oficina)
+        search = self.request.query_params.get('search')
+        ativo = self.request.query_params.get('ativo')
+        if search:
+            qs = qs.filter(Q(nome__icontains=search) | Q(categoria__icontains=search) | Q(descricao__icontains=search))
+        if ativo is not None:
+            qs = qs.filter(ativo=(ativo == 'true'))
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(oficina=get_oficina(self.request))
+
 
 class AlertaEstoqueViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, ModuloRequerido]

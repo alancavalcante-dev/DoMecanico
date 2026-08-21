@@ -17,6 +17,7 @@ router.register(r'agendamentos', views.AgendamentoViewSet, basename='agendamento
 router.register(r'orcamentos', views.OrcamentoViewSet, basename='orcamento')
 router.register(r'garantias', views.GarantiaViewSet, basename='garantia')
 router.register(r'comissoes', views.ComissaoViewSet, basename='comissao')
+router.register(r'catalogo-servicos', views.ServicoCatalogoViewSet, basename='catalogo-servico')
 router.register(r'alertas-estoque', views.AlertaEstoqueViewSet, basename='alerta-estoque')
 
 urlpatterns = [

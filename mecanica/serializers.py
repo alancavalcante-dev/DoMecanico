@@ -6,6 +6,7 @@ from .models import (
     ChecklistEntrada, DanoChecklist,
     Agendamento, Orcamento, ItemOrcamento,
     GarantiaServico, GarantiaDefault, ComissaoMecanico, AlertaEstoque,
+    ServicoCatalogo,
 )
 
 
@@ -462,6 +463,15 @@ class ComissaoMecanicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ComissaoMecanico
         fields = '__all__'
+
+
+# ── Catálogo de Serviços ───────────────────────────────────────────────────────
+
+class ServicoCatalogoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServicoCatalogo
+        fields = '__all__'
+        read_only_fields = ['oficina']
 
 
 # ── Alerta de Estoque ──────────────────────────────────────────────────────────
