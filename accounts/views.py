@@ -1087,8 +1087,11 @@ def whatsapp_conectar(request):
             return 'data:image/png;base64,' + b64.b64encode(buf.getvalue()).decode()
         return None
 
-    # Payload de criação (Evolution v1.x — SEM "integration", que é parâmetro da v2)
-    create_payload = {'instanceName': config.instance_name, 'qrcode': True}
+    import secrets as _secrets
+
+    # Evolution v1.x: passamos um TOKEN único no create para evitar o erro
+    # "Token already exists" (colisão com token órfão/compartilhado).
+    create_payload = {'instanceName': config.instance_name, 'token': _secrets.token_hex(16), 'qrcode': True}
 
     def _criar_instancia(payload):
         try:
@@ -1101,20 +1104,21 @@ def whatsapp_conectar(request):
 
     qr, create_erro = _criar_instancia(create_payload)
     if qr:
+        config.instance_token = create_payload['token']
+        config.save(update_fields=['instance_token'])
         return Response({'qr': qr})
 
-    # Estado corrompido no Evolution (ex: instância sumiu mas "Token already
-    # exists"). Apaga o que der e gera um NOME NOVO de instância para a oficina.
+    # Fallback: estado corrompido — apaga e recria com nome E token novos.
     if 'exist' in create_erro.lower():
-        import secrets as _secrets
         try:
             req.delete(f"{base}/instance/delete/{config.instance_name}", headers=headers, timeout=8)
         except Exception:
             pass
         novo_nome = f"{_gerar_instance_name(config.oficina)}-{_secrets.token_hex(2)}"
+        create_payload = {'instanceName': novo_nome, 'token': _secrets.token_hex(16), 'qrcode': True}
         config.instance_name = novo_nome
-        config.save(update_fields=['instance_name'])
-        create_payload = {'instanceName': novo_nome, 'qrcode': True}
+        config.instance_token = create_payload['token']
+        config.save(update_fields=['instance_name', 'instance_token'])
         qr, create_erro_novo = _criar_instancia(create_payload)
         if qr:
             return Response({'qr': qr})
