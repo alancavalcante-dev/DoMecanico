@@ -913,36 +913,54 @@ export default function AcompanharOS() {
           <span className="flex items-center gap-1.5 text-xs font-medium"><ClipboardCheck size={14} /> Checklist</span>
         </div>
 
-        {/* Resultados (várias OS) */}
-        {resultados && resultados.length > 1 && (
-          <div className="mt-6 space-y-3">
-            <p className="text-slate-500 text-sm text-center font-medium">{resultados.length} ordens encontradas</p>
-            {resultados.map(os => (
-              <button key={os.id} onClick={() => setSelecionada(os)}
-                className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm text-left hover:border-blue-300 hover:shadow-md transition-all overflow-hidden">
-                {os.fotos_veiculo[0] && (
-                  <div className="h-24 overflow-hidden">
-                    <img src={os.fotos_veiculo[0].foto_url} alt="Veículo" className="w-full h-full object-cover" />
+        {/* Resultados agrupados por oficina */}
+        {resultados && resultados.length > 1 && (() => {
+          const grupos = resultados.reduce((acc, os) => {
+            if (!acc[os.oficina_nome]) acc[os.oficina_nome] = []
+            acc[os.oficina_nome].push(os)
+            return acc
+          }, {} as Record<string, OSPublica[]>)
+          return (
+            <div className="mt-6 space-y-6">
+              <p className="text-slate-500 text-sm text-center font-medium">{resultados.length} ordens encontradas</p>
+              {Object.entries(grupos).map(([oficinaNome, lista]) => (
+                <div key={oficinaNome}>
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <Wrench size={14} className="text-slate-400 shrink-0" />
+                    <p className="text-sm font-bold text-slate-700 truncate">{oficinaNome}</p>
+                    <span className="text-xs text-slate-400 shrink-0">· {lista.length} OS</span>
                   </div>
-                )}
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="font-bold text-slate-800 text-sm">OS {os.numero}</p>
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE_BUSCA[os.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {os.status_display}
-                    </span>
-                  </div>
-                  <p className="text-slate-600 text-sm font-medium capitalize">{os.veiculo_marca} {os.veiculo_modelo}</p>
-                  <div className="flex items-center gap-2 mt-1 text-slate-400 text-xs">
-                    <span className="font-mono font-bold">{os.veiculo_placa}</span>
-                    <span>·</span>
-                    <span>{fmt(os.data_entrada)}</span>
+                  <div className="space-y-3">
+                    {lista.map(os => (
+                      <button key={os.id} onClick={() => setSelecionada(os)}
+                        className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm text-left hover:border-blue-300 hover:shadow-md transition-all overflow-hidden">
+                        {os.fotos_veiculo[0] && (
+                          <div className="h-24 overflow-hidden">
+                            <img src={os.fotos_veiculo[0].foto_url} alt="Veículo" className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="p-4">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-bold text-slate-800 text-sm">OS {os.numero}</p>
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE_BUSCA[os.status] || 'bg-gray-100 text-gray-600'}`}>
+                              {os.status_display}
+                            </span>
+                          </div>
+                          <p className="text-slate-600 text-sm font-medium capitalize">{os.veiculo_marca} {os.veiculo_modelo}</p>
+                          <div className="flex items-center gap-2 mt-1 text-slate-400 text-xs">
+                            <span className="font-mono font-bold">{os.veiculo_placa}</span>
+                            <span>·</span>
+                            <span>{fmt(os.data_entrada)}</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </button>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )
+        })()}
 
         <p className="text-center text-slate-300 text-xs mt-10">Powered by DoMecânico</p>
       </div>
