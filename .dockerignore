@@ -1,0 +1,32 @@
+# Segredos — NUNCA embutir na imagem (o env vem via env_file no runtime)
+.env
+.env.local
+.env.production
+
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Banco local e logs
+db.sqlite3
+db.sqlite3-journal
+logs/
+*.log
+
+# Mídia e estáticos gerados (recriados no build/runtime)
+media/
+staticfiles/
+
+# Frontend (buildado à parte, não entra na imagem do backend)
+frontend/node_modules/
+frontend/dist/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
