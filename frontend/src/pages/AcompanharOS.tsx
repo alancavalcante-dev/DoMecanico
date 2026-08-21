@@ -171,94 +171,85 @@ function HeroVeiculo({ os }: { os: OSPublica }) {
   const fotoPrincipal = os.fotos_veiculo[0]
 
   return (
-    <>
-      {/* Foto de capa ou banner de cor */}
-      <div className="relative h-52 overflow-hidden">
+    <div className="max-w-lg mx-auto px-4 pt-4">
+      {/* Card do veículo (compacto, com ou sem foto) */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         {fotoPrincipal ? (
-          <>
-            <img
-              src={fotoPrincipal.foto_url}
-              alt="Veículo"
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-          </>
+          <button onClick={() => setFotoHero(fotoPrincipal)} className="block w-full h-44 relative">
+            <img src={fotoPrincipal.foto_url} alt="Veículo" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/65 to-transparent" />
+            <span className="absolute top-2.5 right-2.5 bg-white/95 backdrop-blur rounded-md px-2 py-1 font-mono font-bold text-gray-800 text-xs tracking-widest shadow">
+              {os.veiculo_placa}
+            </span>
+            <div className="absolute bottom-0 left-0 right-0 p-3 text-left">
+              <h2 className="font-black text-white text-lg leading-tight capitalize">{os.veiculo_marca} {os.veiculo_modelo}</h2>
+              <div className="flex items-center gap-3 text-xs text-white/80 mt-0.5">
+                {os.veiculo_ano && <span>{os.veiculo_ano}</span>}
+                {os.veiculo_cor && <span className="flex items-center gap-1"><Palette size={11} /> {os.veiculo_cor}</span>}
+                <span className="flex items-center gap-1"><Gauge size={11} /> {os.quilometragem_entrada.toLocaleString('pt-BR')} km</span>
+              </div>
+            </div>
+          </button>
         ) : (
-          <div className="w-full h-full flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${cor}22, ${cor}11)` }}>
-            <Car size={64} className="opacity-20" style={{ color: cor }} />
+          <div className="flex items-center gap-3 p-4">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: cor + '18' }}>
+              <Car size={26} style={{ color: cor }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-black text-gray-800 text-lg leading-tight capitalize truncate">{os.veiculo_marca} {os.veiculo_modelo}</h2>
+              <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                {os.veiculo_ano && <span>{os.veiculo_ano}</span>}
+                {os.veiculo_cor && <span className="flex items-center gap-1"><Palette size={11} /> {os.veiculo_cor}</span>}
+                <span className="flex items-center gap-1"><Gauge size={11} /> {os.quilometragem_entrada.toLocaleString('pt-BR')} km</span>
+              </div>
+            </div>
+            <span className="font-mono font-bold text-gray-700 text-xs tracking-widest bg-gray-100 rounded-md px-2 py-1 shrink-0">
+              {os.veiculo_placa}
+            </span>
           </div>
         )}
 
-        {/* placa no canto */}
-        <div className="absolute top-3 right-3 bg-white/95 backdrop-blur rounded-lg px-3 py-1.5 text-center shadow-md">
-          <p className="font-black text-gray-800 tracking-widest text-sm font-mono">{os.veiculo_placa}</p>
-          <p className="text-gray-400 text-[9px] uppercase tracking-wider leading-none mt-0.5">Brasil</p>
-        </div>
-
-        {/* info do veículo sobre a foto */}
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-8">
-          <h2 className={`font-black text-xl leading-tight ${fotoPrincipal ? 'text-white' : 'text-gray-800'}`}>
-            {os.veiculo_marca} {os.veiculo_modelo}
-          </h2>
-          <div className={`flex items-center gap-3 text-sm mt-0.5 ${fotoPrincipal ? 'text-white/70' : 'text-gray-500'}`}>
-            {os.veiculo_ano && <span>{os.veiculo_ano}</span>}
-            {os.veiculo_cor && (
-              <span className="flex items-center gap-1">
-                <Palette size={11} /> {os.veiculo_cor}
-              </span>
-            )}
-            <span className="flex items-center gap-1">
-              <Gauge size={11} /> {os.quilometragem_entrada.toLocaleString('pt-BR')} km
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Galeria de fotos extras */}
-      {os.fotos_veiculo.length > 1 && (
-        <div className="bg-white border-b border-gray-100 px-4 py-3">
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {os.fotos_veiculo.map((foto, i) => (
+        {/* Miniaturas extras */}
+        {os.fotos_veiculo.length > 1 && (
+          <div className="border-t border-gray-100 px-3 py-2 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+            {os.fotos_veiculo.map(foto => (
               <button key={foto.id} onClick={() => setFotoHero(foto)}
-                className={`shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${i === 0 ? 'opacity-60' : ''} border-transparent hover:border-blue-400`}>
+                className="shrink-0 w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:border-gray-400 transition">
                 <img src={foto.foto_url} alt="" className="w-full h-full object-cover" />
               </button>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Card de status */}
-      <div className="max-w-lg mx-auto px-4 -mt-2 relative z-10">
-        <div className={`rounded-2xl p-4 border-2 shadow-sm mt-3 ${cfg.bg} ${cfg.ring} ring-1`}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${cfg.bg}`}>
-              <Icon size={20} className={cfg.text} />
-            </div>
-            <div className="flex-1">
-              <p className={`font-bold text-base ${cfg.text}`}>{cfg.label}</p>
-              <p className="text-gray-400 text-xs">OS {os.numero} · {os.cliente_nome}</p>
-            </div>
+      <div className={`rounded-2xl p-4 border shadow-sm mt-3 ${cfg.bg}`}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-full bg-white/70 flex items-center justify-center shrink-0">
+            <Icon size={20} className={cfg.text} />
           </div>
-          {/* Barra de progresso com etapas */}
-          <div className="relative">
-            <div className="flex items-center justify-between mb-1">
-              {['Entrada', 'Análise', 'Execução', 'Pronto'].map((etapa, i) => {
-                const pcts = [0, 25, 55, 100]
-                const ativo = cfg.pct >= pcts[i]
-                return (
-                  <div key={etapa} className="flex flex-col items-center gap-1">
-                    <div className={`w-3 h-3 rounded-full border-2 transition-all ${ativo ? 'border-transparent' : 'border-gray-300 bg-white'}`}
-                      style={ativo ? { backgroundColor: cor } : {}} />
-                    <span className={`text-[9px] font-medium ${ativo ? 'text-gray-600' : 'text-gray-300'}`}>{etapa}</span>
-                  </div>
-                )
-              })}
-            </div>
-            <div className="absolute top-1.5 left-1.5 right-1.5 h-0.5 bg-gray-200 -z-10 rounded-full">
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${cfg.pct}%`, backgroundColor: cor }} />
-            </div>
+          <div className="flex-1 min-w-0">
+            <p className={`font-bold text-base ${cfg.text}`}>{cfg.label}</p>
+            <p className="text-gray-500 text-xs truncate">OS {os.numero} · {os.cliente_nome}</p>
+          </div>
+        </div>
+        <div className="relative">
+          <div className="flex items-center justify-between mb-1">
+            {['Entrada', 'Análise', 'Execução', 'Pronto'].map((etapa, i) => {
+              const pcts = [0, 25, 55, 100]
+              const ativo = cfg.pct >= pcts[i]
+              return (
+                <div key={etapa} className="flex flex-col items-center gap-1">
+                  <div className={`w-3 h-3 rounded-full border-2 transition-all ${ativo ? 'border-transparent' : 'border-gray-300 bg-white'}`}
+                    style={ativo ? { backgroundColor: cor } : {}} />
+                  <span className={`text-[9px] font-medium ${ativo ? 'text-gray-600' : 'text-gray-400'}`}>{etapa}</span>
+                </div>
+              )
+            })}
+          </div>
+          <div className="absolute top-1.5 left-1.5 right-1.5 h-0.5 bg-gray-200 -z-10 rounded-full">
+            <div className="h-full rounded-full transition-all duration-700"
+              style={{ width: `${cfg.pct}%`, backgroundColor: cor }} />
           </div>
         </div>
       </div>
@@ -276,7 +267,7 @@ function HeroVeiculo({ os }: { os: OSPublica }) {
           )}
         </div>
       )}
-    </>
+    </div>
   )
 }
 
@@ -666,7 +657,7 @@ function DetalheOS({ os: initialOs, onVoltar }: { os: OSPublica; onVoltar?: () =
       <HeroVeiculo os={os} />
 
       {/* Navegação por abas */}
-      <div className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-md border-b border-gray-100">
+      <div className="sticky top-14 z-10 bg-gray-50/95 backdrop-blur-md border-b border-gray-100 mt-3">
         <div className="max-w-lg mx-auto px-3 py-2.5 flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
           {abas.map(a => {
             const ativa = aba === a.id
@@ -879,33 +870,30 @@ export default function AcompanharOS() {
   if (selecionada) return <DetalheOS os={selecionada} onVoltar={() => setSelecionada(null)} />
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero da busca */}
-      <div className="bg-gradient-to-br from-blue-700 to-blue-500 text-white px-4 pt-12 pb-16">
-        <div className="max-w-sm mx-auto text-center">
-          <div className="w-14 h-14 mx-auto mb-4">
-            <img src="/logotipo.png" alt="DoMecânico" className="w-14 h-14 rounded-2xl object-contain" />
-          </div>
-          <h1 className="text-2xl font-black">Acompanhe seu veículo</h1>
-          <p className="text-blue-200 text-sm mt-2">
-            Digite a placa e seu CPF/CNPJ para ver o status em tempo real
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 flex flex-col items-center px-4 py-10 sm:py-16">
+      <div className="w-full max-w-md">
+        {/* Cabeçalho */}
+        <div className="text-center mb-6">
+          <img src="/logotipo.png" alt="DoMecânico" className="w-16 h-16 rounded-2xl object-contain mx-auto mb-4 shadow-sm" />
+          <h1 className="text-2xl font-black text-slate-800">Acompanhe seu veículo</h1>
+          <p className="text-slate-500 text-sm mt-1.5 max-w-xs mx-auto leading-relaxed">
+            Veja o status do serviço, o checklist de entrada e o orçamento — em tempo real.
           </p>
         </div>
-      </div>
 
-      <div className="max-w-sm mx-auto px-4 -mt-8">
-        <form onSubmit={buscar} className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 space-y-4">
+        {/* Card de busca */}
+        <form onSubmit={buscar} className="bg-white rounded-3xl p-6 shadow-xl shadow-slate-200/50 border border-slate-100 space-y-4">
           <div>
-            <label className="block text-xs text-gray-500 font-medium mb-1.5">Placa do veículo</label>
+            <label className="block text-xs text-slate-500 font-semibold mb-1.5 uppercase tracking-wide">Placa do veículo</label>
             <input value={placa} onChange={e => setPlaca(e.target.value.toUpperCase())}
-              placeholder="ABC1234 ou ABC1D23" maxLength={8} required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:border-blue-400 tracking-widest font-mono uppercase text-center text-base font-bold" />
+              placeholder="ABC1D23" maxLength={8} required
+              className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:border-blue-500 tracking-[0.25em] font-mono uppercase text-center text-lg font-bold" />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 font-medium mb-1.5">CPF ou CNPJ (somente números)</label>
+            <label className="block text-xs text-slate-500 font-semibold mb-1.5 uppercase tracking-wide">CPF ou CNPJ</label>
             <input value={cpf} onChange={e => setCpf(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="00000000000" maxLength={14} required
-              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 focus:outline-none focus:border-blue-400" />
+              placeholder="Somente números" maxLength={14} required inputMode="numeric"
+              className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-blue-500" />
           </div>
           {erro && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 text-red-600 text-sm">
@@ -913,18 +901,25 @@ export default function AcompanharOS() {
             </div>
           )}
           <button type="submit" disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl py-3.5 text-sm transition-colors flex items-center justify-center gap-2">
-            <Search size={16} /> {loading ? 'Buscando...' : 'Buscar minha OS'}
+            className="w-full bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold rounded-xl py-3.5 text-sm transition-colors flex items-center justify-center gap-2">
+            <Search size={16} /> {loading ? 'Buscando...' : 'Acompanhar meu veículo'}
           </button>
         </form>
 
+        {/* Selos de confiança */}
+        <div className="flex items-center justify-center gap-5 mt-5 text-slate-400">
+          <span className="flex items-center gap-1.5 text-xs font-medium"><ShieldCheck size={14} /> Seguro</span>
+          <span className="flex items-center gap-1.5 text-xs font-medium"><Clock size={14} /> Tempo real</span>
+          <span className="flex items-center gap-1.5 text-xs font-medium"><ClipboardCheck size={14} /> Checklist</span>
+        </div>
+
+        {/* Resultados (várias OS) */}
         {resultados && resultados.length > 1 && (
-          <div className="mt-4 space-y-3">
-            <p className="text-gray-500 text-sm text-center font-medium">{resultados.length} ordens encontradas</p>
+          <div className="mt-6 space-y-3">
+            <p className="text-slate-500 text-sm text-center font-medium">{resultados.length} ordens encontradas</p>
             {resultados.map(os => (
               <button key={os.id} onClick={() => setSelecionada(os)}
-                className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm text-left hover:border-blue-300 hover:shadow-md transition-all overflow-hidden">
-                {/* Mini foto do veículo se houver */}
+                className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm text-left hover:border-blue-300 hover:shadow-md transition-all overflow-hidden">
                 {os.fotos_veiculo[0] && (
                   <div className="h-24 overflow-hidden">
                     <img src={os.fotos_veiculo[0].foto_url} alt="Veículo" className="w-full h-full object-cover" />
@@ -932,18 +927,16 @@ export default function AcompanharOS() {
                 )}
                 <div className="p-4">
                   <div className="flex items-center justify-between mb-1">
-                    <p className="font-bold text-gray-800 text-sm">OS {os.numero}</p>
+                    <p className="font-bold text-slate-800 text-sm">OS {os.numero}</p>
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE_BUSCA[os.status] || 'bg-gray-100 text-gray-600'}`}>
                       {os.status_display}
                     </span>
                   </div>
-                  <p className="text-gray-600 text-sm font-medium">{os.veiculo_marca} {os.veiculo_modelo}</p>
-                  <div className="flex items-center gap-3 mt-1 text-gray-400 text-xs">
+                  <p className="text-slate-600 text-sm font-medium capitalize">{os.veiculo_marca} {os.veiculo_modelo}</p>
+                  <div className="flex items-center gap-2 mt-1 text-slate-400 text-xs">
                     <span className="font-mono font-bold">{os.veiculo_placa}</span>
                     <span>·</span>
                     <span>{fmt(os.data_entrada)}</span>
-                    <span>·</span>
-                    <span>{os.oficina_nome}</span>
                   </div>
                 </div>
               </button>
@@ -951,7 +944,7 @@ export default function AcompanharOS() {
           </div>
         )}
 
-        <p className="text-center text-gray-300 text-xs mt-8 pb-8">Powered by DoMecânico</p>
+        <p className="text-center text-slate-300 text-xs mt-10">Powered by DoMecânico</p>
       </div>
     </div>
   )
