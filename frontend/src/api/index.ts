@@ -136,6 +136,14 @@ export const veiculosAPI = {
     api.delete(`/veiculos/${veiculoId}/foto/${fotoId}/`),
   saudePDF: (id: number) =>
     api.get(`/veiculos/${id}/saude/`, { responseType: 'blob' }),
+  historico: (id: number) => api.get(`/veiculos/${id}/historico/`),
+}
+
+export const catalogoAPI = {
+  listar: (params?: object) => api.get('/catalogo-servicos/', { params }),
+  criar: (data: object) => api.post('/catalogo-servicos/', data),
+  atualizar: (id: number, data: object) => api.put(`/catalogo-servicos/${id}/`, data),
+  deletar: (id: number) => api.delete(`/catalogo-servicos/${id}/`),
 }
 
 export const funcionariosAPI = {

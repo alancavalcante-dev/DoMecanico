@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { ordensAPI, clientesAPI, veiculosAPI, funcionariosAPI, servicosOSAPI, pecasOSAPI, pecasAPI, garantiasAPI } from '../api'
-import type { OrdemServico, Cliente, Veiculo, Funcionario, ServicoOS, PecaOS, Peca } from '../types'
+import { ordensAPI, clientesAPI, veiculosAPI, funcionariosAPI, servicosOSAPI, pecasOSAPI, pecasAPI, garantiasAPI, catalogoAPI } from '../api'
+import type { OrdemServico, Cliente, Veiculo, Funcionario, ServicoOS, PecaOS, Peca, ServicoCatalogo } from '../types'
 import PageHeader from '../components/ui/PageHeader'
 import CurrencyInput from '../components/ui/CurrencyInput'
 import Modal from '../components/ui/Modal'
 import { statusBadge } from '../components/ui/Badge'
-import { Plus, Search, Eye, Trash2, Printer, X, PlusCircle, Link2, Pencil, Check, ShieldCheck, ShieldPlus } from 'lucide-react'
+import { Plus, Search, Eye, Trash2, Printer, X, PlusCircle, Link2, Pencil, Check, ShieldCheck, ShieldPlus, LayoutGrid, List } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 function KmSaidaEditor({ os, onSaved }: { os: OrdemServico; onSaved: (km: number) => void }) {
@@ -63,6 +63,14 @@ const STATUS_OPTIONS = [
   { value: 'cancelada', label: 'Cancelada' },
 ]
 
+const KANBAN_COLS = [
+  { status: 'aberta',          label: 'Aberta',          head: 'text-slate-600', dot: 'bg-slate-400' },
+  { status: 'em_andamento',    label: 'Em Andamento',    head: 'text-blue-700',  dot: 'bg-blue-500' },
+  { status: 'aguardando_peca', label: 'Aguardando Peça', head: 'text-amber-700', dot: 'bg-amber-500' },
+  { status: 'concluida',       label: 'Concluída',       head: 'text-green-700', dot: 'bg-green-500' },
+  { status: 'cancelada',       label: 'Cancelada',       head: 'text-red-600',   dot: 'bg-red-400' },
+]
+
 function fmt(v: string | number | undefined) {
   if (v == null) return 'R$ 0,00'
   return parseFloat(String(v)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -87,20 +95,25 @@ export default function OrdensServico() {
   const [addPeca, setAddPeca] = useState({ peca: '', descricao: '', quantidade: '1', preco_unitario: '' })
   const [salvandoItem, setSalvandoItem] = useState(false)
   const [clientes, setClientes] = useState<Cliente[]>([])
+  const [catalogo, setCatalogo] = useState<ServicoCatalogo[]>([])
+  const [vista, setVista] = useState<'lista' | 'kanban'>('lista')
+  const [dragId, setDragId] = useState<number | null>(null)
 
   const carregar = async (s = search, st = statusFiltro) => {
     setLoading(true)
     try {
-      const [oRes, cRes, fRes, pRes] = await Promise.all([
+      const [oRes, cRes, fRes, pRes, catRes] = await Promise.all([
         ordensAPI.listar({ search: s || undefined, status: st || undefined }),
         clientesAPI.listar({ page_size: 999 }),
         funcionariosAPI.listar({ ativo: 'true', page_size: 999 }),
         pecasAPI.listar({ page_size: 999 }),
+        catalogoAPI.listar({ ativo: 'true', page_size: 999 }),
       ])
       setOrdens(oRes.data.results ?? oRes.data)
       setClientes(cRes.data.results ?? cRes.data)
       setFuncionarios(fRes.data.results ?? fRes.data)
       setPecasEstoque(pRes.data.results ?? pRes.data)
+      setCatalogo(catRes.data.results ?? catRes.data)
     } finally {
       setLoading(false)
     }
@@ -264,6 +277,12 @@ export default function OrdensServico() {
     }
   }
 
+  const onCatalogoSelect = (id: string) => {
+    const c = catalogo.find(x => String(x.id) === id)
+    if (!c) return
+    setAddServico(prev => ({ ...prev, descricao: c.nome, preco_unitario: c.preco }))
+  }
+
   const onPecaSelect = (pecaId: string) => {
     const peca = pecasEstoque.find(p => String(p.id) === pecaId)
     setAddPeca(prev => ({
@@ -286,22 +305,93 @@ export default function OrdensServico() {
         }
       />
 
-      <div className="flex gap-2 mb-5 flex-wrap">
+      <div className="flex gap-2 mb-5 flex-wrap items-center">
         <form onSubmit={e => { e.preventDefault(); carregar(search, statusFiltro) }} className="flex flex-wrap gap-2">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Nº OS, cliente, placa..."
               className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-56" />
           </div>
-          <select value={statusFiltro} onChange={e => { setStatusFiltro(e.target.value); carregar(search, e.target.value) }}
-            className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Todos os status</option>
-            {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
+          {vista === 'lista' && (
+            <select value={statusFiltro} onChange={e => { setStatusFiltro(e.target.value); carregar(search, e.target.value) }}
+              className="border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Todos os status</option>
+              {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          )}
           <button type="submit" className="px-4 py-2 bg-slate-800 text-white rounded-lg text-sm hover:bg-slate-700">Buscar</button>
         </form>
+
+        {/* Alternar Lista / Kanban */}
+        <div className="ml-auto flex items-center bg-slate-100 rounded-lg p-0.5">
+          <button onClick={() => setVista('lista')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${vista === 'lista' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            <List size={15} /> Lista
+          </button>
+          <button onClick={() => { setVista('kanban'); if (statusFiltro) { setStatusFiltro(''); carregar(search, '') } }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${vista === 'kanban' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            <LayoutGrid size={15} /> Kanban
+          </button>
+        </div>
       </div>
 
+      {vista === 'kanban' ? (
+        loading ? (
+          <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
+        ) : (
+          <>
+            <p className="text-xs text-slate-400 mb-2 hidden lg:block">Arraste os cartões entre as colunas para mudar o status. No celular, use o seletor dentro do cartão.</p>
+            <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
+              {KANBAN_COLS.map(col => {
+                const lista = ordens.filter(o => o.status === col.status)
+                return (
+                  <div key={col.status}
+                    onDragOver={e => e.preventDefault()}
+                    onDrop={() => {
+                      if (dragId != null) {
+                        const os = ordens.find(o => o.id === dragId)
+                        if (os && os.status !== col.status) atualizarStatus(os, col.status)
+                        setDragId(null)
+                      }
+                    }}
+                    className="flex-shrink-0 w-72 bg-slate-50 rounded-xl p-2.5">
+                    <div className="flex items-center gap-2 px-1.5 py-1 mb-2">
+                      <span className={`w-2 h-2 rounded-full ${col.dot}`} />
+                      <span className={`text-sm font-semibold ${col.head}`}>{col.label}</span>
+                      <span className="text-xs text-slate-400 ml-auto bg-white rounded-full px-2 py-0.5">{lista.length}</span>
+                    </div>
+                    <div className="space-y-2 min-h-[60px]">
+                      {lista.map(os => (
+                        <div key={os.id}
+                          draggable onDragStart={() => setDragId(os.id)} onDragEnd={() => setDragId(null)}
+                          onClick={() => abrirDetalhe(os)}
+                          className="bg-white rounded-lg border border-slate-100 shadow-sm p-3 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-mono font-bold text-blue-700 text-sm">{os.numero}</span>
+                            <span className="text-xs font-semibold text-slate-700">{fmt(os.total_geral)}</span>
+                          </div>
+                          <p className="text-sm text-slate-700 font-medium truncate">{os.cliente_nome}</p>
+                          <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400">
+                            <span className="font-mono">{os.veiculo_placa}</span>
+                            {os.mecanico_nome && <><span>·</span><span className="truncate">{os.mecanico_nome}</span></>}
+                          </div>
+                          <select value={os.status}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => { e.stopPropagation(); atualizarStatus(os, e.target.value) }}
+                            className="mt-2 w-full text-xs border border-slate-200 rounded-md px-2 py-1 text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-400 lg:hidden">
+                            {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                          </select>
+                        </div>
+                      ))}
+                      {lista.length === 0 && <p className="text-center text-xs text-slate-300 py-4">—</p>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )
+      ) : (
       <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
@@ -347,6 +437,7 @@ export default function OrdensServico() {
           </div>
         )}
       </div>
+      )}
 
       {/* Modal Nova OS */}
       <Modal open={novaOSModal} onClose={() => setNovaOSModal(false)} title="Nova Ordem de Serviço" size="lg">
@@ -496,16 +587,27 @@ export default function OrdensServico() {
                 </table>
                 </div>
               )}
-              <form onSubmit={adicionarServico} className="flex gap-2">
-                <input required value={addServico.descricao} onChange={e => setAddServico(p => ({ ...p, descricao: e.target.value }))} placeholder="Descrição do serviço"
-                  className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <input required type="number" step="0.01" value={addServico.quantidade} onChange={e => setAddServico(p => ({ ...p, quantidade: e.target.value }))} placeholder="Qtd"
-                  className="w-16 border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <CurrencyInput value={addServico.preco_unitario} onChange={v => setAddServico(p => ({ ...p, preco_unitario: v }))} placeholder="R$ Valor"
-                  className="w-24 border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <button type="submit" disabled={salvandoItem} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-60">
-                  <PlusCircle size={14} /> Add
-                </button>
+              <form onSubmit={adicionarServico} className="space-y-2">
+                {catalogo.length > 0 && (
+                  <select value="" onChange={e => onCatalogoSelect(e.target.value)}
+                    className="w-full border border-blue-200 bg-blue-50/40 rounded-lg px-3 py-1.5 text-sm text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">➕ Preencher do catálogo…</option>
+                    {catalogo.map(c => (
+                      <option key={c.id} value={c.id}>{c.nome} — {fmt(c.preco)}{c.categoria ? ` (${c.categoria})` : ''}</option>
+                    ))}
+                  </select>
+                )}
+                <div className="flex gap-2">
+                  <input required value={addServico.descricao} onChange={e => setAddServico(p => ({ ...p, descricao: e.target.value }))} placeholder="Descrição do serviço"
+                    className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <input required type="number" step="0.01" value={addServico.quantidade} onChange={e => setAddServico(p => ({ ...p, quantidade: e.target.value }))} placeholder="Qtd"
+                    className="w-16 border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <CurrencyInput value={addServico.preco_unitario} onChange={v => setAddServico(p => ({ ...p, preco_unitario: v }))} placeholder="R$ Valor"
+                    className="w-24 border border-slate-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  <button type="submit" disabled={salvandoItem} className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm disabled:opacity-60">
+                    <PlusCircle size={14} /> Add
+                  </button>
+                </div>
               </form>
             </div>
 

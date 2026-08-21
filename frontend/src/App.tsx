@@ -35,6 +35,7 @@ const Veiculos              = lazy(() => import('./pages/Veiculos'))
 const Estoque               = lazy(() => import('./pages/Estoque'))
 const Funcionarios          = lazy(() => import('./pages/Funcionarios'))
 const OrdensServico         = lazy(() => import('./pages/OrdemServico'))
+const Catalogo              = lazy(() => import('./pages/Catalogo'))
 const NotasFiscais          = lazy(() => import('./pages/NotasFiscais'))
 const Relatorios            = lazy(() => import('./pages/Relatorios'))
 const Assinatura            = lazy(() => import('./pages/Assinatura'))
@@ -116,6 +117,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/estoque':        'Estoque — DoMecânico',
   '/funcionarios':   'Funcionários — DoMecânico',
   '/ordens':         'Ordens de Serviço — DoMecânico',
+  '/catalogo':       'Catálogo de Serviços — DoMecânico',
   '/notas-fiscais':  'Comprovantes de Serviço — DoMecânico',
   '/relatorios':     'Relatórios — DoMecânico',
   '/assinatura':     'Assinatura — DoMecânico',
@@ -218,6 +220,7 @@ function AppRoutes() {
           <Route path="/estoque"        element={<Estoque />} />
           <Route path="/funcionarios"   element={<Funcionarios />} />
           <Route path="/ordens"         element={<OrdensServico />} />
+          <Route path="/catalogo"       element={<Catalogo />} />
           <Route path="/notas-fiscais"  element={<NotasFiscais />} />
           <Route path="/relatorios"     element={<Relatorios />} />
           <Route path="/assinatura"     element={<Assinatura />} />

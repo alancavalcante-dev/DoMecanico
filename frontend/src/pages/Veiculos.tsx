@@ -3,9 +3,40 @@ import { clientesAPI, veiculosAPI } from '../api'
 import type { Cliente, Veiculo, FotoVeiculo } from '../types'
 import PageHeader from '../components/ui/PageHeader'
 import Modal from '../components/ui/Modal'
-import { tipoBadge } from '../components/ui/Badge'
-import { Plus, Search, Pencil, Trash2, Camera, X, Image, HeartPulse } from 'lucide-react'
+import { tipoBadge, statusBadge } from '../components/ui/Badge'
+import { Plus, Search, Pencil, Trash2, Camera, X, Image, HeartPulse, History, Wrench, Package, CircleDollarSign, CalendarClock } from 'lucide-react'
 import toast from 'react-hot-toast'
+
+interface ProntuarioItem {
+  id: number
+  numero: string
+  status: string
+  status_display: string
+  data_entrada: string
+  data_conclusao: string | null
+  quilometragem_entrada: number
+  quilometragem_saida: number | null
+  mecanico_nome: string | null
+  problema_relatado: string
+  diagnostico: string
+  total_geral: string
+  servicos: { descricao: string; quantidade: string }[]
+  pecas: { descricao: string; quantidade: string }[]
+}
+
+interface Prontuario {
+  veiculo: { id: number; placa: string; marca: string; modelo: string; ano: number | null; cor: string; quilometragem: number; cliente_nome: string }
+  total_ordens: number
+  total_concluidas: number
+  total_gasto: string
+  ultima_visita: string | null
+  timeline: ProntuarioItem[]
+}
+
+function fmtMoeda(v: string | number | undefined) {
+  if (v == null) return 'R$ 0,00'
+  return parseFloat(String(v)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
 
 const TIPOS = ['carro', 'moto', 'caminhao', 'outro']
 
@@ -26,6 +57,9 @@ export default function Veiculos() {
   const [salvando, setSalvando] = useState(false)
   const [uploadingFotos, setUploadingFotos] = useState(false)
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const [prontOpen, setProntOpen] = useState(false)
+  const [prontData, setProntData] = useState<Prontuario | null>(null)
+  const [prontLoading, setProntLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const carregar = async (s = search) => {
@@ -95,6 +129,21 @@ export default function Veiculos() {
       window.open(url, '_blank')
     } catch {
       toast.error('Erro ao gerar relatório de saúde.')
+    }
+  }
+
+  const abrirProntuario = async (v: Veiculo) => {
+    setProntData(null)
+    setProntLoading(true)
+    setProntOpen(true)
+    try {
+      const r = await veiculosAPI.historico(v.id)
+      setProntData(r.data)
+    } catch {
+      toast.error('Erro ao carregar prontuário.')
+      setProntOpen(false)
+    } finally {
+      setProntLoading(false)
     }
   }
 
@@ -189,6 +238,7 @@ export default function Veiculos() {
                   <td className="px-4 py-3 text-slate-500">{Number(v.quilometragem).toLocaleString('pt-BR')} km</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => abrirProntuario(v)} title="Prontuário / Histórico" className="p-1.5 rounded hover:bg-amber-50 text-amber-600"><History size={15} /></button>
                       <button onClick={() => gerarSaude(v)} title="Relatório de Saúde" className="p-1.5 rounded hover:bg-green-50 text-green-600"><HeartPulse size={15} /></button>
                       <button onClick={() => abrirFotos(v)} title="Fotos" className="p-1.5 rounded hover:bg-purple-50 text-purple-600"><Camera size={15} /></button>
                       <button onClick={() => abrirEditar(v)} className="p-1.5 rounded hover:bg-blue-50 text-blue-600"><Pencil size={15} /></button>
@@ -320,6 +370,94 @@ export default function Veiculos() {
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* Modal Prontuário */}
+      <Modal open={prontOpen} onClose={() => setProntOpen(false)} title="Prontuário do Veículo" size="xl">
+        {prontLoading ? (
+          <div className="flex justify-center py-16"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>
+        ) : prontData ? (
+          <div className="space-y-5">
+            {/* Cabeçalho */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="font-mono font-bold text-lg text-slate-800">{prontData.veiculo.placa}</span>
+              <span className="text-slate-600 capitalize">{prontData.veiculo.marca} {prontData.veiculo.modelo} {prontData.veiculo.ano || ''}</span>
+              <span className="text-slate-400 text-sm">· {prontData.veiculo.cliente_nome}</span>
+            </div>
+
+            {/* Resumo */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-50 rounded-xl p-3">
+                <History size={16} className="text-slate-400 mb-1" />
+                <p className="text-lg font-bold text-slate-800">{prontData.total_ordens}</p>
+                <p className="text-xs text-slate-500">Visitas</p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-3">
+                <Wrench size={16} className="text-green-500 mb-1" />
+                <p className="text-lg font-bold text-slate-800">{prontData.total_concluidas}</p>
+                <p className="text-xs text-slate-500">Concluídas</p>
+              </div>
+              <div className="bg-blue-50 rounded-xl p-3">
+                <CircleDollarSign size={16} className="text-blue-500 mb-1" />
+                <p className="text-lg font-bold text-slate-800">{fmtMoeda(prontData.total_gasto)}</p>
+                <p className="text-xs text-slate-500">Total gasto</p>
+              </div>
+              <div className="bg-amber-50 rounded-xl p-3">
+                <CalendarClock size={16} className="text-amber-500 mb-1" />
+                <p className="text-lg font-bold text-slate-800">{prontData.ultima_visita ? new Date(prontData.ultima_visita).toLocaleDateString('pt-BR') : '—'}</p>
+                <p className="text-xs text-slate-500">Última visita</p>
+              </div>
+            </div>
+
+            {/* Linha do tempo */}
+            {prontData.timeline.length === 0 ? (
+              <div className="text-center py-10 text-slate-400">
+                <History size={36} className="mx-auto mb-2 opacity-40" />
+                <p className="text-sm">Nenhuma ordem de serviço registrada para este veículo ainda.</p>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">Histórico de serviços</h3>
+                <div className="border-l-2 border-slate-100 ml-1.5 pl-5 space-y-4">
+                  {prontData.timeline.map(os => (
+                    <div key={os.id} className="relative">
+                      <span className="absolute -left-[26px] top-1.5 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-white" />
+                      <div className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-bold text-blue-700 text-sm">{os.numero}</span>
+                            {statusBadge(os.status)}
+                          </div>
+                          <span className="text-sm font-semibold text-slate-800">{fmtMoeda(os.total_geral)}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-slate-400">
+                          <span>{new Date(os.data_entrada).toLocaleDateString('pt-BR')}</span>
+                          {os.quilometragem_entrada > 0 && <span>· {os.quilometragem_entrada.toLocaleString('pt-BR')} km</span>}
+                          {os.mecanico_nome && <span>· {os.mecanico_nome}</span>}
+                        </div>
+                        {os.problema_relatado && <p className="text-xs text-slate-500 mt-1.5">{os.problema_relatado}</p>}
+                        {(os.servicos.length > 0 || os.pecas.length > 0) && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {os.servicos.map((s, i) => (
+                              <span key={'s' + i} className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md">
+                                <Wrench size={10} /> {s.descricao}
+                              </span>
+                            ))}
+                            {os.pecas.map((p, i) => (
+                              <span key={'p' + i} className="inline-flex items-center gap-1 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
+                                <Package size={10} /> {p.descricao}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
       </Modal>
 
       {/* Preview foto */}

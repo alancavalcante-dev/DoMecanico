@@ -134,6 +134,16 @@ export interface OrdemServico {
   criado_em: string
 }
 
+export interface ServicoCatalogo {
+  id: number
+  nome: string
+  descricao: string
+  categoria: string
+  preco: string
+  ativo: boolean
+  criado_em: string
+}
+
 export interface NotaFiscal {
   id: number
   ordem: number
