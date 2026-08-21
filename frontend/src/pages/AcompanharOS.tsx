@@ -5,7 +5,7 @@ import {
   Search, Car, Wrench, Clock, CheckCircle, AlertTriangle,
   PackageOpen, XCircle, Phone, ChevronLeft, X,
   ClipboardCheck, ShieldCheck, FileText, PenLine, RotateCcw,
-  MapPin, Calendar, Gauge, Palette, ChevronDown, ChevronUp,
+  MapPin, Calendar, Gauge, Palette, ChevronDown, ChevronUp, ChevronRight,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -842,33 +842,201 @@ const STATUS_BADGE_BUSCA: Record<string, string> = {
   cancelada:       'bg-red-100 text-red-700',
 }
 
+// Agrupa as OS por veículo (oficina + placa), preservando a ordem (backend já vem por -criado_em)
+interface VeiculoGrupo {
+  key: string
+  placa: string
+  marca: string
+  modelo: string
+  ano: string | null
+  cor: string | null
+  oficina_nome: string
+  oficina_cor: string
+  foto: string | null
+  ordens: OSPublica[]
+}
+
+function agruparVeiculos(list: OSPublica[]): VeiculoGrupo[] {
+  const map = new Map<string, VeiculoGrupo>()
+  for (const os of list) {
+    const key = `${os.oficina_nome}|${os.veiculo_placa}`
+    let g = map.get(key)
+    if (!g) {
+      g = {
+        key, placa: os.veiculo_placa, marca: os.veiculo_marca, modelo: os.veiculo_modelo,
+        ano: os.veiculo_ano, cor: os.veiculo_cor, oficina_nome: os.oficina_nome,
+        oficina_cor: os.oficina_cor_primaria || '#2563eb',
+        foto: os.fotos_veiculo[0]?.foto_url ?? null, ordens: [],
+      }
+      map.set(key, g)
+    }
+    g.ordens.push(os)
+    if (!g.foto && os.fotos_veiculo[0]) g.foto = os.fotos_veiculo[0].foto_url
+  }
+  return Array.from(map.values())
+}
+
+function CartaoOS({ os, onClick }: { os: OSPublica; onClick: () => void }) {
+  return (
+    <button onClick={onClick}
+      className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm text-left hover:border-blue-300 hover:shadow-md transition-all overflow-hidden">
+      {os.fotos_veiculo[0] && (
+        <div className="h-24 overflow-hidden">
+          <img src={os.fotos_veiculo[0].foto_url} alt="Veículo" className="w-full h-full object-cover" />
+        </div>
+      )}
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-1">
+          <p className="font-bold text-slate-800 text-sm">OS {os.numero}</p>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE_BUSCA[os.status] || 'bg-gray-100 text-gray-600'}`}>
+            {os.status_display}
+          </span>
+        </div>
+        <p className="text-slate-600 text-sm font-medium capitalize">{os.veiculo_marca} {os.veiculo_modelo}</p>
+        <div className="flex items-center gap-2 mt-1 text-slate-400 text-xs">
+          <span className="font-mono font-bold">{os.veiculo_placa}</span>
+          <span>·</span>
+          <span>{fmt(os.data_entrada)}</span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
 export default function AcompanharOS() {
   const [placa, setPlaca] = useState('')
   const [cpf, setCpf] = useState('')
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState('')
   const [resultados, setResultados] = useState<OSPublica[] | null>(null)
+  const [veiculoSel, setVeiculoSel] = useState<string | null>(null)
   const [selecionada, setSelecionada] = useState<OSPublica | null>(null)
 
   const buscar = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true); setErro(''); setResultados(null)
+    setLoading(true); setErro(''); setResultados(null); setVeiculoSel(null); setSelecionada(null)
     try {
       const r = await axios.post('/api/os-publica/buscar/', {
         placa: placa.replace(/[^a-zA-Z0-9]/g, ''),
         cpf_cnpj: cpf.replace(/[^0-9]/g, ''),
       })
       const dados: OSPublica[] = r.data
-      if (dados.length === 1) setSelecionada(dados[0])
-      else setResultados(dados)
+      setResultados(dados)
+      const grupos = agruparVeiculos(dados)
+      // 1 veículo: pula o seletor. Se também for 1 OS, abre direto o detalhe.
+      if (grupos.length === 1) {
+        if (grupos[0].ordens.length === 1) setSelecionada(grupos[0].ordens[0])
+        else setVeiculoSel(grupos[0].key)
+      }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { erro?: string } } })?.response?.data?.erro
       setErro(msg || 'Nenhuma OS encontrada.')
     } finally { setLoading(false) }
   }
 
+  // Detalhe de uma OS
   if (selecionada) return <DetalheOS os={selecionada} onVoltar={() => setSelecionada(null)} />
 
+  // Lista de OS de um veículo escolhido
+  if (resultados && veiculoSel) {
+    const grupo = agruparVeiculos(resultados).find(g => g.key === veiculoSel)
+    if (grupo) {
+      const grupos = agruparVeiculos(resultados)
+      return (
+        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 px-4 py-8">
+          <div className="w-full max-w-md mx-auto">
+            <button onClick={() => (grupos.length > 1 ? setVeiculoSel(null) : setResultados(null))}
+              className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm font-medium mb-4">
+              <ChevronLeft size={18} /> {grupos.length > 1 ? 'Meus veículos' : 'Nova busca'}
+            </button>
+
+            {/* Cabeçalho do veículo */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4 flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 overflow-hidden" style={{ backgroundColor: grupo.oficina_cor + '18' }}>
+                {grupo.foto ? <img src={grupo.foto} alt="" className="w-full h-full object-cover" /> : <Car size={22} style={{ color: grupo.oficina_cor }} />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="font-black text-slate-800 leading-tight capitalize truncate">{grupo.marca} {grupo.modelo}</h1>
+                <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                  <span className="font-mono font-bold">{grupo.placa}</span>
+                  {grupo.ano && <span>· {grupo.ano}</span>}
+                </div>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: grupo.oficina_cor }} />
+                  <span className="text-xs font-medium text-slate-500 truncate">{grupo.oficina_nome}</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-slate-500 text-sm font-medium mb-2 px-1">{grupo.ordens.length} ordem{grupo.ordens.length !== 1 ? 'ns' : ''} de serviço</p>
+            <div className="space-y-3">
+              {grupo.ordens.map(os => <CartaoOS key={os.id} os={os} onClick={() => setSelecionada(os)} />)}
+            </div>
+            <p className="text-center text-slate-300 text-xs mt-10">Powered by DoMecânico</p>
+          </div>
+        </div>
+      )
+    }
+  }
+
+  // Seletor de veículos (mais de um veículo para o CPF)
+  if (resultados && resultados.length > 0) {
+    const grupos = agruparVeiculos(resultados)
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 px-4 py-8">
+        <div className="w-full max-w-md mx-auto">
+          <button onClick={() => setResultados(null)}
+            className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm font-medium mb-4">
+            <ChevronLeft size={18} /> Nova busca
+          </button>
+          <div className="text-center mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-3">
+              <Car size={24} className="text-blue-600" />
+            </div>
+            <h1 className="text-xl font-black text-slate-800">Seus veículos</h1>
+            <p className="text-slate-500 text-sm mt-1">{grupos.length} veículo{grupos.length !== 1 ? 's' : ''} · toque para acompanhar</p>
+          </div>
+
+          <div className="space-y-3">
+            {grupos.map(g => {
+              const ultimo = g.ordens[0]
+              return (
+                <button key={g.key} onClick={() => setVeiculoSel(g.key)}
+                  className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm text-left hover:border-blue-300 hover:shadow-md transition-all p-3 flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-xl flex items-center justify-center shrink-0 overflow-hidden" style={{ backgroundColor: g.oficina_cor + '18' }}>
+                    {g.foto ? <img src={g.foto} alt="" className="w-full h-full object-cover" /> : <Car size={26} style={{ color: g.oficina_cor }} />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-slate-800 capitalize truncate">{g.marca} {g.modelo}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                      <span className="font-mono font-bold">{g.placa}</span>
+                      {g.ano && <span>· {g.ano}</span>}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: g.oficina_cor }} />
+                      <span className="text-xs text-slate-500 truncate">{g.oficina_nome}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE_BUSCA[ultimo.status] || 'bg-gray-100 text-gray-600'}`}>
+                      {ultimo.status_display}
+                    </span>
+                    <span className="text-[11px] text-slate-400">{g.ordens.length} OS</span>
+                    <ChevronRight size={16} className="text-slate-300" />
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-center text-slate-300 text-xs mt-10">Powered by DoMecânico</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Tela de busca
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 flex flex-col items-center px-4 py-10 sm:py-16">
       <div className="w-full max-w-md">
@@ -912,55 +1080,6 @@ export default function AcompanharOS() {
           <span className="flex items-center gap-1.5 text-xs font-medium"><Clock size={14} /> Tempo real</span>
           <span className="flex items-center gap-1.5 text-xs font-medium"><ClipboardCheck size={14} /> Checklist</span>
         </div>
-
-        {/* Resultados agrupados por oficina */}
-        {resultados && resultados.length > 1 && (() => {
-          const grupos = resultados.reduce((acc, os) => {
-            if (!acc[os.oficina_nome]) acc[os.oficina_nome] = []
-            acc[os.oficina_nome].push(os)
-            return acc
-          }, {} as Record<string, OSPublica[]>)
-          return (
-            <div className="mt-6 space-y-6">
-              <p className="text-slate-500 text-sm text-center font-medium">{resultados.length} ordens encontradas</p>
-              {Object.entries(grupos).map(([oficinaNome, lista]) => (
-                <div key={oficinaNome}>
-                  <div className="flex items-center gap-2 mb-2 px-1">
-                    <Wrench size={14} className="text-slate-400 shrink-0" />
-                    <p className="text-sm font-bold text-slate-700 truncate">{oficinaNome}</p>
-                    <span className="text-xs text-slate-400 shrink-0">· {lista.length} OS</span>
-                  </div>
-                  <div className="space-y-3">
-                    {lista.map(os => (
-                      <button key={os.id} onClick={() => setSelecionada(os)}
-                        className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm text-left hover:border-blue-300 hover:shadow-md transition-all overflow-hidden">
-                        {os.fotos_veiculo[0] && (
-                          <div className="h-24 overflow-hidden">
-                            <img src={os.fotos_veiculo[0].foto_url} alt="Veículo" className="w-full h-full object-cover" />
-                          </div>
-                        )}
-                        <div className="p-4">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="font-bold text-slate-800 text-sm">OS {os.numero}</p>
-                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_BADGE_BUSCA[os.status] || 'bg-gray-100 text-gray-600'}`}>
-                              {os.status_display}
-                            </span>
-                          </div>
-                          <p className="text-slate-600 text-sm font-medium capitalize">{os.veiculo_marca} {os.veiculo_modelo}</p>
-                          <div className="flex items-center gap-2 mt-1 text-slate-400 text-xs">
-                            <span className="font-mono font-bold">{os.veiculo_placa}</span>
-                            <span>·</span>
-                            <span>{fmt(os.data_entrada)}</span>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
-        })()}
 
         <p className="text-center text-slate-300 text-xs mt-10">Powered by DoMecânico</p>
       </div>
