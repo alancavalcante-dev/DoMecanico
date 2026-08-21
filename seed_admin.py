@@ -10,8 +10,11 @@ from django.contrib.auth.models import User
 from adminpanel.models import ConfiguracaoEmail, TemplateEmail, LogAtividade
 
 # ── Superusuário ──────────────────────────────────────────────────────────────
-EMAIL = 'admin@domecanico.net'
-SENHA = 'DoMecanico@2025'
+# Credenciais via variável de ambiente; sem senha fixa no código.
+# Se ADMIN_SEED_PASSWORD não for definido, gera uma senha forte e a imprime.
+import secrets
+EMAIL = os.environ.get('ADMIN_SEED_EMAIL', 'admin@domecanico.net')
+SENHA = os.environ.get('ADMIN_SEED_PASSWORD') or secrets.token_urlsafe(12)
 
 if not User.objects.filter(email=EMAIL).exists():
     User.objects.create_superuser(

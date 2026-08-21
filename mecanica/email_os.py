@@ -1,4 +1,5 @@
 import logging
+from html import escape as _esc
 
 from django.core.mail import get_connection, EmailMultiAlternatives
 
@@ -42,12 +43,12 @@ def notificar_os_concluida_email(ordem):
     pecas = list(ordem.pecas_usadas.all())
 
     linhas_servicos = ''.join(
-        f'<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">{s.descricao}</td>'
+        f'<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">{_esc(s.descricao)}</td>'
         f'<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">R$ {s.total:,.2f}</td></tr>'
         for s in servicos
     )
     linhas_pecas = ''.join(
-        f'<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">{p.peca.nome if p.peca else p.descricao}</td>'
+        f'<tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0f0">{_esc(p.peca.nome if p.peca else p.descricao)}</td>'
         f'<td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">R$ {p.total:,.2f}</td></tr>'
         for p in pecas
     )
@@ -81,7 +82,7 @@ def notificar_os_concluida_email(ordem):
         <!-- Body -->
         <tr><td style="padding:28px 32px">
           <p style="margin:0 0 20px;color:#374151;font-size:15px">
-            Olá, <strong>{cliente.nome}</strong>! O serviço do seu veículo foi concluído.
+            Olá, <strong>{_esc(cliente.nome)}</strong>! O serviço do seu veículo foi concluído.
           </p>
 
           <!-- Veículo -->
@@ -185,7 +186,7 @@ def notificar_orcamento_email(orc):
           <p style="margin:6px 0 0;color:#bfdbfe;font-size:14px">{oficina.nome}</p>
         </td></tr>
         <tr><td style="padding:28px 32px">
-          <p style="margin:0 0 16px;color:#374151;font-size:15px">Olá, <strong>{orc.cliente.nome}</strong>!</p>
+          <p style="margin:0 0 16px;color:#374151;font-size:15px">Olá, <strong>{_esc(orc.cliente.nome)}</strong>!</p>
           <p style="margin:0 0 20px;color:#374151;font-size:15px">
             Preparamos o orçamento do seu veículo <strong>{veiculo}</strong>.
             Clique no botão abaixo para ver os itens e <strong>aprovar ou recusar</strong>.

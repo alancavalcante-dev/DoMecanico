@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from core.permissions import ModuloRequerido
 from rest_framework.response import Response
 from core.throttles import PublicReadThrottle, PublicWriteThrottle
 
@@ -106,7 +107,7 @@ def _comprimir_imagem(arquivo, max_dim=1920, quality=80):
 
 
 class ClienteViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -134,7 +135,7 @@ class ClienteViewSet(viewsets.ModelViewSet):
 
 
 class VeiculoViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -199,7 +200,7 @@ class VeiculoViewSet(viewsets.ModelViewSet):
 
 
 class FuncionarioViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = FuncionarioSerializer
 
     def get_queryset(self):
@@ -218,7 +219,7 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
 
 
 class PecaViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = PecaSerializer
 
     def get_queryset(self):
@@ -293,7 +294,7 @@ class PecaViewSet(viewsets.ModelViewSet):
 
 
 class MovimentacaoEstoqueViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = MovimentacaoEstoqueSerializer
 
     def get_queryset(self):
@@ -306,7 +307,7 @@ class MovimentacaoEstoqueViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class OrdemServicoViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -466,7 +467,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
 
 
 class ServicoOSViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = ServicoOSSerializer
 
     def get_queryset(self):
@@ -475,7 +476,7 @@ class ServicoOSViewSet(viewsets.ModelViewSet):
 
 
 class PecaOSViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = PecaOSSerializer
 
     def get_queryset(self):
@@ -484,7 +485,7 @@ class PecaOSViewSet(viewsets.ModelViewSet):
 
 
 class NotaFiscalViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = NotaFiscalSerializer
 
     def get_queryset(self):
@@ -1486,7 +1487,7 @@ def _gerar_pdf_saude(veiculo):
 # ─── Checklist de Entrada ─────────────────────────────────────────────────────
 
 class ChecklistViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = ChecklistEntradaSerializer
 
     def get_queryset(self):
@@ -1794,8 +1795,8 @@ def os_publica_por_placa_oficina(request, slug):
     placa_norm = re.sub(r'[^A-Z0-9]', '', placa_raw)
     cpf_norm = re.sub(r'\D', '', cpf_raw)
 
-    if not placa_norm and not cpf_norm:
-        return Response({'erro': 'Informe a placa ou o CPF.'}, status=400)
+    if not placa_norm or not cpf_norm:
+        return Response({'erro': 'Informe a placa e o CPF do responsável.'}, status=400)
 
     try:
         oficina = Oficina.objects.get(slug_publico=slug, perfil_publico_ativo=True)
@@ -1809,9 +1810,9 @@ def os_publica_por_placa_oficina(request, slug):
     # Compara placa/CPF normalizados (sem máscara) — o banco guarda com formatação
     ordens = []
     for o in qs:
-        placa_ok = bool(placa_norm) and re.sub(r'[^A-Z0-9]', '', (o.veiculo.placa or '').upper()) == placa_norm
-        cpf_ok = bool(cpf_norm) and re.sub(r'\D', '', o.cliente.cpf_cnpj or '') == cpf_norm
-        if placa_ok or cpf_ok:
+        placa_ok = re.sub(r'[^A-Z0-9]', '', (o.veiculo.placa or '').upper()) == placa_norm
+        cpf_ok = re.sub(r'\D', '', o.cliente.cpf_cnpj or '') == cpf_norm
+        if placa_ok and cpf_ok:
             ordens.append(o)
         if len(ordens) >= 5:
             break
@@ -1835,7 +1836,7 @@ def os_publica_por_placa_oficina(request, slug):
 # ── Agendamento ────────────────────────────────────────────────────────────────
 
 class AgendamentoViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = AgendamentoSerializer
 
     def get_queryset(self):
@@ -1911,7 +1912,7 @@ def _converter_orcamento_em_os(orc):
 
 
 class OrcamentoViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = OrcamentoSerializer
 
     def get_queryset(self):
@@ -2077,7 +2078,7 @@ def orcamento_responder(request, token):
 # ── Garantia ───────────────────────────────────────────────────────────────────
 
 class GarantiaViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = GarantiaServicoSerializer
     http_method_names = ['get', 'post', 'delete', 'head', 'options']  # sem PUT/PATCH
 
@@ -2140,7 +2141,7 @@ def aplicar_garantia_servico(request, servico_id):
 # ── Comissão ───────────────────────────────────────────────────────────────────
 
 class ComissaoViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = ComissaoMecanicoSerializer
 
     def get_queryset(self):
@@ -2241,7 +2242,7 @@ class ComissaoViewSet(viewsets.ModelViewSet):
 # ── Alertas de Estoque ─────────────────────────────────────────────────────────
 
 class AlertaEstoqueViewSet(viewsets.ReadOnlyModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, ModuloRequerido]
     serializer_class = AlertaEstoqueSerializer
 
     def get_queryset(self):

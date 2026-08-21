@@ -57,10 +57,10 @@ REDIS_URL=redis://redis:6379/0
 
 CORS_ALLOWED_ORIGINS=https://domecanico.net,https://www.domecanico.net
 
-R2_ACCESS_KEY_ID=c20f9d50e5972565890cede97733a4ff
-R2_SECRET_ACCESS_KEY=d3e6b48fb8a1328adaa93d6de67d3aa416bde3fb4ce23a6c121127d836b8ee74
-R2_BUCKET_NAME=domecanico-media
-R2_ENDPOINT_URL=https://162f99a521b1a1fb189e3bc6edf65c27.r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID=seu-access-key-id
+R2_SECRET_ACCESS_KEY=seu-secret-access-key
+R2_BUCKET_NAME=seu-bucket
+R2_ENDPOINT_URL=https://SEU_ACCOUNT_ID.r2.cloudflarestorage.com
 
 EVOLUTION_API_URL=http://localhost:8080
 EVOLUTION_API_KEY=sua-chave-aqui
