@@ -11,7 +11,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p logs && python manage.py collectstatic --noinput
+# SECRET_KEY descartável só para o build (collectstatic não usa o valor real;
+# em runtime o SECRET_KEY vem do env_file). Assim o .env não precisa estar na imagem.
+RUN mkdir -p logs && SECRET_KEY=build-collectstatic-only python manage.py collectstatic --noinput
 
 RUN adduser --disabled-password --gecos '' appuser \
     && mkdir -p /app/logs /app/media \
