@@ -76,7 +76,7 @@ def notificar_os_concluida_email(ordem):
         <!-- Header -->
         <tr><td style="background:#16a34a;padding:28px 32px">
           <h1 style="margin:0;color:#ffffff;font-size:22px">&#10003; Seu veículo está pronto!</h1>
-          <p style="margin:6px 0 0;color:#bbf7d0;font-size:14px">{oficina.nome}</p>
+          <p style="margin:6px 0 0;color:#bbf7d0;font-size:14px">{_esc(oficina.nome)}</p>
         </td></tr>
 
         <!-- Body -->
@@ -89,7 +89,7 @@ def notificar_os_concluida_email(ordem):
           <div style="background:#f9fafb;border-radius:8px;padding:14px 16px;margin-bottom:20px">
             <p style="margin:0;font-size:13px;color:#6b7280">Veículo</p>
             <p style="margin:4px 0 0;font-size:15px;font-weight:600;color:#111827">
-              {veiculo.marca} {veiculo.modelo} — {veiculo.placa}
+              {_esc(veiculo.marca)} {_esc(veiculo.modelo)} — {_esc(veiculo.placa)}
             </p>
           </div>
 
@@ -118,7 +118,7 @@ def notificar_os_concluida_email(ordem):
           </div>
 
           <!-- Observações -->
-          {'<p style="margin:20px 0 0;font-size:13px;color:#6b7280"><strong>Observações:</strong> ' + ordem.observacoes + '</p>' if ordem.observacoes else ''}
+          {'<p style="margin:20px 0 0;font-size:13px;color:#6b7280"><strong>Observações:</strong> ' + _esc(ordem.observacoes) + '</p>' if ordem.observacoes else ''}
 
           <p style="margin:24px 0 0;font-size:13px;color:#6b7280">
             Você já pode buscar seu veículo. Qualquer dúvida, entre em contato com a oficina.
@@ -128,7 +128,7 @@ def notificar_os_concluida_email(ordem):
         <!-- Footer -->
         <tr><td style="padding:16px 32px;background:#f9fafb;border-top:1px solid #e5e7eb">
           <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">
-            {oficina.nome} &bull; Este e-mail foi gerado automaticamente pelo sistema DoMecânico.
+            {_esc(oficina.nome)} &bull; Este e-mail foi gerado automaticamente pelo sistema DoMecânico.
           </p>
         </td></tr>
 
@@ -173,7 +173,7 @@ def notificar_orcamento_email(orc):
     link = f'{base_url}/orcamento/{orc.token_publico}'
     validade = orc.validade.strftime('%d/%m/%Y') if orc.validade else 'Não informada'
     oficina = orc.oficina
-    veiculo = f'{orc.veiculo.marca} {orc.veiculo.modelo} — {orc.veiculo.placa}'
+    veiculo = f'{_esc(orc.veiculo.marca)} {_esc(orc.veiculo.modelo)} — {_esc(orc.veiculo.placa)}'
 
     html = f'''<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8"></head>
@@ -183,7 +183,7 @@ def notificar_orcamento_email(orc):
       <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;max-width:600px;width:100%">
         <tr><td style="background:#2563eb;padding:28px 32px">
           <h1 style="margin:0;color:#ffffff;font-size:22px">Orçamento #{orc.numero}</h1>
-          <p style="margin:6px 0 0;color:#bfdbfe;font-size:14px">{oficina.nome}</p>
+          <p style="margin:6px 0 0;color:#bfdbfe;font-size:14px">{_esc(oficina.nome)}</p>
         </td></tr>
         <tr><td style="padding:28px 32px">
           <p style="margin:0 0 16px;color:#374151;font-size:15px">Olá, <strong>{_esc(orc.cliente.nome)}</strong>!</p>
@@ -199,7 +199,7 @@ def notificar_orcamento_email(orc):
           <p style="margin:22px 0 0;font-size:13px;color:#6b7280;text-align:center">Válido até <strong>{validade}</strong>.</p>
         </td></tr>
         <tr><td style="padding:16px 32px;background:#f9fafb;border-top:1px solid #e5e7eb">
-          <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">{oficina.nome} &bull; Enviado automaticamente pelo DoMecânico.</p>
+          <p style="margin:0;font-size:12px;color:#9ca3af;text-align:center">{_esc(oficina.nome)} &bull; Enviado automaticamente pelo DoMecânico.</p>
         </td></tr>
       </table>
     </td></tr>

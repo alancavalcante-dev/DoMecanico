@@ -1,3 +1,5 @@
+from html import escape as _esc
+
 from django.core.mail import get_connection, EmailMultiAlternatives
 
 
@@ -82,7 +84,7 @@ def enviar_lembrete_renovacao(assinatura, dias_restantes: int) -> bool:
         <!-- Body -->
         <tr><td style="padding:28px 32px">
           <p style="margin:0 0 16px;color:#374151;font-size:15px">
-            Olá, <strong>{oficina.nome}</strong>!
+            Olá, <strong>{_esc(oficina.nome)}</strong>!
           </p>
           <p style="margin:0 0 24px;color:#374151;font-size:15px">
             {urgencia_texto}
@@ -93,7 +95,7 @@ def enviar_lembrete_renovacao(assinatura, dias_restantes: int) -> bool:
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="font-size:13px;color:#6b7280;padding:3px 0">Plano</td>
-                <td style="font-size:13px;font-weight:600;color:#111827;text-align:right;padding:3px 0">{plano.nome}</td>
+                <td style="font-size:13px;font-weight:600;color:#111827;text-align:right;padding:3px 0">{_esc(plano.nome)}</td>
               </tr>
               <tr>
                 <td style="font-size:13px;color:#6b7280;padding:3px 0">Valor</td>

@@ -1341,7 +1341,8 @@ def _enviar_email_redefinicao(user, to_email):
     token = default_token_generator.make_token(user)
     link = f'https://domecanico.net/redefinir-senha/{uid}/{token}/'
 
-    user_nome = user.first_name or user.email
+    from html import escape as _esc
+    user_nome = _esc(user.first_name or user.email)
 
     def _enviar():
         from .email_assinatura import _get_connection

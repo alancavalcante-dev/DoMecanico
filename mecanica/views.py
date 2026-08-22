@@ -916,6 +916,15 @@ def meu_painel_mecanico(request):
 
 # ─── PDF helpers ──────────────────────────────────────────────────────────────
 
+from xml.sax.saxutils import escape as _xesc
+
+
+def _pdf(s):
+    """Escapa texto de usuário para uso seguro dentro de Paragraph (markup do ReportLab).
+    Células de Table com string simples já são literais — só Paragraph interpreta markup."""
+    return _xesc(str(s if s is not None else ''))
+
+
 def _gerar_pdf_os(ordem):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=1*cm, bottomMargin=1*cm)
@@ -942,9 +951,9 @@ def _gerar_pdf_os(ordem):
             pass
 
     info_oficina = Paragraph(
-        f'<b>{oficina_obj.nome}</b><br/>'
-        f'<font size=8 color="#475569">CNPJ: {oficina_obj.cnpj or "-"}  |  Tel: {oficina_obj.telefone or "-"}<br/>'
-        f'{oficina_obj.cidade or ""}{(" / "+oficina_obj.estado) if oficina_obj.estado else ""}</font>',
+        f'<b>{_pdf(oficina_obj.nome)}</b><br/>'
+        f'<font size=8 color="#475569">CNPJ: {_pdf(oficina_obj.cnpj or "-")}  |  Tel: {_pdf(oficina_obj.telefone or "-")}<br/>'
+        f'{_pdf(oficina_obj.cidade or "")}{(" / "+_pdf(oficina_obj.estado)) if oficina_obj.estado else ""}</font>',
         ParagraphStyle('cab', parent=styles['Normal'], fontSize=11, leading=14)
     )
     titulo_os = Paragraph(
@@ -989,7 +998,7 @@ def _gerar_pdf_os(ordem):
     story.append(Spacer(1, 0.5*cm))
 
     story.append(Paragraph('Problema Relatado:', subtitulo_style))
-    story.append(Paragraph(ordem.problema_relatado, normal_style))
+    story.append(Paragraph(_pdf(ordem.problema_relatado), normal_style))
     story.append(Spacer(1, 0.3*cm))
 
     servicos = ordem.servicos.all()
@@ -1087,9 +1096,9 @@ def _gerar_pdf_nf(nf):
             pass
 
     info_oficina = Paragraph(
-        f'<b>{oficina_obj.nome}</b><br/>'
-        f'<font size=8 color="#475569">CNPJ: {oficina_obj.cnpj or "-"}  |  Tel: {oficina_obj.telefone or "-"}<br/>'
-        f'{oficina_obj.cidade or ""}{(" / "+oficina_obj.estado) if oficina_obj.estado else ""}</font>',
+        f'<b>{_pdf(oficina_obj.nome)}</b><br/>'
+        f'<font size=8 color="#475569">CNPJ: {_pdf(oficina_obj.cnpj or "-")}  |  Tel: {_pdf(oficina_obj.telefone or "-")}<br/>'
+        f'{_pdf(oficina_obj.cidade or "")}{(" / "+_pdf(oficina_obj.estado)) if oficina_obj.estado else ""}</font>',
         ParagraphStyle('cab', parent=styles['Normal'], fontSize=11, leading=14)
     )
     titulo_nf = Paragraph(
@@ -1345,7 +1354,7 @@ def _gerar_pdf_saude(veiculo):
     # ── Cabeçalho ──────────────────────────────────────────────────────────────
     oficina = veiculo.oficina
     header_data = [[
-        Paragraph(f'<b>{oficina.nome}</b>', ParagraphStyle('of', parent=styles['Normal'], fontSize=10, textColor=colors.white)),
+        Paragraph(f'<b>{_pdf(oficina.nome)}</b>', ParagraphStyle('of', parent=styles['Normal'], fontSize=10, textColor=colors.white)),
         Paragraph('RELATÓRIO DE SAÚDE DO VEÍCULO', ParagraphStyle('rh', parent=styles['Normal'], fontSize=14, textColor=colors.white, fontName='Helvetica-Bold', alignment=TA_CENTER)),
         Paragraph(f'Gerado em<br/><b>{timezone.localtime().strftime("%d/%m/%Y %H:%M")}</b>', ParagraphStyle('dt', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#bfdbfe'), alignment=2)),
     ]]
@@ -1363,13 +1372,13 @@ def _gerar_pdf_saude(veiculo):
     tipo_icone = {'moto': '🏍', 'carro': '🚗', 'caminhao': '🚛', 'outro': '🚙'}.get(veiculo.tipo, '🚗')
     veiculo_info = [
         [
-            Paragraph(f'{tipo_icone} <b>{veiculo.marca} {veiculo.modelo}</b>', ParagraphStyle('vi', parent=styles['Normal'], fontSize=14, textColor=AZUL_ESCURO, fontName='Helvetica-Bold')),
+            Paragraph(f'{tipo_icone} <b>{_pdf(veiculo.marca)} {_pdf(veiculo.modelo)}</b>', ParagraphStyle('vi', parent=styles['Normal'], fontSize=14, textColor=AZUL_ESCURO, fontName='Helvetica-Bold')),
             '', '', '',
         ],
         [
             Table([
                 [Paragraph('PLACA', label_style)],
-                [Paragraph(veiculo.placa.upper(), valor_style)],
+                [Paragraph(_pdf(veiculo.placa.upper()), valor_style)],
             ], colWidths=[4*cm]),
             Table([
                 [Paragraph('ANO', label_style)],
@@ -1377,7 +1386,7 @@ def _gerar_pdf_saude(veiculo):
             ], colWidths=[3*cm]),
             Table([
                 [Paragraph('COR', label_style)],
-                [Paragraph(veiculo.cor or '—', valor_style)],
+                [Paragraph(_pdf(veiculo.cor or '—'), valor_style)],
             ], colWidths=[4*cm]),
             Table([
                 [Paragraph('KM ATUAL', label_style)],
@@ -1385,9 +1394,9 @@ def _gerar_pdf_saude(veiculo):
             ], colWidths=[4*cm]),
         ],
         [
-            Paragraph(f'Cliente: <b>{veiculo.cliente.nome}</b>', pequeno_style),
-            Paragraph(f'Tel: {veiculo.cliente.celular or veiculo.cliente.telefone or "—"}', pequeno_style),
-            Paragraph(f'Chassi: {veiculo.chassi or "—"}', pequeno_style),
+            Paragraph(f'Cliente: <b>{_pdf(veiculo.cliente.nome)}</b>', pequeno_style),
+            Paragraph(f'Tel: {_pdf(veiculo.cliente.celular or veiculo.cliente.telefone or "—")}', pequeno_style),
+            Paragraph(f'Chassi: {_pdf(veiculo.chassi or "—")}', pequeno_style),
             Paragraph(f'Total de OS: <b>{ordens.count()}</b>', pequeno_style),
         ],
     ]
@@ -1472,13 +1481,13 @@ def _gerar_pdf_saude(veiculo):
             # Detalhe: serviços e peças
             det_rows = []
             if os.problema_relatado:
-                det_rows.append([Paragraph(f'Problema: {os.problema_relatado}', pequeno_style), ''])
+                det_rows.append([Paragraph(f'Problema: {_pdf(os.problema_relatado)}', pequeno_style), ''])
             if srv_resumo:
-                det_rows.append([Paragraph(f'Serviços: {srv_resumo}', pequeno_style), ''])
+                det_rows.append([Paragraph(f'Serviços: {_pdf(srv_resumo)}', pequeno_style), ''])
             if pec_resumo:
-                det_rows.append([Paragraph(f'Peças: {pec_resumo}', pequeno_style), ''])
+                det_rows.append([Paragraph(f'Peças: {_pdf(pec_resumo)}', pequeno_style), ''])
             if os.mecanico:
-                det_rows.append([Paragraph(f'Mecânico: {os.mecanico.nome}', pequeno_style), ''])
+                det_rows.append([Paragraph(f'Mecânico: {_pdf(os.mecanico.nome)}', pequeno_style), ''])
 
             if det_rows:
                 t_det = Table(det_rows, colWidths=[15*cm, 4*cm])
@@ -1503,7 +1512,7 @@ def _gerar_pdf_saude(veiculo):
             cor_linha = colors.HexColor('#fef2f2') if icone == '⚠' else AMARELO_CLARO
             sug_rows.append([
                 Paragraph(icone, ParagraphStyle('ic', parent=styles['Normal'], fontSize=10, textColor=AMARELO if icone == '✓' else VERMELHO)),
-                Paragraph(s.lstrip('⚠ '), pequeno_style),
+                Paragraph(_pdf(s.lstrip('⚠ ')), pequeno_style),
             ])
         t_sug = Table(sug_rows, colWidths=[0.8*cm, 18.2*cm])
         t_sug.setStyle(TableStyle([
@@ -1529,7 +1538,7 @@ def _gerar_pdf_saude(veiculo):
         'As sugestões de revisão são estimativas baseadas em intervalos médios e podem variar conforme o fabricante e condições de uso do veículo.',
         rodape_style
     ))
-    story.append(Paragraph(f'DoMecânico — {oficina.nome} · {oficina.cidade}/{oficina.estado}', rodape_style))
+    story.append(Paragraph(f'DoMecânico — {_pdf(oficina.nome)} · {_pdf(oficina.cidade)}/{_pdf(oficina.estado)}', rodape_style))
 
     doc.build(story)
     buffer.seek(0)
@@ -1683,9 +1692,9 @@ def _gerar_pdf_checklist(checklist):
             pass
 
     info_oficina = Paragraph(
-        f'<b>{oficina_obj.nome}</b><br/>'
-        f'<font size=8 color="#475569">CNPJ: {oficina_obj.cnpj or "-"}  |  Tel: {oficina_obj.telefone or "-"}<br/>'
-        f'{oficina_obj.cidade or ""}{(" / "+oficina_obj.estado) if oficina_obj.estado else ""}</font>',
+        f'<b>{_pdf(oficina_obj.nome)}</b><br/>'
+        f'<font size=8 color="#475569">CNPJ: {_pdf(oficina_obj.cnpj or "-")}  |  Tel: {_pdf(oficina_obj.telefone or "-")}<br/>'
+        f'{_pdf(oficina_obj.cidade or "")}{(" / "+_pdf(oficina_obj.estado)) if oficina_obj.estado else ""}</font>',
         ParagraphStyle('cab', parent=styles['Normal'], fontSize=11, leading=14)
     )
     titulo_chk = Paragraph(
@@ -1730,7 +1739,7 @@ def _gerar_pdf_checklist(checklist):
 
     if checklist.observacoes_gerais:
         story.append(Paragraph('Observações Gerais:', sub_style))
-        story.append(Paragraph(checklist.observacoes_gerais, normal))
+        story.append(Paragraph(_pdf(checklist.observacoes_gerais), normal))
         story.append(Spacer(1, 0.3*cm))
 
     danos = checklist.danos.all()
@@ -1772,7 +1781,7 @@ def _gerar_pdf_checklist(checklist):
     else:
         story.append(Spacer(1, 2*cm))
         story.append(Table([['_' * 50]], colWidths=[10*cm]))
-        story.append(Paragraph(checklist.cliente.nome, ParagraphStyle('nome_ass', parent=normal, fontSize=9)))
+        story.append(Paragraph(_pdf(checklist.cliente.nome), ParagraphStyle('nome_ass', parent=normal, fontSize=9)))
 
     doc.build(story)
     buffer.seek(0)
