@@ -161,6 +161,22 @@ const FORM_VAZIO: FormData = {
   observacoes: '',
 }
 
+// ── Helpers de SEO (meta + JSON-LD por oficina) ───────────────────────────────
+const SEO_BASE = 'https://domecanico.net'
+
+function _setMeta(sel: string, attr: string, name: string, content: string) {
+  let el = document.head.querySelector(sel) as HTMLMetaElement | null
+  if (!el) { el = document.createElement('meta'); el.setAttribute(attr, name); document.head.appendChild(el) }
+  el.setAttribute('content', content)
+}
+const setMetaName = (n: string, c: string) => _setMeta(`meta[name="${n}"]`, 'name', n, c)
+const setMetaProp = (p: string, c: string) => _setMeta(`meta[property="${p}"]`, 'property', p, c)
+function setCanonical(href: string) {
+  let el = document.head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null
+  if (!el) { el = document.createElement('link'); el.setAttribute('rel', 'canonical'); document.head.appendChild(el) }
+  el.setAttribute('href', href)
+}
+
 export default function PerfilOficina() {
   const { slug } = useParams<{ slug: string }>()
   const [perfil, setPerfil] = useState<PerfilData | null>(null)
@@ -179,6 +195,52 @@ export default function PerfilOficina() {
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false))
   }, [slug])
+
+  // SEO local: título, meta e JSON-LD AutoRepair a partir dos dados da oficina
+  useEffect(() => {
+    if (!perfil) return
+    const url = `${SEO_BASE}/oficina/${perfil.slug_publico}`
+    const local = [perfil.cidade, perfil.estado].filter(Boolean).join('/')
+    const titulo = `${perfil.nome}${local ? ` — Oficina em ${local}` : ' — Oficina Mecânica'} | DoMecânico`
+    const desc = (perfil.descricao_publica
+      || `${perfil.nome}: ${perfil.servicos_oferecidos.slice(0, 6).join(', ') || 'serviços automotivos'}${local ? ` em ${local}` : ''}. Agende e acompanhe sua ordem de serviço online.`
+    ).replace(/\s+/g, ' ').trim().slice(0, 300)
+    const logoAbs = perfil.logo ? (perfil.logo.startsWith('http') ? perfil.logo : SEO_BASE + perfil.logo) : null
+
+    document.title = titulo
+    setMetaName('description', desc)
+    setMetaName('robots', 'index, follow')
+    setMetaProp('og:title', titulo)
+    setMetaProp('og:description', desc)
+    setMetaProp('og:url', url)
+    if (logoAbs) setMetaProp('og:image', logoAbs)
+    setCanonical(url)
+
+    const ld: Record<string, unknown> = {
+      '@context': 'https://schema.org',
+      '@type': 'AutoRepair',
+      name: perfil.nome,
+      url,
+    }
+    if (logoAbs) ld.image = logoAbs
+    if (perfil.telefone) ld.telephone = perfil.telefone
+    if (perfil.endereco || perfil.cidade || perfil.estado) {
+      ld.address = {
+        '@type': 'PostalAddress',
+        ...(perfil.endereco ? { streetAddress: perfil.endereco } : {}),
+        ...(perfil.cidade ? { addressLocality: perfil.cidade } : {}),
+        ...(perfil.estado ? { addressRegion: perfil.estado } : {}),
+        addressCountry: 'BR',
+      }
+    }
+    if (perfil.servicos_oferecidos.length) ld.knowsAbout = perfil.servicos_oferecidos
+
+    let s = document.getElementById('ld-oficina') as HTMLScriptElement | null
+    if (!s) { s = document.createElement('script'); s.id = 'ld-oficina'; s.type = 'application/ld+json'; document.head.appendChild(s) }
+    s.textContent = JSON.stringify(ld)
+
+    return () => { document.getElementById('ld-oficina')?.remove() }
+  }, [perfil])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }))
