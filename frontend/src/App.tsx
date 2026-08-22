@@ -149,14 +149,59 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin-panel/login':       'Login — Admin',
 }
 
+// Descrição por rota pública (SEO). Rotas ausentes usam o fallback.
+const ROUTE_DESC: Record<string, string> = {
+  '/':            'Sistema de gestão para oficinas mecânicas: ordens de serviço, orçamentos, estoque, checklist digital e portal de acompanhamento para o cliente.',
+  '/cadastro':    'Crie a conta da sua oficina no DoMecânico e comece a gerenciar ordens de serviço, orçamentos e estoque com teste grátis.',
+  '/contato':     'Fale com a equipe do DoMecânico — tire dúvidas sobre o sistema de gestão para oficinas mecânicas.',
+  '/termos':      'Termos de uso do DoMecânico.',
+  '/privacidade': 'Política de privacidade do DoMecânico.',
+}
+const DESC_PADRAO = ROUTE_DESC['/']
+
+// Prefixos privados / com dados de cliente — não indexar.
+const ROTAS_NOINDEX = [
+  '/dashboard', '/clientes', '/veiculos', '/estoque', '/funcionarios', '/ordens',
+  '/catalogo', '/notas-fiscais', '/relatorios', '/assinatura', '/checklist',
+  '/agendamentos', '/orcamentos', '/garantias', '/comissoes', '/equipe', '/whatsapp',
+  '/perfil', '/meu-painel', '/suporte', '/ajuda', '/login',
+  '/acompanhar', '/orcamento', '/checklist-cliente', '/aceitar-convite',
+  '/redefinir-senha', '/esqueci-senha', '/admin-panel',
+]
+
+function upsertMeta(name: string, content: string) {
+  let el = document.head.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null
+  if (!el) { el = document.createElement('meta'); el.setAttribute('name', name); document.head.appendChild(el) }
+  el.setAttribute('content', content)
+}
+function upsertCanonical(href: string) {
+  let el = document.head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null
+  if (!el) { el = document.createElement('link'); el.setAttribute('rel', 'canonical'); document.head.appendChild(el) }
+  el.setAttribute('href', href)
+}
+
 function PageTitle() {
   const { pathname } = useLocation()
   useEffect(() => {
+    // Título
     const exact = PAGE_TITLES[pathname]
-    if (exact) { document.title = exact; return }
-    // prefixos dinâmicos (ex: /acompanhar/:token, /oficina/:slug)
-    const prefix = Object.keys(PAGE_TITLES).find(k => pathname.startsWith(k + '/'))
-    document.title = prefix ? PAGE_TITLES[prefix] : 'DoMecânico'
+    if (exact) {
+      document.title = exact
+    } else {
+      const prefix = Object.keys(PAGE_TITLES).find(k => pathname.startsWith(k + '/'))
+      document.title = prefix ? PAGE_TITLES[prefix] : 'DoMecânico'
+    }
+    // Descrição
+    upsertMeta('description', ROUTE_DESC[pathname] || DESC_PADRAO)
+    // noindex em rotas privadas / com dados de cliente
+    const privada = ROTAS_NOINDEX.some(p => pathname === p || pathname.startsWith(p + '/'))
+    upsertMeta('robots', privada ? 'noindex, nofollow' : 'index, follow')
+    // Canonical só em páginas públicas indexáveis; remove nas privadas
+    if (privada) {
+      document.head.querySelector('link[rel="canonical"]')?.remove()
+    } else {
+      upsertCanonical(`https://domecanico.net${pathname === '/' ? '/' : pathname}`)
+    }
   }, [pathname])
   return null
 }
