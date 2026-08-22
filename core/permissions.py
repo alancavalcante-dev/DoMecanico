@@ -53,6 +53,20 @@ def modulos_do_usuario(user):
     return base
 
 
+def usuario_tem_modulo(user, modulo):
+    """True se o usuário tem o módulo (admin sempre tem). Falha-aberto em erro,
+    para nunca travar por bug — a proteção por oficina continua nos querysets.
+    Use em function-based views, onde ModuloRequerido não se aplica.
+    """
+    try:
+        membro = user.membro
+        if membro.papel == 'admin':
+            return True
+        return modulo in modulos_do_usuario(user)
+    except Exception:
+        return True
+
+
 class ModuloRequerido(BasePermission):
     """Bloqueia o ViewSet se o usuário não tem o módulo correspondente.
 

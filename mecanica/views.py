@@ -8,7 +8,7 @@ from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from core.permissions import ModuloRequerido
+from core.permissions import ModuloRequerido, usuario_tem_modulo
 from rest_framework.response import Response
 from core.throttles import PublicReadThrottle, PublicWriteThrottle
 
@@ -711,6 +711,8 @@ def relatorio_faturamento_pdf(request):
     from datetime import datetime as dt
     from django.utils import timezone as dtz
 
+    if not usuario_tem_modulo(request.user, 'relatorios'):
+        return Response({'erro': 'Seu perfil não tem acesso a Relatórios.'}, status=status.HTTP_403_FORBIDDEN)
     oficina = get_oficina(request)
     inicio = request.query_params.get('data_inicio', '')
     fim = request.query_params.get('data_fim', '')
@@ -2388,6 +2390,8 @@ def exportar_dados(request):
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment
 
+    if not usuario_tem_modulo(request.user, 'relatorios'):
+        return Response({'erro': 'Seu perfil não tem acesso à exportação de dados.'}, status=status.HTTP_403_FORBIDDEN)
     oficina = get_oficina(request)
     wb = openpyxl.Workbook()
 
