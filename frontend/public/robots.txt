@@ -1,0 +1,37 @@
+User-agent: *
+Allow: /
+
+# Áreas privadas / autenticadas — não indexar
+Disallow: /api/
+Disallow: /admin-panel
+Disallow: /dashboard
+Disallow: /clientes
+Disallow: /veiculos
+Disallow: /estoque
+Disallow: /funcionarios
+Disallow: /ordens
+Disallow: /catalogo
+Disallow: /notas-fiscais
+Disallow: /relatorios
+Disallow: /assinatura
+Disallow: /checklist
+Disallow: /agendamentos
+Disallow: /orcamentos
+Disallow: /garantias
+Disallow: /comissoes
+Disallow: /equipe
+Disallow: /whatsapp
+Disallow: /perfil
+Disallow: /meu-painel
+Disallow: /suporte
+Disallow: /ajuda
+
+# Páginas com dados de cliente (tokens) — não indexar
+Disallow: /acompanhar
+Disallow: /checklist-cliente
+Disallow: /orcamento/
+Disallow: /aceitar-convite
+Disallow: /redefinir-senha
+Disallow: /esqueci-senha
+
+Sitemap: https://domecanico.net/sitemap.xml

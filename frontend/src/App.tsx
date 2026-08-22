@@ -108,7 +108,7 @@ function AdminGuard() {
 
 // ── Título da aba ─────────────────────────────────────────────────────────────
 const PAGE_TITLES: Record<string, string> = {
-  '/':               'DoMecânico',
+  '/':               'DoMecânico — Gestão para Oficinas Mecânicas',
   '/login':          'Login — DoMecânico',
   '/cadastro':       'Cadastro — DoMecânico',
   '/dashboard':      'Dashboard — DoMecânico',
