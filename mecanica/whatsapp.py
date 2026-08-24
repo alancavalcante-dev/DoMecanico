@@ -63,18 +63,25 @@ def enviar_mensagem(config, telefone: str, mensagem: str) -> bool:
         return False
     endpoint = f'{url}/message/sendText/{instance}'
     headers = {'apikey': api_key, 'Content-Type': 'application/json'}
-    # Envia nos dois formatos (v2 usa "text", v1 usa "textMessage") para robustez entre versões da Evolution
-    payload = {'number': numero, 'text': mensagem, 'textMessage': {'text': mensagem}}
-    try:
-        resp = requests.post(endpoint, json=payload, headers=headers, timeout=10)
-        if resp.status_code in (200, 201):
-            logger.info(f'WhatsApp enviado para {numero}')
-            return True
-        logger.warning(f'Evolution API retornou {resp.status_code}: {resp.text[:200]}')
-        return False
-    except Exception as e:
-        logger.error(f'Erro ao enviar WhatsApp: {e}')
-        return False
+    # IMPORTANTE: não enviar "text" e "textMessage" no MESMO request — a Evolution
+    # v1.8.x entrega a mensagem VAZIA nesse caso. Envia o formato v1 (textMessage)
+    # e só cai no formato v2 (text no topo) se o v1 falhar — nunca os dois juntos.
+    payloads = [
+        ('v1', {'number': numero,
+                'options': {'delay': 1200, 'presence': 'composing'},
+                'textMessage': {'text': mensagem}}),
+        ('v2', {'number': numero, 'text': mensagem}),
+    ]
+    for versao, payload in payloads:
+        try:
+            resp = requests.post(endpoint, json=payload, headers=headers, timeout=10)
+            if resp.status_code in (200, 201):
+                logger.info(f'WhatsApp enviado para {numero} (formato {versao})')
+                return True
+            logger.warning(f'Evolution sendText {resp.status_code} (formato {versao}): {resp.text[:200]}')
+        except Exception as e:
+            logger.error(f'Erro ao enviar WhatsApp (formato {versao}): {e}')
+    return False
 
 
 def _get_config(oficina):
