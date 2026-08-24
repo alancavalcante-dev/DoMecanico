@@ -979,15 +979,17 @@ class WebhookGatewayView(APIView):
 
         gw = get_gateway()
 
-        # Alerta operacional: gateway real ativo sem segredo de webhook configurado.
-        # Nesse caso a verificação de assinatura fica desligada e a única barreira é a
-        # validação de valor abaixo — configure o "Webhook Secret" no painel de Gateway.
-        if getattr(gw.config, 'provider', 'manual') != 'manual' and not (gw.config.webhook_secret or '').strip():
+        # Alerta operacional: gateway real ativo sem como verificar a assinatura.
+        _provider = getattr(gw.config, 'provider', 'manual')
+        _tem_segredo = bool((gw.config.webhook_secret or '').strip())
+        if _provider == 'pagseguro':
+            # PagBank assina com o token da conta (chave_secreta) — não exige webhook_secret.
+            _tem_segredo = _tem_segredo or bool((gw.config.chave_secreta or '').strip())
+        if _provider != 'manual' and not _tem_segredo:
             LogAtividade.objects.create(
                 nivel='aviso', categoria='pagamento',
-                mensagem=(f'Webhook do gateway "{gw.config.provider}" processado SEM verificação de '
-                          f'assinatura (webhook_secret não configurado). Configure o segredo no painel '
-                          f'de Gateway para impedir webhooks forjados.'),
+                mensagem=(f'Webhook do gateway "{_provider}" processado SEM verificação de assinatura. '
+                          f'Configure o segredo/token no painel de Gateway para impedir webhooks forjados.'),
             )
 
         if not gw.verificar_assinatura_webhook(request.body, request.META):

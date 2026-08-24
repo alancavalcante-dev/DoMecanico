@@ -208,18 +208,49 @@ class PagSeguroAdapter(GatewayBase):
         }
 
     def criar_cobranca(self, fatura, oficina):
+        import re
         import requests
+        from datetime import datetime, timedelta, timezone as _tz
+        from django.conf import settings
         try:
-            resp = requests.post(f'{self.base_url}/orders', headers=self.headers_req, json={
+            centavos = int(round(float(fatura.valor) * 100))
+            # PIX via QR Code é criado em qr_codes (NÃO em charges). Vence em 3 dias.
+            expira = (datetime.now(_tz.utc) + timedelta(days=3)).astimezone().isoformat(timespec='seconds')
+            cnpj = re.sub(r'\D', '', getattr(oficina, 'cnpj', '') or '') or '00000000000000'
+            webhook_url = f"{settings.FRONTEND_URL.rstrip('/')}/api/admin-panel/webhook/gateway/"
+            payload = {
                 'reference_id': fatura.numero,
-                'customer': {'name': oficina.nome, 'email': oficina.email or 'contato@domecanico.net'},
-                'items': [{'reference_id': fatura.numero, 'name': f'Fatura {fatura.numero}', 'quantity': 1, 'unit_amount': int(fatura.valor * 100)}],
-                'charges': [{'reference_id': fatura.numero, 'description': f'Fatura {fatura.numero}', 'amount': {'value': int(fatura.valor * 100), 'currency': 'BRL'}, 'payment_method': {'type': 'PIX', 'installments': 1}}],
-            }, timeout=10)
+                'customer': {
+                    'name': oficina.nome,
+                    'email': oficina.email or 'contato@domecanico.net',
+                    'tax_id': cnpj,
+                },
+                'items': [{
+                    'reference_id': fatura.numero,
+                    'name': f'DoMecânico - Fatura {fatura.numero}',
+                    'quantity': 1,
+                    'unit_amount': centavos,
+                }],
+                'qr_codes': [{'amount': {'value': centavos}, 'expiration_date': expira}],
+                'notification_urls': [webhook_url],
+            }
+            resp = requests.post(f'{self.base_url}/orders', headers=self.headers_req, json=payload, timeout=15)
+            if not resp.ok:
+                logger.error(f'PagSeguro criar_cobranca: HTTP {resp.status_code} — {resp.text[:300]}')
+                return {'gateway_id': '', 'link_pagamento': ''}
             data = resp.json()
-            links = data.get('links', [])
-            link = links[0].get('href', '') if links else ''
-            return {'gateway_id': data.get('id', ''), 'link_pagamento': link}
+            qr = (data.get('qr_codes') or [{}])[0]
+            # link_pagamento = imagem PNG do QR (pública); pix_copia_cola = texto copia-e-cola
+            link = ''
+            for l in qr.get('links', []):
+                if l.get('rel') == 'IMAGE' or l.get('media') == 'image/png':
+                    link = l.get('href', '')
+                    break
+            return {
+                'gateway_id': data.get('id', ''),
+                'link_pagamento': link,
+                'pix_copia_cola': qr.get('text', ''),
+            }
         except Exception as e:
             logger.error(f'PagSeguro criar_cobranca: {e}')
             return {'gateway_id': '', 'link_pagamento': ''}
@@ -241,15 +272,14 @@ class PagSeguroAdapter(GatewayBase):
         return {}
 
     def verificar_assinatura_webhook(self, payload_raw, headers):
-        # O PagSeguro/PagBank assina a notificação no header `x-authenticity-token`
-        # como SHA-256 do corpo bruto concatenado ao token do webhook.
-        # Sem webhook_secret configurado, mantém compatibilidade (validação de valor
-        # no handler) — configure o token no painel para ativar a verificação.
-        secret = (self.config.webhook_secret or '').strip()
-        if not secret:
+        # PagBank: header `x-authenticity-token` = SHA-256 de  token + "-" + corpo_bruto.
+        # O token é o TOKEN DA CONTA (o mesmo do Bearer = chave_secreta). Se preencherem
+        # webhook_secret usa ele; senão cai na chave_secreta. Sem nenhum, pula (compat).
+        token = (self.config.webhook_secret or self.config.chave_secreta or '').strip()
+        if not token:
             return True
         recebido = headers.get('HTTP_X_AUTHENTICITY_TOKEN', '')
-        calculado = hashlib.sha256(payload_raw + secret.encode()).hexdigest()
+        calculado = hashlib.sha256((token + '-').encode('utf-8') + payload_raw).hexdigest()
         return hmac.compare_digest(recebido, calculado)
 
 
