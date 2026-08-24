@@ -1,8 +1,22 @@
 from abc import ABC, abstractmethod
 from decimal import Decimal
+import hmac
+import hashlib
 import logging
+from urllib.parse import parse_qs
 
 logger = logging.getLogger(__name__)
+
+
+def _query_param(headers, *names):
+    """Lê um parâmetro da query string do webhook (ex.: ?webhookSecret=...).
+    `headers` é o request.META do Django."""
+    qs = parse_qs(headers.get('QUERY_STRING', '') or '')
+    for name in names:
+        vals = qs.get(name)
+        if vals:
+            return vals[0]
+    return ''
 
 
 class GatewayBase(ABC):
@@ -170,7 +184,14 @@ class AsaasAdapter(GatewayBase):
         return {}
 
     def verificar_assinatura_webhook(self, payload_raw, headers):
-        return True
+        # O Asaas envia o token configurado no painel no header `asaas-access-token`.
+        # Sem webhook_secret configurado, mantém compatibilidade (a defesa fica por
+        # conta da validação de valor no handler) — configure o token para blindar.
+        secret = (self.config.webhook_secret or '').strip()
+        if not secret:
+            return True
+        recebido = headers.get('HTTP_ASAAS_ACCESS_TOKEN', '')
+        return hmac.compare_digest(recebido, secret)
 
 
 class PagSeguroAdapter(GatewayBase):
@@ -220,7 +241,16 @@ class PagSeguroAdapter(GatewayBase):
         return {}
 
     def verificar_assinatura_webhook(self, payload_raw, headers):
-        return True
+        # O PagSeguro/PagBank assina a notificação no header `x-authenticity-token`
+        # como SHA-256 do corpo bruto concatenado ao token do webhook.
+        # Sem webhook_secret configurado, mantém compatibilidade (validação de valor
+        # no handler) — configure o token no painel para ativar a verificação.
+        secret = (self.config.webhook_secret or '').strip()
+        if not secret:
+            return True
+        recebido = headers.get('HTTP_X_AUTHENTICITY_TOKEN', '')
+        calculado = hashlib.sha256(payload_raw + secret.encode()).hexdigest()
+        return hmac.compare_digest(recebido, calculado)
 
 
 class AbacatePayAdapter(GatewayBase):
@@ -318,10 +348,16 @@ class AbacatePayAdapter(GatewayBase):
         return {}
 
     def verificar_assinatura_webhook(self, payload_raw: bytes, headers: dict) -> bool:
-        # AbacatePay v1 não define header de assinatura HMAC documentado.
-        # A segurança é garantida pelo externalId (número da fatura) que só
-        # existe no nosso banco. Verificação de assinatura desabilitada.
-        return True
+        # O AbacatePay entrega o segredo do webhook na própria URL de callback,
+        # como query param `?webhookSecret=...` (também aceitamos o header
+        # `x-webhook-secret`). Cadastre a URL de webhook COM o segredo e preencha
+        # o campo "Webhook Secret" com o mesmo valor para blindar o endpoint.
+        secret = (self.config.webhook_secret or '').strip()
+        if not secret:
+            return True
+        recebido = _query_param(headers, 'webhookSecret', 'webhook_secret') \
+            or headers.get('HTTP_X_WEBHOOK_SECRET', '')
+        return hmac.compare_digest(recebido, secret)
 
 
 GATEWAY_ADAPTERS = {

@@ -791,6 +791,14 @@ def _criar_notificacao(tipo, titulo, mensagem):
 class GatewayConfigView(APIView):
     permission_classes = [IsStaff]
 
+    @staticmethod
+    def _mascarar(valor):
+        """Nunca devolve a chave secreta em claro na API: mostra só os últimos 4
+        caracteres para identificação. O POST ignora valores mascarados."""
+        if not valor:
+            return ''
+        return ('•' * 6 + valor[-4:]) if len(valor) > 4 else '••••••'
+
     def get(self, request):
         from adminpanel.models import GatewayConfig
         active = GatewayConfig.objects.filter(ativo=True).order_by('-id').first()
@@ -801,8 +809,8 @@ class GatewayConfigView(APIView):
             cfg = GatewayConfig.objects.filter(provider=provider).order_by('-id').first()
             configs[provider] = {
                 'chave_publica': cfg.chave_publica if cfg else '',
-                'chave_secreta': cfg.chave_secreta if cfg else '',
-                'webhook_secret': cfg.webhook_secret if cfg else '',
+                'chave_secreta': self._mascarar(cfg.chave_secreta) if cfg else '',
+                'webhook_secret': self._mascarar(cfg.webhook_secret) if cfg else '',
                 'ambiente': cfg.ambiente if cfg else 'sandbox',
             }
 
@@ -819,10 +827,13 @@ class GatewayConfigView(APIView):
 
         cfg.ambiente = data.get('ambiente', cfg.ambiente or 'sandbox')
         cfg.chave_publica = data.get('chave_publica', cfg.chave_publica or '')
-        if data.get('chave_secreta'):
-            cfg.chave_secreta = data['chave_secreta']
-        if data.get('webhook_secret'):
-            cfg.webhook_secret = data['webhook_secret']
+        # Só grava se vier valor NOVO e não-mascarado (o GET devolve •••• para as chaves).
+        nova_secreta = data.get('chave_secreta') or ''
+        if nova_secreta and '•' not in nova_secreta:
+            cfg.chave_secreta = nova_secreta
+        novo_webhook = data.get('webhook_secret') or ''
+        if novo_webhook and '•' not in novo_webhook:
+            cfg.webhook_secret = novo_webhook
 
         GatewayConfig.objects.exclude(provider=provider).update(ativo=False)
         cfg.ativo = True
@@ -968,6 +979,17 @@ class WebhookGatewayView(APIView):
 
         gw = get_gateway()
 
+        # Alerta operacional: gateway real ativo sem segredo de webhook configurado.
+        # Nesse caso a verificação de assinatura fica desligada e a única barreira é a
+        # validação de valor abaixo — configure o "Webhook Secret" no painel de Gateway.
+        if getattr(gw.config, 'provider', 'manual') != 'manual' and not (gw.config.webhook_secret or '').strip():
+            LogAtividade.objects.create(
+                nivel='aviso', categoria='pagamento',
+                mensagem=(f'Webhook do gateway "{gw.config.provider}" processado SEM verificação de '
+                          f'assinatura (webhook_secret não configurado). Configure o segredo no painel '
+                          f'de Gateway para impedir webhooks forjados.'),
+            )
+
         if not gw.verificar_assinatura_webhook(request.body, request.META):
             LogAtividade.objects.create(
                 nivel='aviso', categoria='pagamento',
@@ -995,7 +1017,22 @@ class WebhookGatewayView(APIView):
         if not fatura:
             return Response({'ok': True})
 
-        if status_gateway == 'pago' and fatura.status != 'paga':
+        if status_gateway == 'pago' and fatura.status in ('pendente', 'vencida'):
+            # Defesa em profundidade: recusa se o valor pago for menor que o da fatura
+            # (bloqueia baixa por webhook com valor adulterado). Tolerância de 1 centavo.
+            valor_pago = resultado.get('valor')
+            try:
+                if valor_pago is not None and Decimal(str(valor_pago)) > 0 \
+                        and Decimal(str(valor_pago)) + Decimal('0.01') < fatura.valor:
+                    LogAtividade.objects.create(
+                        nivel='aviso', categoria='pagamento',
+                        mensagem=(f'Webhook recusado: valor pago (R$ {valor_pago}) menor que o da '
+                                  f'fatura {fatura.numero} (R$ {fatura.valor}).'),
+                    )
+                    return Response({'erro': 'Valor divergente'}, status=400)
+            except Exception:
+                pass
+
             Pagamento.objects.create(
                 fatura=fatura,
                 valor=resultado.get('valor', fatura.valor),

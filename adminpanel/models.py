@@ -153,12 +153,15 @@ class Fatura(models.Model):
         return f'Fatura {self.numero} - {self.assinatura.oficina.nome}'
 
     def save(self, *args, **kwargs):
+        import secrets
         if not self.numero:
-            import secrets
             self.numero = secrets.token_hex(8)  # placeholder único enquanto não temos pk
         super().save(*args, **kwargs)
         if not self.numero.startswith('FAT-'):
-            self.numero = f'FAT-{self.pk:05d}'
+            # Sufixo aleatório: sem ele o número era sequencial (FAT-00001, FAT-00002…)
+            # e podia ser enumerado para forjar webhooks de pagamento. O sufixo torna
+            # o número da fatura imprevisível sem quebrar a legibilidade.
+            self.numero = f'FAT-{self.pk:05d}-{secrets.token_hex(3)}'
             Fatura.objects.filter(pk=self.pk).update(numero=self.numero)
 
 
