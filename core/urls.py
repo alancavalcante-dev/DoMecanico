@@ -7,6 +7,8 @@ from django.db import connection
 from decouple import config as env_config
 import redis as redis_lib
 
+from core import seo
+
 
 def health_check(request):
     try:
@@ -28,6 +30,11 @@ urlpatterns = [
     path('api/auth/', include('accounts.urls')),
     path('api/', include('mecanica.urls')),
     path('api/admin-panel/', include('adminpanel.urls')),
+
+    # SEO server-side (dynamic rendering) — o nginx só encaminha robôs para cá.
+    path('sitemap.xml', seo.sitemap_xml),
+    path('oficina/<slug:slug>/', seo.prerender_oficina),
+    path('oficina/<slug:slug>', seo.prerender_oficina),
 ]
 
 # Serve arquivos de mídia locais (quando NÃO se usa R2/S3), inclusive em produção.
@@ -39,3 +46,10 @@ if _media_root:
 
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+# Catch-all de SEO para robôs (precisa ser o ÚLTIMO padrão para não engolir
+# /admin, /api e /media acima). Humanos nunca chegam aqui: o nginx serve a SPA
+# e só roteia User-Agents de robôs para o Django.
+urlpatterns += [
+    re_path(r'^(?P<path>.*)$', seo.prerender_catchall),
+]
