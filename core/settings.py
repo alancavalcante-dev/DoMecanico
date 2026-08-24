@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'mecanica',
     'accounts',
@@ -221,6 +222,12 @@ else:
     FILE_UPLOAD_PERMISSIONS = 0o644
     FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 
+# Cabeçalhos de segurança (aplicados às respostas servidas pelo Django).
+# Defesa em profundidade — o nginx replica os principais para o SPA/estáticos.
+X_FRAME_OPTIONS = 'DENY'                       # anti-clickjacking
+SECURE_CONTENT_TYPE_NOSNIFF = True             # X-Content-Type-Options: nosniff
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
 # Segurança em produção
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -270,4 +277,7 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'ROTATE_REFRESH_TOKENS': True,
+    # Invalida o refresh antigo ao rotacionar e permite revogar no logout
+    # (o logout coloca o refresh na blacklist). Requer o app token_blacklist.
+    'BLACKLIST_AFTER_ROTATION': True,
 }

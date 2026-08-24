@@ -152,7 +152,17 @@ def refresh_token_cookie(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def logout_view(request):
-    """Invalida a sessão limpando os cookies."""
+    """Invalida a sessão: coloca o refresh token na blacklist e limpa os cookies.
+    Assim, um refresh token vazado deixa de valer imediatamente após o logout."""
+    from rest_framework_simplejwt.tokens import RefreshToken as RT
+    for prefix in ('', 'admin_'):
+        raw = request.COOKIES.get(f'{prefix}refresh_token')
+        if raw:
+            try:
+                RT(raw).blacklist()
+            except Exception:
+                # best-effort: token já expirado/ inválido ou app de blacklist ausente
+                pass
     resp = Response({'ok': True})
     _clear_auth_cookies(resp)
     _clear_auth_cookies(resp, 'admin_')
