@@ -4,6 +4,10 @@ set -e
 echo "==> Puxando atualizações..."
 git pull origin main
 
+echo "==> Garantindo permissão da pasta de mídia (backend roda como appuser uid 1000)..."
+mkdir -p /srv/domecanico/media
+chown -R 1000:1000 /srv/domecanico/media
+
 echo "==> Build do backend..."
 docker compose build backend
 
