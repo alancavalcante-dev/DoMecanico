@@ -26,6 +26,9 @@ interface Assinatura {
   status: string
   status_display: string
   ativa: boolean
+  vencida: boolean
+  em_carencia: boolean
+  dias_ate_bloqueio: number | null
   dias_trial_restantes: number
   data_fim: string | null
   plano: Plano
@@ -141,11 +144,17 @@ export default function Assinatura() {
   const fmt = (v: string) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v))
 
-  const statusColor = assinatura?.ativa
-    ? 'text-green-600'
-    : assinatura?.status === 'trial'
-    ? 'text-amber-600'
-    : 'text-red-600'
+  // Rótulo/cor derivados do estado REAL (não do campo status cru, que pode estar
+  // desatualizado até o comando expirar_assinaturas rodar).
+  const statusInfo = !assinatura
+    ? { label: '', cls: 'text-slate-500' }
+    : !assinatura.ativa
+    ? { label: 'Vencida', cls: 'text-red-600' }
+    : assinatura.em_carencia
+    ? { label: 'Em carência', cls: 'text-amber-600' }
+    : assinatura.status === 'trial'
+    ? { label: assinatura.status_display, cls: 'text-amber-600' }
+    : { label: 'Ativa', cls: 'text-green-600' }
 
   if (user && user.papel !== 'admin') {
     return (
@@ -175,12 +184,13 @@ export default function Assinatura() {
                 {fmt(assinatura.plano?.preco)}/mês
               </p>
             </div>
-            <span className={`font-semibold text-lg ${statusColor}`}>
-              {assinatura.status_display}
+            <span className={`font-semibold text-lg ${statusInfo.cls}`}>
+              {statusInfo.label}
             </span>
           </div>
 
-          {assinatura.status === 'trial' && (
+          {/* Trial vigente */}
+          {assinatura.status === 'trial' && assinatura.ativa && !assinatura.em_carencia && (
             <div className="mt-4 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-700 text-sm">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>
@@ -190,9 +200,34 @@ export default function Assinatura() {
             </div>
           )}
 
-          {assinatura.data_fim && assinatura.status === 'ativa' && (
-            <p className="text-slate-400 text-sm mt-3">
-              Válida até: {new Date(assinatura.data_fim).toLocaleDateString('pt-BR')}
+          {/* Vencida, mas ainda com acesso pela carência */}
+          {assinatura.em_carencia && (
+            <div className="mt-4 flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-700 text-sm">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>
+                Seu plano venceu. Você tem <strong>{assinatura.dias_ate_bloqueio} dia(s)</strong> para
+                renovar antes de perder o acesso ao sistema.
+              </span>
+            </div>
+          )}
+
+          {/* Bloqueada — vencida além da carência ou trial encerrado */}
+          {!assinatura.ativa && (
+            <div className="mt-4 flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg p-3 text-red-700 text-sm">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>
+                {assinatura.status === 'trial'
+                  ? 'Seu período de teste terminou. Assine um plano para reativar o acesso.'
+                  : 'Seu plano venceu e o acesso foi bloqueado. Renove para reativar o sistema.'}
+              </span>
+            </div>
+          )}
+
+          {assinatura.data_fim && assinatura.status !== 'trial' && (
+            <p className={`text-sm mt-3 ${assinatura.ativa ? 'text-slate-400' : 'text-red-500'}`}>
+              {assinatura.ativa
+                ? `Válida até: ${new Date(assinatura.data_fim).toLocaleDateString('pt-BR')}`
+                : `Venceu em: ${new Date(assinatura.data_fim).toLocaleDateString('pt-BR')}`}
             </p>
           )}
 
