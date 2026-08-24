@@ -1,7 +1,12 @@
+from datetime import timedelta
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from core.fields import EncryptedCharField
+
+# Dias de tolerância após o vencimento antes de bloquear o acesso da oficina.
+CARENCIA_DIAS = 15
 
 
 class Plano(models.Model):
@@ -101,24 +106,50 @@ class Assinatura(models.Model):
         return f'{self.oficina.nome} — {self.plano.nome} ({self.status})'
 
     @property
-    def ativa(self):
-        agora = timezone.now()
+    def _fim_referencia(self):
+        """Data-limite nominal do plano: paga usa data_fim, trial usa trial_fim."""
         if self.status == 'ativa':
-            # Vence quando data_fim passa. data_fim nulo = sem prazo (considera ativa).
-            return self.data_fim is None or agora < self.data_fim
-        if self.status == 'trial' and self.trial_fim:
-            return agora < self.trial_fim
-        return False
+            return self.data_fim
+        if self.status == 'trial':
+            return self.trial_fim
+        return None
+
+    @property
+    def ativa(self):
+        # O acesso continua durante a carência (CARENCIA_DIAS após o vencimento).
+        if self.status == 'ativa' and self.data_fim is None:
+            return True  # ativa sem prazo definido
+        ref = self._fim_referencia
+        if ref is None:
+            return False  # suspensa/cancelada, ou trial sem trial_fim
+        return timezone.now() < ref + timedelta(days=CARENCIA_DIAS)
 
     @property
     def vencida(self):
-        """True quando a vigência/trial expirou (para exibição e relatórios)."""
+        """Passou da data nominal (em carência ou já bloqueada) — p/ exibição/relatórios."""
+        ref = self._fim_referencia
+        if ref is None:
+            return self.status in ('suspensa', 'cancelada')
+        return timezone.now() >= ref
+
+    @property
+    def em_carencia(self):
+        """Vencida, mas ainda com acesso pela carência de CARENCIA_DIAS dias."""
+        ref = self._fim_referencia
+        if ref is None:
+            return False
         agora = timezone.now()
-        if self.status == 'ativa' and self.data_fim:
-            return agora >= self.data_fim
-        if self.status == 'trial' and self.trial_fim:
-            return agora >= self.trial_fim
-        return self.status in ('suspensa', 'cancelada')
+        return ref <= agora < ref + timedelta(days=CARENCIA_DIAS)
+
+    @property
+    def dias_ate_bloqueio(self):
+        """Dias restantes de acesso antes do bloqueio (None = sem prazo definido)."""
+        if self.status == 'ativa' and self.data_fim is None:
+            return None
+        ref = self._fim_referencia
+        if ref is None:
+            return 0
+        return max(0, (ref + timedelta(days=CARENCIA_DIAS) - timezone.now()).days)
 
     @property
     def dias_trial_restantes(self):

@@ -1,18 +1,23 @@
 """Suspende assinaturas com trial ou vigência vencidos.
 
-O acesso já é bloqueado em tempo real pela propriedade `Assinatura.ativa` (que
-olha as datas) e pela permissão `AssinaturaAtiva` no backend. Este comando apenas
-atualiza o CAMPO `status` no banco para 'suspensa', mantendo os relatórios/painel
-admin coerentes. É idempotente — pode rodar quantas vezes quiser.
+Considera a carência (CARENCIA_DIAS): só suspende quem passou do vencimento há
+MAIS de CARENCIA_DIAS dias — durante a carência o acesso segue liberado.
 
-Sugestão de cron diário (na VPS):
-    0 3 * * * cd /root/domecanico && docker compose run --rm backend \\
-              python manage.py expirar_assinaturas
+O acesso já é bloqueado em tempo real pela propriedade `Assinatura.ativa` (que
+olha as datas + carência) e pela permissão `AssinaturaAtiva` no backend. Este
+comando apenas atualiza o CAMPO `status` no banco para 'suspensa', mantendo os
+relatórios/painel admin coerentes. É idempotente — pode rodar quantas vezes quiser.
+
+Sugestão de cron diário (na VPS), 03:00:
+    0 3 * * * cd /root/domecanico && /usr/bin/docker compose exec -T backend \\
+              python manage.py expirar_assinaturas >> /var/log/domecanico-cron.log 2>&1
 """
+from datetime import timedelta
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from accounts.models import Assinatura
+from accounts.models import Assinatura, CARENCIA_DIAS
 
 
 class Command(BaseCommand):
@@ -27,9 +32,12 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         agora = timezone.now()
         dry = options['dry_run']
+        # Só suspende quem venceu HÁ MAIS de CARENCIA_DIAS dias; na carência o
+        # acesso continua liberado pela propriedade `ativa`.
+        limite = agora - timedelta(days=CARENCIA_DIAS)
 
-        trials = Assinatura.objects.filter(status='trial', trial_fim__lt=agora)
-        ativas = Assinatura.objects.filter(status='ativa', data_fim__lt=agora)
+        trials = Assinatura.objects.filter(status='trial', trial_fim__lt=limite)
+        ativas = Assinatura.objects.filter(status='ativa', data_fim__lt=limite)
 
         n_trials = trials.count()
         n_ativas = ativas.count()

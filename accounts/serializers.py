@@ -70,6 +70,9 @@ class AssinaturaSerializer(serializers.ModelSerializer):
     dias_trial_restantes = serializers.IntegerField(read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     historico_pagamentos = serializers.SerializerMethodField()
+    vencida = serializers.BooleanField(read_only=True)
+    em_carencia = serializers.BooleanField(read_only=True)
+    dias_ate_bloqueio = serializers.SerializerMethodField()
 
     class Meta:
         model = Assinatura
@@ -77,6 +80,9 @@ class AssinaturaSerializer(serializers.ModelSerializer):
 
     def get_historico_pagamentos(self, obj):
         return PagamentoSimuladoSerializer(obj.pagamentos.all()[:10], many=True).data
+
+    def get_dias_ate_bloqueio(self, obj):
+        return obj.dias_ate_bloqueio
 
 
 class PagamentoSimuladoSerializer(serializers.ModelSerializer):
