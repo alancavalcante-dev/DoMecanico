@@ -54,6 +54,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'core.middleware.PerformanceMiddleware',
+    'core.rls.RLSMiddleware',  # no-op quando RLS_ENABLED=False
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -107,6 +108,33 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+# ─── RLS (Row Level Security) — defesa em profundidade, ativada por flag ────────
+# Só liga em produção DEPOIS de rodar rls/apply_rls.sql e definir DATABASE_BYPASS_URL.
+# Rollback instantâneo: RLS_ENABLED=False + reiniciar (não precisa mexer no banco).
+RLS_ENABLED = config('RLS_ENABLED', default=False, cast=bool)
+
+if RLS_ENABLED and _db_url:
+    import urllib.parse as _up2
+    _bypass_url = config('DATABASE_BYPASS_URL', default='')
+    if _bypass_url:
+        _bu = _up2.urlparse(_bypass_url)
+        DATABASES['bypass'] = {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _bu.path.lstrip('/'),
+            'USER': _bu.username,
+            'PASSWORD': _bu.password,
+            'HOST': _bu.hostname,
+            'PORT': _bu.port or 5432,
+            'CONN_MAX_AGE': 60,
+            'OPTIONS': {'connect_timeout': 10},
+        }
+        DATABASE_ROUTERS = ['core.rls.RLSRouter']
+    else:
+        # Sem a conexão bypass o RLS quebraria admin/públicos — não liga.
+        import warnings
+        warnings.warn('RLS_ENABLED=True porém DATABASE_BYPASS_URL ausente; mantendo RLS desligado.')
+        RLS_ENABLED = False
 
 # Cache — usa Redis se REDIS_URL estiver no .env, senão cache em memória local
 _redis_url = config('REDIS_URL', default='')

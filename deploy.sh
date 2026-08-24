@@ -12,7 +12,14 @@ echo "==> Build do backend..."
 docker compose build backend
 
 echo "==> Aplicando migrations..."
-docker compose run --rm backend python manage.py migrate --noinput
+# Com RLS ligado, a conexão default (role _app) não pode alterar as tabelas —
+# migrations rodam na conexão bypass (role dona, com BYPASSRLS).
+MIGRATE_DB=""
+if grep -qiE '^RLS_ENABLED=(true|1)$' .env 2>/dev/null; then
+  MIGRATE_DB="--database=bypass"
+  echo "    (RLS ligado — migrando via conexão bypass)"
+fi
+docker compose run --rm backend python manage.py migrate --noinput $MIGRATE_DB
 
 echo "==> Build do frontend..."
 cd frontend
