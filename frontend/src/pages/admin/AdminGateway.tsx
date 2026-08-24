@@ -4,6 +4,7 @@ import {
   Save, Loader2, Landmark, Banknote, Zap, Leaf,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { adminAPI } from '../../api'
 
 type GatewayTipo = 'manual' | 'stripe' | 'asaas' | 'pagseguro' | 'abacatepay'
 type Ambiente = 'sandbox' | 'producao'
@@ -43,11 +44,8 @@ export default function AdminGateway() {
   const [urlCopiada, setUrlCopiada] = useState(false)
 
   useEffect(() => {
-    fetch('/api/admin-panel/gateway/', {
-      credentials: 'include',
-    })
-      .then(r => r.json())
-      .then(data => {
+    adminAPI.gateway()
+      .then(({ data }) => {
         const ativo = (data.gateway_ativo || 'manual') as GatewayTipo
         setGatewayAtivo(ativo)
         setSelected(ativo)
@@ -74,13 +72,7 @@ export default function AdminGateway() {
   const salvar = async () => {
     setSalvando(true)
     try {
-      const r = await fetch('/api/admin-panel/gateway/', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ gateway: selected, ...current }),
-      })
-      if (!r.ok) throw new Error()
+      await adminAPI.gatewaySalvar({ gateway: selected, ...current })
       setGatewayAtivo(selected)
       toast.success('Configuração salva e gateway ativado!')
     } catch {

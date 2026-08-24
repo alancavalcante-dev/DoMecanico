@@ -256,6 +256,10 @@ export const adminAPI = {
   // Chamados de suporte
   chamados: (params?: object) => adminApi.get('/admin-panel/chamados/', { params }),
   chamadoResponder: (id: number, data: object) => adminApi.post(`/admin-panel/chamados/${id}/responder/`, data),
+
+  // Gateway de pagamento (usa adminApi -> renova token no 401)
+  gateway: () => adminApi.get('/admin-panel/gateway/'),
+  gatewaySalvar: (data: object) => adminApi.post('/admin-panel/gateway/', data),
 }
 
 export const agendamentosAPI = {
