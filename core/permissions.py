@@ -86,3 +86,27 @@ class ModuloRequerido(BasePermission):
             return modulo in modulos_do_usuario(request.user)
         except Exception:
             return True
+
+
+class AssinaturaAtiva(BasePermission):
+    """Bloqueia o acesso aos dados da oficina quando a assinatura está inativa
+    (trial expirado, vigência vencida, suspensa ou cancelada).
+
+    O usuário continua autenticado e pode acessar as telas de assinatura/pagamento
+    (que ficam no app accounts, sem esta permissão) para regularizar. A equipe
+    interna (is_staff) passa direto. Falha-aberto só em erro inesperado — nunca
+    trava por bug; a proteção por oficina continua nos querysets.
+    """
+    message = 'Assinatura inativa. Regularize o pagamento para continuar usando o sistema.'
+    code = 'assinatura_inativa'
+
+    def has_permission(self, request, view):
+        user = getattr(request, 'user', None)
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_staff:
+            return True
+        try:
+            return bool(user.membro.oficina.assinatura.ativa)
+        except Exception:
+            return True

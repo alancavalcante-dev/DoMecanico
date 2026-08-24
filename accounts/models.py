@@ -102,11 +102,23 @@ class Assinatura(models.Model):
 
     @property
     def ativa(self):
+        agora = timezone.now()
         if self.status == 'ativa':
-            return True
+            # Vence quando data_fim passa. data_fim nulo = sem prazo (considera ativa).
+            return self.data_fim is None or agora < self.data_fim
         if self.status == 'trial' and self.trial_fim:
-            return timezone.now() < self.trial_fim
+            return agora < self.trial_fim
         return False
+
+    @property
+    def vencida(self):
+        """True quando a vigência/trial expirou (para exibição e relatórios)."""
+        agora = timezone.now()
+        if self.status == 'ativa' and self.data_fim:
+            return agora >= self.data_fim
+        if self.status == 'trial' and self.trial_fim:
+            return agora >= self.trial_fim
+        return self.status in ('suspensa', 'cancelada')
 
     @property
     def dias_trial_restantes(self):
