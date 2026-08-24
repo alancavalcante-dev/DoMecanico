@@ -497,7 +497,20 @@ def minha_assinatura(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def simular_pagamento(request):
-    """Simula pagamento e ativa/renova assinatura."""
+    """Simula pagamento e ativa/renova assinatura.
+
+    BLOQUEADO quando há um gateway real ativo em PRODUÇÃO — do contrário qualquer
+    usuário logado ativaria a assinatura sem pagar, contornando o gateway. Continua
+    liberado com gateway 'manual' ou em 'sandbox' para testes.
+    """
+    from adminpanel.models import GatewayConfig
+    _gw = GatewayConfig.objects.filter(ativo=True).first()
+    if _gw and _gw.provider != 'manual' and _gw.ambiente == 'producao':
+        return Response(
+            {'erro': 'Pagamento simulado desabilitado. Conclua o pagamento real para ativar a assinatura.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     plano_slug = request.data.get('plano_slug')
     metodo = request.data.get('metodo', 'cartao_credito')
 
