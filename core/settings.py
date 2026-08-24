@@ -217,6 +217,9 @@ if _r2_key_id:
 else:
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
+    # Uploads legíveis pelo nginx (www-data) ao servir /media/ direto do disco
+    FILE_UPLOAD_PERMISSIONS = 0o644
+    FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
 
 # Segurança em produção
 if not DEBUG:

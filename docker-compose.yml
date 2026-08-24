@@ -39,7 +39,8 @@ services:
         condition: service_started
     volumes:
       - static_files:/app/staticfiles
-      - media_files:/app/media
+      # bind-mount no host para o nginx servir /media/ direto do disco
+      - /srv/domecanico/media:/app/media
     ports:
       - "127.0.0.1:8000:8000"
     command: >
@@ -91,6 +92,5 @@ volumes:
   postgres_data:
   redis_data:
   static_files:
-  media_files:
   evolution_instances:
   evolution_store:
