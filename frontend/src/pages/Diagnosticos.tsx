@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import { diagnosticosAPI, veiculosAPI } from '../api'
 import PageHeader from '../components/ui/PageHeader'
 import Modal from '../components/ui/Modal'
-import { Plus, Stethoscope, CheckCircle2, Circle, Trash2, FileText, Loader2, Search } from 'lucide-react'
+import { Plus, Stethoscope, CheckCircle2, Circle, Trash2, FileText, Loader2, Search, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface ItemDiag {
@@ -70,6 +70,17 @@ export default function Diagnosticos() {
 
   const abrir = async (id: number) => {
     try { const { data } = await diagnosticosAPI.buscar(id); setAberto(data) } catch { /* */ }
+  }
+
+  const excluir = async (d: Diag) => {
+    if (!confirm(`Excluir a avaliação de ${d.veiculo_placa}?`)) return
+    try {
+      await diagnosticosAPI.deletar(d.id)
+      toast.success('Avaliação excluída.')
+      carregar()
+    } catch {
+      toast.error('Erro ao excluir a avaliação.')
+    }
   }
 
   const buscarVeiculos = (q: string) => {
@@ -154,11 +165,17 @@ export default function Diagnosticos() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {lista.map(d => (
-            <button key={d.id} onClick={() => abrir(d.id)}
-              className="text-left bg-white border border-slate-100 rounded-xl p-4 shadow-sm hover:shadow transition-shadow">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-800">{d.veiculo_placa}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_CLS[d.status] || 'bg-slate-100 text-slate-600'}`}>{d.status_display}</span>
+            <div key={d.id} onClick={() => abrir(d.id)}
+              className="cursor-pointer text-left bg-white border border-slate-100 rounded-xl p-4 shadow-sm hover:shadow transition-shadow">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-slate-800 truncate">{d.veiculo_placa}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_CLS[d.status] || 'bg-slate-100 text-slate-600'}`}>{d.status_display}</span>
+                  <button onClick={e => { e.stopPropagation(); excluir(d) }} title="Excluir avaliação"
+                    className="p-0.5 rounded text-slate-300 hover:text-red-500 hover:bg-red-50">
+                    <X size={14} />
+                  </button>
+                </div>
               </div>
               <p className="text-sm text-slate-500 truncate mt-0.5">{d.veiculo_descricao}</p>
               <p className="text-xs text-slate-400 mt-1">{d.cliente_nome}</p>
@@ -166,7 +183,7 @@ export default function Diagnosticos() {
                 <span className="text-slate-500">{d.itens.length} item(ns)</span>
                 <span className="font-semibold text-slate-700">{fmt(d.total_estimado)}</span>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       )}
