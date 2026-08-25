@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { dashboardAPI, alertasEstoqueAPI } from '../api'
 import type { DashboardStats } from '../types'
 import { useAuth } from '../contexts/AuthContext'
+import PrimeirosPassos from '../components/PrimeirosPassos'
 import {
   Users, Car, ClipboardList, DollarSign, Package, UserCog,
   TrendingUp, TrendingDown, AlertTriangle, X, Calendar, Download,
@@ -148,6 +149,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <PrimeirosPassos />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Dashboard</h1>
