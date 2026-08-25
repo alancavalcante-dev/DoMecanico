@@ -919,10 +919,13 @@ class FaturaViewSet(viewsets.ModelViewSet):
         fatura.metodo_pagamento = metodo
         fatura.save()
 
+        # Ativa e estende a vigência +30 dias (do fim atual se ainda futuro, senão de agora).
         assinatura = fatura.assinatura
-        if assinatura.status in ('suspensa', 'trial', 'cancelada'):
-            assinatura.status = 'ativa'
-            assinatura.save()
+        agora = timezone.now()
+        base = assinatura.data_fim if (assinatura.data_fim and assinatura.data_fim > agora) else agora
+        assinatura.data_fim = base + timedelta(days=30)
+        assinatura.status = 'ativa'
+        assinatura.save()
 
         LogAtividade.objects.create(
             nivel='info', categoria='pagamento',
@@ -1048,10 +1051,14 @@ class WebhookGatewayView(APIView):
             fatura.metodo_pagamento = resultado.get('metodo', '')
             fatura.save()
 
+            # Ativa e ESTENDE a vigência +30 dias (do fim atual se ainda futuro, senão de
+            # agora). Sem estender a data_fim, ficaria 'ativa' porém vencida → bloqueada.
             assinatura = fatura.assinatura
-            if assinatura.status in ('suspensa', 'trial'):
-                assinatura.status = 'ativa'
-                assinatura.save()
+            agora = timezone.now()
+            base = assinatura.data_fim if (assinatura.data_fim and assinatura.data_fim > agora) else agora
+            assinatura.data_fim = base + timedelta(days=30)
+            assinatura.status = 'ativa'
+            assinatura.save()
 
             LogAtividade.objects.create(
                 nivel='info', categoria='pagamento',
