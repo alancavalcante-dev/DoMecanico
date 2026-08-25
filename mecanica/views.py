@@ -491,26 +491,17 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
              f'OS #{ordem.numero}', f'{old_status} → {novo_status}')
 
         if novo_status == 'concluida':
-            try:
-                from .whatsapp import notificar_os_concluida
-                notificar_os_concluida(ordem)
-            except Exception:
-                logger.exception('Falha ao notificar OS concluída via WhatsApp (OS #%s)', ordem.numero)
-            try:
-                from .email_os import notificar_os_concluida_email
-                notificar_os_concluida_email(ordem)
-            except Exception:
-                logger.exception('Falha ao notificar OS concluída via e-mail (OS #%s)', ordem.numero)
-            try:
-                from .push import enviar_push_oficina
-                enviar_push_oficina(
-                    ordem.oficina,
-                    'OS Concluída',
-                    f'OS #{ordem.numero} — {ordem.cliente.nome} concluída.',
-                    f'/ordens/{ordem.id}',
-                )
-            except Exception:
-                logger.exception('Falha ao enviar push de OS concluída (OS #%s)', ordem.numero)
+            # Notificações são I/O de rede: disparadas em background (não travam a resposta).
+            from core.async_tasks import disparar_async
+            from .whatsapp import notificar_os_concluida
+            from .email_os import notificar_os_concluida_email
+            from .push import enviar_push_oficina
+            disparar_async(notificar_os_concluida, ordem)
+            disparar_async(notificar_os_concluida_email, ordem)
+            disparar_async(
+                enviar_push_oficina, ordem.oficina, 'OS Concluída',
+                f'OS #{ordem.numero} — {ordem.cliente.nome} concluída.', f'/ordens/{ordem.id}',
+            )
         return Response(OrdemServicoSerializer(ordem).data)
 
     @action(detail=True, methods=['get'], url_path='gerar-pdf')
@@ -1930,11 +1921,9 @@ class AgendamentoViewSet(viewsets.ModelViewSet):
         ag = self.get_object()
         ag.status = 'confirmado'
         ag.save()
-        try:
-            from .whatsapp import notificar_agendamento
-            notificar_agendamento(ag)
-        except Exception:
-            pass
+        from core.async_tasks import disparar_async
+        from .whatsapp import notificar_agendamento
+        disparar_async(notificar_agendamento, ag)
         return Response(AgendamentoSerializer(ag).data)
 
     @action(detail=True, methods=['patch'])
@@ -2003,11 +1992,9 @@ class OrcamentoViewSet(viewsets.ModelViewSet):
         ultimo = Orcamento.objects.filter(oficina=oficina).order_by('-id').values_list('id', flat=True).first() or 0
         numero = f'ORC{ultimo + 1:06d}'
         serializer.save(oficina=oficina, numero=numero)
-        try:
-            from .whatsapp import notificar_orcamento
-            notificar_orcamento(serializer.instance)
-        except Exception:
-            pass
+        from core.async_tasks import disparar_async
+        from .whatsapp import notificar_orcamento
+        disparar_async(notificar_orcamento, serializer.instance)
 
     @action(detail=True, methods=['post'])
     def adicionar_item(self, request, pk=None):
@@ -2031,16 +2018,12 @@ class OrcamentoViewSet(viewsets.ModelViewSet):
         orc.status = 'aprovado'
         orc.save()
         os_obj = _converter_orcamento_em_os(orc)
-        try:
-            from .push import enviar_push_oficina
-            enviar_push_oficina(
-                orc.oficina,
-                'Orçamento Aprovado',
-                f'Orç. #{orc.numero} — {orc.cliente.nome} aprovado. OS {os_obj.numero} criada.',
-                f'/ordens',
-            )
-        except Exception:
-            pass
+        from core.async_tasks import disparar_async
+        from .push import enviar_push_oficina
+        disparar_async(
+            enviar_push_oficina, orc.oficina, 'Orçamento Aprovado',
+            f'Orç. #{orc.numero} — {orc.cliente.nome} aprovado. OS {os_obj.numero} criada.', '/ordens',
+        )
         data = OrcamentoSerializer(orc, context={'request': request}).data
         data['os_id'] = os_obj.id
         data['os_numero'] = os_obj.numero
@@ -2051,16 +2034,12 @@ class OrcamentoViewSet(viewsets.ModelViewSet):
         orc = self.get_object()
         orc.status = 'rejeitado'
         orc.save()
-        try:
-            from .push import enviar_push_oficina
-            enviar_push_oficina(
-                orc.oficina,
-                'Orçamento Recusado',
-                f'Orç. #{orc.numero} — {orc.cliente.nome} recusado pelo cliente.',
-                f'/orcamentos',
-            )
-        except Exception:
-            pass
+        from core.async_tasks import disparar_async
+        from .push import enviar_push_oficina
+        disparar_async(
+            enviar_push_oficina, orc.oficina, 'Orçamento Recusado',
+            f'Orç. #{orc.numero} — {orc.cliente.nome} recusado pelo cliente.', '/orcamentos',
+        )
         return Response(OrcamentoSerializer(orc, context={'request': request}).data)
 
     @action(detail=True, methods=['patch'])
@@ -2133,17 +2112,14 @@ def orcamento_responder(request, token):
             os_obj = _converter_orcamento_em_os(orc)
         except Exception:
             os_obj = None
-        try:
-            from .push import enviar_push_oficina
-            enviar_push_oficina(
-                orc.oficina,
-                'Orçamento Aprovado',
-                f'Orç. #{orc.numero} — {orc.cliente.nome} aprovado pelo cliente.'
-                + (f' OS {os_obj.numero} criada.' if os_obj else ''),
-                '/ordens',
-            )
-        except Exception:
-            pass
+        from core.async_tasks import disparar_async
+        from .push import enviar_push_oficina
+        disparar_async(
+            enviar_push_oficina, orc.oficina, 'Orçamento Aprovado',
+            f'Orç. #{orc.numero} — {orc.cliente.nome} aprovado pelo cliente.'
+            + (f' OS {os_obj.numero} criada.' if os_obj else ''),
+            '/ordens',
+        )
     return Response({'status': orc.status})
 
 

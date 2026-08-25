@@ -282,27 +282,29 @@ def admin_login(request):
     otp = f'{random.randint(0, 999999):06d}'
     cache.set(f'admin_otp_{user.id}', otp, 600)
 
-    try:
+    def _enviar_otp():
         from .email_assinatura import _get_connection
         from django.core.mail import EmailMultiAlternatives
         conn, from_email = _get_connection()
-        if conn:
-            html = (
-                f'<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">'
-                f'<h2 style="color:#2563eb">Código de acesso — DoMecânico</h2>'
-                f'<p>Use o código abaixo para acessar o painel administrativo:</p>'
-                f'<div style="font-size:36px;font-weight:bold;letter-spacing:10px;color:#1e40af;padding:16px;'
-                f'background:#f0f9ff;border-radius:8px;text-align:center">{otp}</div>'
-                f'<p style="color:#6b7280;font-size:13px;margin-top:16px">Válido por 10 minutos. Não compartilhe este código.</p>'
-                f'</div>'
-            )
-            msg = EmailMultiAlternatives(
-                'Código de acesso — DoMecânico Admin', otp, from_email, [user.email], connection=conn
-            )
-            msg.attach_alternative(html, 'text/html')
-            msg.send()
-    except Exception:
-        pass
+        if not conn:
+            return
+        html = (
+            f'<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">'
+            f'<h2 style="color:#2563eb">Código de acesso — DoMecânico</h2>'
+            f'<p>Use o código abaixo para acessar o painel administrativo:</p>'
+            f'<div style="font-size:36px;font-weight:bold;letter-spacing:10px;color:#1e40af;padding:16px;'
+            f'background:#f0f9ff;border-radius:8px;text-align:center">{otp}</div>'
+            f'<p style="color:#6b7280;font-size:13px;margin-top:16px">Válido por 10 minutos. Não compartilhe este código.</p>'
+            f'</div>'
+        )
+        msg = EmailMultiAlternatives(
+            'Código de acesso — DoMecânico Admin', otp, from_email, [user.email], connection=conn
+        )
+        msg.attach_alternative(html, 'text/html')
+        msg.send()
+
+    from core.async_tasks import disparar_async
+    disparar_async(_enviar_otp)
 
     return Response({'mfa_required': True, 'user_id': user.id})
 
@@ -1432,8 +1434,8 @@ def _enviar_email_redefinicao(user, to_email):
         except Exception:
             pass
 
-    import threading
-    threading.Thread(target=_enviar, daemon=True).start()
+    from core.async_tasks import disparar_async
+    disparar_async(_enviar)
 
 
 @api_view(['POST'])
