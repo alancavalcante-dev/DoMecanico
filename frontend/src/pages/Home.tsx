@@ -5,6 +5,7 @@ import {
   FileText, Shield, MessageCircle, CheckCircle, Star, ArrowRight,
   ChevronDown, Zap, Clock, TrendingUp, Car, Receipt, Bell,
   Menu, X, Phone, Mail, MapPin, Play, ChevronRight,
+  Stethoscope, Smartphone, HeartPulse, Globe,
 } from 'lucide-react'
 import { authAPI } from '../api'
 
@@ -93,6 +94,12 @@ const RECURSOS = [
     cor: 'yellow',
   },
   {
+    icon: Stethoscope,
+    titulo: 'Diagnóstico do Veículo',
+    desc: 'O mecânico lista os defeitos e peças ao avaliar o carro e transforma tudo em orçamento com um clique. Mais rápido e nada esquecido.',
+    cor: 'sky',
+  },
+  {
     icon: Calendar,
     titulo: 'Agendamentos',
     desc: 'Agenda online integrada com notificações automáticas por WhatsApp para o cliente e para a sua equipe.',
@@ -122,6 +129,24 @@ const RECURSOS = [
     desc: 'Controle de acesso por módulo para cada funcionário. Mecânico vê só o que precisa, gerente vê tudo.',
     cor: 'red',
   },
+  {
+    icon: Smartphone,
+    titulo: 'Portal do Cliente',
+    desc: 'Seu cliente acompanha a ordem de serviço, vê as fotos e o status por um link exclusivo — sem precisar ligar. Imagem de oficina moderna.',
+    cor: 'violet',
+  },
+  {
+    icon: HeartPulse,
+    titulo: 'Prontuário do Veículo',
+    desc: 'Histórico completo de tudo que já foi feito no carro, com relatório de saúde e sugestão das próximas revisões.',
+    cor: 'emerald',
+  },
+  {
+    icon: Globe,
+    titulo: 'Mini-site da Oficina',
+    desc: 'Sua oficina ganha uma página pública com serviços e agendamento online — ótimo para ser encontrada no Google.',
+    cor: 'rose',
+  },
 ]
 
 const COR_MAP: Record<string, string> = {
@@ -134,6 +159,10 @@ const COR_MAP: Record<string, string> = {
   teal: 'bg-teal-500/10 text-teal-400 group-hover:bg-teal-500/20',
   indigo: 'bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500/20',
   red: 'bg-red-500/10 text-red-400 group-hover:bg-red-500/20',
+  sky: 'bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20',
+  violet: 'bg-violet-500/10 text-violet-400 group-hover:bg-violet-500/20',
+  emerald: 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20',
+  rose: 'bg-rose-500/10 text-rose-400 group-hover:bg-rose-500/20',
 }
 
 const DEPOIMENTOS = [
