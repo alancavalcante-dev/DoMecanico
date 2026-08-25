@@ -2492,14 +2492,21 @@ class DiagnosticoViewSet(viewsets.ModelViewSet):
             raise ValidationError({'veiculo': 'Veículo inválido.'})
         serializer.save(oficina=oficina)
 
+    def _diag_atualizado(self, request, pk):
+        """Re-busca o diagnóstico (prefetch fresco dos itens) para a resposta refletir
+        a mutação — senão o cache do prefetch devolveria os itens desatualizados."""
+        diag = self.get_queryset().get(pk=pk)
+        return Response(DiagnosticoSerializer(diag, context={'request': request}).data)
+
     @action(detail=True, methods=['post'], url_path='itens')
     def adicionar_item(self, request, pk=None):
         diag = self.get_object()
         s = ItemDiagnosticoSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         s.save(diagnostico=diag)
-        return Response(DiagnosticoSerializer(diag, context={'request': request}).data,
-                        status=status.HTTP_201_CREATED)
+        resp = self._diag_atualizado(request, diag.pk)
+        resp.status_code = status.HTTP_201_CREATED
+        return resp
 
     @action(detail=True, methods=['patch', 'delete'], url_path='itens/(?P<item_id>[0-9]+)')
     def item(self, request, pk=None, item_id=None):
@@ -2514,7 +2521,7 @@ class DiagnosticoViewSet(viewsets.ModelViewSet):
         s = ItemDiagnosticoSerializer(item, data=request.data, partial=True)
         s.is_valid(raise_exception=True)
         s.save()
-        return Response(DiagnosticoSerializer(diag, context={'request': request}).data)
+        return self._diag_atualizado(request, diag.pk)
 
     @action(detail=True, methods=['post'], url_path='gerar-orcamento')
     def gerar_orcamento(self, request, pk=None):
