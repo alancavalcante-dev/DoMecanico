@@ -47,6 +47,7 @@ const TODOS_MODULOS = [
   { key: 'ordens',        label: 'Ordens de Serviço' },
   { key: 'agendamentos',  label: 'Agendamentos' },
   { key: 'orcamentos',    label: 'Orçamentos' },
+  { key: 'diagnosticos',  label: 'Diagnósticos' },
   { key: 'estoque',       label: 'Estoque' },
   { key: 'funcionarios',  label: 'Funcionários' },
   { key: 'checklist',     label: 'Checklist de Entrada' },

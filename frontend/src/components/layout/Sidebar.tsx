@@ -39,7 +39,7 @@ const GROUPS: Group[] = [
       { to: '/ordens',       icon: ClipboardList,  label: 'Ordens de Serviço', modulo: 'ordens' },
       { to: '/catalogo',     icon: Tags,           label: 'Catálogo',          modulo: 'ordens' },
       { to: '/checklist',    icon: ClipboardCheck, label: 'Checklist Entrada', modulo: 'checklist' },
-      { to: '/diagnosticos', icon: Stethoscope,    label: 'Diagnósticos',      modulo: 'orcamentos' },
+      { to: '/diagnosticos', icon: Stethoscope,    label: 'Diagnósticos',      modulo: 'diagnosticos' },
       { to: '/agendamentos', icon: Calendar,       label: 'Agendamentos',      modulo: 'agendamentos' },
       { to: '/orcamentos',   icon: FileCheck,      label: 'Orçamentos',        modulo: 'orcamentos' },
       { to: '/garantias',    icon: ShieldCheck,    label: 'Garantias',         modulo: 'garantias' },

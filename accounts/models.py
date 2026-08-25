@@ -208,6 +208,7 @@ MODULOS = [
     ('ordens',        'Ordens de Serviço'),
     ('agendamentos',  'Agendamentos'),
     ('orcamentos',    'Orçamentos'),
+    ('diagnosticos',  'Diagnósticos'),
     ('estoque',       'Estoque'),
     ('funcionarios',  'Funcionários'),
     ('checklist',     'Checklist de Entrada'),
@@ -221,8 +222,8 @@ MODULOS = [
 
 PERFIS_PADRAO = {
     'admin':     [m[0] for m in MODULOS],  # tudo
-    'mecanico':  ['dashboard', 'ordens', 'checklist', 'agendamentos', 'veiculos', 'clientes'],
-    'atendente': ['dashboard', 'clientes', 'veiculos', 'ordens', 'agendamentos', 'orcamentos', 'checklist'],
+    'mecanico':  ['dashboard', 'ordens', 'checklist', 'diagnosticos', 'agendamentos', 'veiculos', 'clientes'],
+    'atendente': ['dashboard', 'clientes', 'veiculos', 'ordens', 'agendamentos', 'orcamentos', 'diagnosticos', 'checklist'],
     'financeiro':['dashboard', 'ordens', 'notas_fiscais', 'comissoes', 'relatorios', 'garantias'],
 }
 
