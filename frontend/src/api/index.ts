@@ -78,6 +78,7 @@ export const authAPI = {
   me: () => api.get('/auth/me/'),
   reportarProblema: (mensagem: string) => api.post('/auth/reportar-problema/', { mensagem }),
   meusChamados: () => api.get('/auth/chamados/'),
+  anuncios: () => api.get('/auth/anuncios/'),
   assinatura: () => api.get('/auth/assinatura/'),
   pagar: (data: object) => api.post('/auth/assinatura/pagar/', data),
   gerarLinkPagamento: (data: object) => api.post('/auth/assinatura/gerar-link-pagamento/', data),
@@ -264,6 +265,12 @@ export const adminAPI = {
   // Gateway de pagamento (usa adminApi -> renova token no 401)
   gateway: () => adminApi.get('/admin-panel/gateway/'),
   gatewaySalvar: (data: object) => adminApi.post('/admin-panel/gateway/', data),
+
+  // Anúncios / novidades
+  anuncios: () => adminApi.get('/admin-panel/anuncios/'),
+  anuncioCriar: (data: object) => adminApi.post('/admin-panel/anuncios/', data),
+  anuncioEditar: (id: number, data: object) => adminApi.put(`/admin-panel/anuncios/${id}/`, data),
+  anuncioExcluir: (id: number) => adminApi.delete(`/admin-panel/anuncios/${id}/`),
 }
 
 export const agendamentosAPI = {

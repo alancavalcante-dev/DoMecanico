@@ -48,6 +48,8 @@ urlpatterns = [
     path('push/unsubscribe/', views.push_unsubscribe),
     # Erros do frontend
     path('client-error/', views.client_error),
+    # Anúncios / novidades (popup)
+    path('anuncios/', views.anuncios_ativos),
     # Perfil público
     path('perfil-configurar/', views.perfil_configurar),
     path('perfil/<slug:slug>/', views.perfil_publico),

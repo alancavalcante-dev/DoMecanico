@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import BuscaGlobal from './BuscaGlobal'
+import AnuncioPopup from '../AnuncioPopup'
 import { useState } from 'react'
 import { Menu } from 'lucide-react'
 
@@ -18,6 +19,7 @@ export default function Layout() {
       )}
 
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <AnuncioPopup />
 
       <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
         {/* Topbar */}

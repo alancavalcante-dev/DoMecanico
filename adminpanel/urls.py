@@ -46,6 +46,10 @@ urlpatterns = [
     path('chamados/', views.admin_chamados),
     path('chamados/<int:pk>/responder/', views.admin_chamado_responder),
 
+    # Anúncios / Novidades
+    path('anuncios/', views.admin_anuncios),
+    path('anuncios/<int:pk>/', views.admin_anuncio_editar),
+
     # Gateway de pagamento
     path('gateway/', views.GatewayConfigView.as_view()),
 

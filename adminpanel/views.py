@@ -1240,3 +1240,51 @@ def admin_chamado_responder(request, pk):
     chamado.save()
     registrar_log('info', 'sistema', f'Chamado #{chamado.pk} da oficina "{chamado.oficina.nome}" atualizado para {novo_status}.', request.user, request=request)
     return Response({'ok': True})
+
+
+# ── Anúncios / Novidades (popup para as oficinas) ──────────────────────────────
+
+def _serializar_anuncio(a):
+    return {
+        'id': a.id, 'titulo': a.titulo, 'conteudo': a.conteudo, 'tipo': a.tipo,
+        'ativo': a.ativo, 'criado_em': a.criado_em, 'atualizado_em': a.atualizado_em,
+    }
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsStaff])
+def admin_anuncios(request):
+    from .models import Anuncio
+    if request.method == 'POST':
+        titulo = (request.data.get('titulo') or '').strip()
+        conteudo = (request.data.get('conteudo') or '').strip()
+        if not titulo or not conteudo:
+            return Response({'erro': 'Título e conteúdo são obrigatórios.'}, status=400)
+        tipo = request.data.get('tipo', 'novidade')
+        if tipo not in dict(Anuncio.TIPO):
+            tipo = 'novidade'
+        a = Anuncio.objects.create(
+            titulo=titulo[:200], conteudo=conteudo, tipo=tipo,
+            ativo=bool(request.data.get('ativo', True)),
+        )
+        registrar_log('info', 'sistema', f'Anúncio "{a.titulo}" publicado.', request.user, request=request)
+        return Response(_serializar_anuncio(a), status=201)
+    return Response([_serializar_anuncio(a) for a in Anuncio.objects.all()[:100]])
+
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsStaff])
+def admin_anuncio_editar(request, pk):
+    from .models import Anuncio
+    try:
+        a = Anuncio.objects.get(pk=pk)
+    except Anuncio.DoesNotExist:
+        return Response({'erro': 'Anúncio não encontrado.'}, status=404)
+    if request.method == 'DELETE':
+        a.delete()
+        return Response({'ok': True})
+    for campo in ['titulo', 'conteudo', 'tipo', 'ativo']:
+        if campo in request.data:
+            setattr(a, campo, request.data[campo])
+    a.save()
+    return Response(_serializar_anuncio(a))

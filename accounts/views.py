@@ -1343,6 +1343,18 @@ def client_error(request):
     return Response({'ok': True})
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def anuncios_ativos(request):
+    """Anúncios/novidades ativos — a área da oficina exibe como popup."""
+    from adminpanel.models import Anuncio
+    anuncios = Anuncio.objects.filter(ativo=True).order_by('-criado_em')[:10]
+    return Response([{
+        'id': a.id, 'titulo': a.titulo, 'conteudo': a.conteudo,
+        'tipo': a.tipo, 'criado_em': a.criado_em,
+    } for a in anuncios])
+
+
 # ── Esqueci minha senha ───────────────────────────────────────────────────────
 
 @api_view(['POST'])

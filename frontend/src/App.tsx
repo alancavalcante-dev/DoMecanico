@@ -67,6 +67,7 @@ const AdminChamados     = lazy(() => import('./pages/admin/AdminChamados'))
 const AdminFinanceiro   = lazy(() => import('./pages/admin/AdminFinanceiro'))
 const AdminGateway              = lazy(() => import('./pages/admin/AdminGateway'))
 const AdminConfiguracaoSistema  = lazy(() => import('./pages/admin/AdminConfiguracaoSistema'))
+const AdminAnuncios             = lazy(() => import('./pages/admin/AdminAnuncios'))
 
 // ── Loading fallback ──────────────────────────────────────────────────────────
 function PageLoader() {
@@ -148,6 +149,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin-panel/financeiro':  'Financeiro — Admin',
   '/admin-panel/gateway':     'Gateway — Admin',
   '/admin-panel/sistema':     'Sistema — Admin',
+  '/admin-panel/anuncios':    'Anúncios — Admin',
   '/admin-panel/login':       'Login — Admin',
 }
 
@@ -301,6 +303,7 @@ function AppRoutes() {
           <Route path="financeiro"        element={<AdminFinanceiro />} />
           <Route path="gateway"           element={<AdminGateway />} />
           <Route path="sistema"           element={<AdminConfiguracaoSistema />} />
+          <Route path="anuncios"          element={<AdminAnuncios />} />
         </Route>
       </Routes>
       </div>

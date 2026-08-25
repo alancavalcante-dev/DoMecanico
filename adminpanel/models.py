@@ -235,3 +235,26 @@ class Chamado(models.Model):
 
     def __str__(self):
         return f'Chamado #{self.pk} — {self.oficina.nome}'
+
+
+class Anuncio(models.Model):
+    """Anúncio/novidade que vira um popup para as oficinas (changelog, avisos)."""
+    TIPO = [
+        ('novidade', 'Novidade'),
+        ('correcao', 'Correção'),
+        ('aviso', 'Aviso'),
+        ('manutencao', 'Manutenção'),
+    ]
+    titulo = models.CharField(max_length=200)
+    conteudo = models.TextField()
+    tipo = models.CharField(max_length=15, choices=TIPO, default='novidade')
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-criado_em']
+        verbose_name = 'Anúncio'
+
+    def __str__(self):
+        return self.titulo
