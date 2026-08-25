@@ -72,15 +72,22 @@ def enviar_mensagem(config, telefone: str, mensagem: str) -> bool:
                 'textMessage': {'text': mensagem}}),
         ('v2', {'number': numero, 'text': mensagem}),
     ]
+    from .notificacoes import registrar_notificacao
+    resumo = (mensagem or '').strip().split('\n')[0][:120]
+    _err = ''
     for versao, payload in payloads:
         try:
             resp = requests.post(endpoint, json=payload, headers=headers, timeout=10)
             if resp.status_code in (200, 201):
                 logger.info(f'WhatsApp enviado para {numero} (formato {versao})')
+                registrar_notificacao(config.oficina, 'whatsapp', numero, resumo, True)
                 return True
-            logger.warning(f'Evolution sendText {resp.status_code} (formato {versao}): {resp.text[:200]}')
+            _err = f'{resp.status_code}: {resp.text[:150]}'
+            logger.warning(f'Evolution sendText {_err} (formato {versao})')
         except Exception as e:
+            _err = str(e)[:150]
             logger.error(f'Erro ao enviar WhatsApp (formato {versao}): {e}')
+    registrar_notificacao(config.oficina, 'whatsapp', numero, resumo, False, _err)
     return False
 
 

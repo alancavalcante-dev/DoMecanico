@@ -36,6 +36,7 @@ urlpatterns = [
     path('orcamento-publico/<str:token>/responder/', views.orcamento_responder, name='orcamento-responder'),
     path('historico-placa/<str:placa>/', views.historico_por_placa, name='historico-placa'),
     path('exportar/', views.exportar_dados),
+    path('notificacoes/', views.listar_notificacoes, name='notificacoes-enviadas'),
     path('garantia-default/', views.garantia_default, name='garantia-default'),
     path('servicos-os/<int:servico_id>/aplicar-garantia/', views.aplicar_garantia_servico, name='aplicar-garantia'),
 ]

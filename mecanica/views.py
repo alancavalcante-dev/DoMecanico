@@ -2500,6 +2500,18 @@ def historico_por_placa(request, placa):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, AssinaturaAtiva])
+def listar_notificacoes(request):
+    """Últimas notificações enviadas pela oficina (visibilidade/confiabilidade)."""
+    from .models import NotificacaoLog
+    oficina = get_oficina(request)
+    logs = NotificacaoLog.objects.filter(oficina=oficina).values(
+        'canal', 'destino', 'resumo', 'sucesso', 'erro', 'criado_em'
+    )[:100]
+    return Response(list(logs))
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, AssinaturaAtiva])
 def exportar_dados(request):
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment

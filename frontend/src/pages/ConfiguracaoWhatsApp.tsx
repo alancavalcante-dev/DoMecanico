@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { whatsappAPI } from '../api'
 import PageHeader from '../components/ui/PageHeader'
+import NotificacoesEnviadas from '../components/NotificacoesEnviadas'
 import {
   MessageCircle, Save, Send, CheckCircle2, XCircle,
   Info, Wifi, WifiOff, QrCode, RefreshCw, LogOut, Loader2,
@@ -442,6 +443,8 @@ export default function ConfiguracaoWhatsApp() {
           ))}
         </div>
       </div>
+
+      <NotificacoesEnviadas />
     </div>
   )
 }

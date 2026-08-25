@@ -512,3 +512,22 @@ class LogAuditoria(models.Model):
 
     def __str__(self):
         return f'{self.acao} {self.modelo}: {self.objeto_descricao}'
+
+
+class NotificacaoLog(models.Model):
+    """Registro de cada tentativa de notificação (visibilidade p/ a oficina)."""
+    CANAL = [('whatsapp', 'WhatsApp'), ('email', 'E-mail'), ('push', 'Push')]
+    oficina = models.ForeignKey('accounts.Oficina', on_delete=models.CASCADE, related_name='notificacoes_log', db_index=True)
+    canal = models.CharField(max_length=10, choices=CANAL)
+    destino = models.CharField(max_length=200, blank=True)
+    resumo = models.CharField(max_length=200, blank=True)
+    sucesso = models.BooleanField(default=False)
+    erro = models.CharField(max_length=300, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-criado_em']
+        indexes = [models.Index(fields=['oficina', 'criado_em'], name='mecanica_no_oficina_idx')]
+
+    def __str__(self):
+        return f'{self.canal} → {self.destino} ({"ok" if self.sucesso else "falha"})'

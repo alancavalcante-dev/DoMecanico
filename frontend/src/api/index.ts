@@ -112,6 +112,7 @@ export const whatsappAPI = {
   status: () => api.get('/auth/whatsapp/status/'),
   conectar: () => api.post('/auth/whatsapp/conectar/'),
   desconectar: () => api.post('/auth/whatsapp/desconectar/'),
+  notificacoesEnviadas: () => api.get('/notificacoes/'),
 }
 
 export const clientesAPI = {
