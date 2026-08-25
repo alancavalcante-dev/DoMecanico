@@ -274,7 +274,12 @@ class PagSeguroAdapter(GatewayBase):
     def verificar_assinatura_webhook(self, payload_raw, headers):
         # PagBank: header `x-authenticity-token` = SHA-256 de  token + "-" + corpo_bruto.
         # O token é o TOKEN DA CONTA (o mesmo do Bearer = chave_secreta). Se preencherem
-        # webhook_secret usa ele; senão cai na chave_secreta. Sem nenhum, pula (compat).
+        # webhook_secret usa ele; senão cai na chave_secreta.
+        # Em SANDBOX o PagBank frequentemente NÃO envia o header — não bloqueia o teste;
+        # a verificação é exigida apenas em produção (a validação de valor no handler
+        # continua valendo nos dois ambientes).
+        if getattr(self.config, 'ambiente', 'sandbox') != 'producao':
+            return True
         token = (self.config.webhook_secret or self.config.chave_secreta or '').strip()
         if not token:
             return True
