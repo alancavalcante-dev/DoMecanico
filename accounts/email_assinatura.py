@@ -163,3 +163,70 @@ def enviar_lembrete_renovacao(assinatura, dias_restantes: int) -> bool:
         return True
     except Exception:
         return False
+
+
+def enviar_aviso_carencia(assinatura, dias_ate_bloqueio: int) -> bool:
+    """Aviso de que a assinatura VENCEU mas ainda há acesso pela carência.
+    Enviado ao admin da oficina. Retorna True se enviado."""
+    from accounts.models import MembroOficina
+
+    conn, from_email = _get_connection()
+    if not conn:
+        return False
+
+    admin_membro = MembroOficina.objects.filter(
+        oficina=assinatura.oficina, papel='admin',
+    ).select_related('user').first()
+    if not admin_membro or not admin_membro.user.email:
+        return False
+
+    oficina = assinatura.oficina
+    plano = assinatura.plano
+    email_destino = admin_membro.user.email
+    data_fmt = assinatura.data_fim.strftime('%d/%m/%Y') if assinatura.data_fim else '—'
+    link = 'https://domecanico.net/assinatura'
+
+    if dias_ate_bloqueio <= 1:
+        titulo = 'Seu acesso será bloqueado em breve'
+        chamada = ('Seu plano venceu e o acesso será <strong>bloqueado a qualquer momento</strong>. '
+                   'Renove agora para não parar a oficina.')
+    else:
+        titulo = f'Seu plano venceu — {dias_ate_bloqueio} dias de acesso restantes'
+        chamada = (f'Seu plano venceu em {data_fmt}. Você ainda tem <strong>{dias_ate_bloqueio} dias</strong> '
+                   f'de acesso antes do bloqueio. Renove para continuar sem interrupção.')
+
+    html = f'''<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:32px 0"><tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;max-width:600px;width:100%">
+      <tr><td style="background:#dc2626;padding:24px 32px">
+        <h1 style="margin:0;color:#fff;font-size:20px">{titulo}</h1>
+      </td></tr>
+      <tr><td style="padding:28px 32px">
+        <p style="margin:0 0 16px;color:#374151;font-size:15px">Olá, <strong>{oficina.nome}</strong>!</p>
+        <p style="margin:0 0 24px;color:#374151;font-size:15px">{chamada}</p>
+        <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+          <a href="{link}" style="display:inline-block;background:#dc2626;color:#fff;font-weight:700;font-size:15px;padding:14px 36px;border-radius:8px;text-decoration:none">Renovar assinatura →</a>
+        </td></tr></table>
+        <p style="margin:24px 0 0;font-size:13px;color:#9ca3af;text-align:center">Plano {plano.nome} • venceu em {data_fmt}</p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>'''
+
+    texto = (
+        f'Olá {oficina.nome}!\n\n'
+        f'Seu plano {plano.nome} venceu em {data_fmt}. Você ainda tem {dias_ate_bloqueio} dia(s) '
+        f'de acesso antes do bloqueio.\n\nRenove em {link}'
+    )
+    try:
+        msg = EmailMultiAlternatives(
+            subject=f'⚠️ Plano vencido — renove em {dias_ate_bloqueio} dia(s) — DoMecânico',
+            body=texto, from_email=from_email, to=[email_destino], connection=conn,
+        )
+        msg.attach_alternative(html, 'text/html')
+        msg.send()
+        return True
+    except Exception:
+        return False
