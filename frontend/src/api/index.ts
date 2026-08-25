@@ -290,6 +290,18 @@ export const orcamentosAPI = {
   atualizarDesconto: (id: number, desconto: number) => api.patch(`/orcamentos/${id}/atualizar_desconto/`, { desconto }),
 }
 
+export const diagnosticosAPI = {
+  listar: (params?: object) => api.get('/diagnosticos/', { params }),
+  buscar: (id: number) => api.get(`/diagnosticos/${id}/`),
+  criar: (data: object) => api.post('/diagnosticos/', data),
+  atualizar: (id: number, data: object) => api.patch(`/diagnosticos/${id}/`, data),
+  deletar: (id: number) => api.delete(`/diagnosticos/${id}/`),
+  adicionarItem: (id: number, data: object) => api.post(`/diagnosticos/${id}/itens/`, data),
+  atualizarItem: (id: number, itemId: number, data: object) => api.patch(`/diagnosticos/${id}/itens/${itemId}/`, data),
+  removerItem: (id: number, itemId: number) => api.delete(`/diagnosticos/${id}/itens/${itemId}/`),
+  gerarOrcamento: (id: number) => api.post(`/diagnosticos/${id}/gerar-orcamento/`),
+}
+
 export const garantiasAPI = {
   listar: (params?: object) => api.get('/garantias/', { params }),
   criar: (data: object) => api.post('/garantias/', data),

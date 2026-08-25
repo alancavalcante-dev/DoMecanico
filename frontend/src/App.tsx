@@ -42,6 +42,7 @@ const Assinatura            = lazy(() => import('./pages/Assinatura'))
 const ChecklistPage         = lazy(() => import('./pages/Checklist'))
 const Agendamentos          = lazy(() => import('./pages/Agendamentos'))
 const Orcamentos            = lazy(() => import('./pages/Orcamentos'))
+const Diagnosticos          = lazy(() => import('./pages/Diagnosticos'))
 const Garantias             = lazy(() => import('./pages/Garantias'))
 const Comissoes             = lazy(() => import('./pages/Comissoes'))
 const Ajuda                 = lazy(() => import('./pages/Ajuda'))
@@ -124,6 +125,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/checklist':      'Checklist — DoMecânico',
   '/agendamentos':   'Agendamentos — DoMecânico',
   '/orcamentos':     'Orçamentos — DoMecânico',
+  '/diagnosticos':   'Diagnósticos — DoMecânico',
   '/garantias':      'Garantias — DoMecânico',
   '/comissoes':      'Comissões — DoMecânico',
   '/ajuda':          'Ajuda — DoMecânico',
@@ -163,7 +165,7 @@ const DESC_PADRAO = ROUTE_DESC['/']
 const ROTAS_NOINDEX = [
   '/dashboard', '/clientes', '/veiculos', '/estoque', '/funcionarios', '/ordens',
   '/catalogo', '/notas-fiscais', '/relatorios', '/assinatura', '/checklist',
-  '/agendamentos', '/orcamentos', '/garantias', '/comissoes', '/equipe', '/whatsapp',
+  '/agendamentos', '/orcamentos', '/diagnosticos', '/garantias', '/comissoes', '/equipe', '/whatsapp',
   '/perfil', '/meu-painel', '/suporte', '/ajuda', '/login',
   '/acompanhar', '/orcamento', '/checklist-cliente', '/aceitar-convite',
   '/redefinir-senha', '/esqueci-senha', '/admin-panel',
@@ -272,6 +274,7 @@ function AppRoutes() {
           <Route path="/checklist"      element={<ChecklistPage />} />
           <Route path="/agendamentos"   element={<Agendamentos />} />
           <Route path="/orcamentos"     element={<Orcamentos />} />
+          <Route path="/diagnosticos"   element={<Diagnosticos />} />
           <Route path="/garantias"      element={<Garantias />} />
           <Route path="/comissoes"      element={<Comissoes />} />
           <Route path="/ajuda"          element={<Ajuda />} />

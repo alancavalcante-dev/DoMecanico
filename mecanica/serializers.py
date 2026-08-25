@@ -6,7 +6,7 @@ from .models import (
     ChecklistEntrada, DanoChecklist,
     Agendamento, Orcamento, ItemOrcamento,
     GarantiaServico, GarantiaDefault, ComissaoMecanico, AlertaEstoque,
-    ServicoCatalogo,
+    ServicoCatalogo, Diagnostico, ItemDiagnostico,
 )
 
 
@@ -485,3 +485,39 @@ class AlertaEstoqueSerializer(serializers.ModelSerializer):
     class Meta:
         model = AlertaEstoque
         fields = '__all__'
+
+
+# ── Diagnóstico / Avaliação técnica ────────────────────────────────────────────
+
+class ItemDiagnosticoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ItemDiagnostico
+        fields = ['id', 'descricao', 'tipo', 'quantidade', 'valor_estimado', 'verificado']
+
+
+class DiagnosticoSerializer(serializers.ModelSerializer):
+    itens = ItemDiagnosticoSerializer(many=True, read_only=True)
+    veiculo_placa = serializers.CharField(source='veiculo.placa', read_only=True)
+    veiculo_descricao = serializers.SerializerMethodField()
+    cliente_nome = serializers.CharField(source='veiculo.cliente.nome', read_only=True)
+    mecanico_nome = serializers.CharField(source='mecanico.nome', read_only=True, default=None)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    total_estimado = serializers.SerializerMethodField()
+    orcamento_numero = serializers.CharField(source='orcamento.numero', read_only=True, default=None)
+
+    class Meta:
+        model = Diagnostico
+        fields = [
+            'id', 'veiculo', 'veiculo_placa', 'veiculo_descricao', 'cliente_nome',
+            'mecanico', 'mecanico_nome', 'status', 'status_display', 'observacoes',
+            'orcamento', 'orcamento_numero', 'total_estimado', 'itens',
+            'criado_em', 'atualizado_em',
+        ]
+        read_only_fields = ['orcamento']
+
+    def get_veiculo_descricao(self, obj):
+        v = obj.veiculo
+        return f'{v.marca} {v.modelo} ({v.placa})'
+
+    def get_total_estimado(self, obj):
+        return str(obj.total_estimado)

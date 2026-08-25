@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Car, Package, UserCog,
   ClipboardList, FileText, BarChart3,  LogOut, CreditCard, AlertTriangle, ClipboardCheck,
   Calendar, FileCheck, ShieldCheck, DollarSign, BookOpen, UsersRound, MessageCircle, KeyRound, Eye, EyeOff,
-  Building2, ChevronDown, X, Globe, Wrench, Bug, LifeBuoy, Tags,
+  Building2, ChevronDown, X, Globe, Wrench, Bug, LifeBuoy, Tags, Stethoscope,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
@@ -39,6 +39,7 @@ const GROUPS: Group[] = [
       { to: '/ordens',       icon: ClipboardList,  label: 'Ordens de Serviço', modulo: 'ordens' },
       { to: '/catalogo',     icon: Tags,           label: 'Catálogo',          modulo: 'ordens' },
       { to: '/checklist',    icon: ClipboardCheck, label: 'Checklist Entrada', modulo: 'checklist' },
+      { to: '/diagnosticos', icon: Stethoscope,    label: 'Diagnósticos',      modulo: 'orcamentos' },
       { to: '/agendamentos', icon: Calendar,       label: 'Agendamentos',      modulo: 'agendamentos' },
       { to: '/orcamentos',   icon: FileCheck,      label: 'Orçamentos',        modulo: 'orcamentos' },
       { to: '/garantias',    icon: ShieldCheck,    label: 'Garantias',         modulo: 'garantias' },

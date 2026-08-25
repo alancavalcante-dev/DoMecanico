@@ -16,7 +16,7 @@ BEGIN
     'mecanica_fotoveiculo','mecanica_movimentacaoestoque','mecanica_servicoos',
     'mecanica_pecaos','mecanica_notafiscal','mecanica_danochecklist',
     'mecanica_itemorcamento','mecanica_comissaomecanico','mecanica_alertaestoque',
-    'mecanica_garantiaservico'
+    'mecanica_garantiaservico','mecanica_diagnostico','mecanica_itemdiagnostico'
   ] LOOP
     EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
     EXECUTE format('ALTER TABLE %I NO FORCE ROW LEVEL SECURITY', t);

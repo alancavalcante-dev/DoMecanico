@@ -30,7 +30,7 @@ from .models import (
     ChecklistEntrada, DanoChecklist,
     Agendamento, Orcamento, ItemOrcamento,
     GarantiaServico, GarantiaDefault, ComissaoMecanico, AlertaEstoque, LogAuditoria,
-    ServicoCatalogo,
+    ServicoCatalogo, Diagnostico, ItemDiagnostico,
 )
 from .serializers import (
     ClienteSerializer, ClienteListSerializer,
@@ -43,7 +43,7 @@ from .serializers import (
     AgendamentoSerializer, OrcamentoSerializer, ItemOrcamentoSerializer,
     OrcamentoPublicoSerializer, GarantiaServicoSerializer,
     ComissaoMecanicoSerializer, AlertaEstoqueSerializer,
-    ServicoCatalogoSerializer,
+    ServicoCatalogoSerializer, DiagnosticoSerializer, ItemDiagnosticoSerializer,
 )
 
 
@@ -2463,6 +2463,90 @@ class AlertaEstoqueViewSet(viewsets.ReadOnlyModelViewSet):
         oficina = get_oficina(request)
         AlertaEstoque.objects.filter(peca__oficina=oficina, lido=False).update(lido=True)
         return Response({'ok': True})
+
+
+# ── Diagnóstico / Avaliação técnica ────────────────────────────────────────────
+
+class DiagnosticoViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated, AssinaturaAtiva, ModuloRequerido]
+    serializer_class = DiagnosticoSerializer
+
+    def get_queryset(self):
+        oficina = get_oficina(self.request)
+        qs = Diagnostico.objects.filter(oficina=oficina).select_related(
+            'veiculo', 'veiculo__cliente', 'mecanico', 'orcamento'
+        ).prefetch_related('itens')
+        status_f = self.request.query_params.get('status')
+        veiculo_id = self.request.query_params.get('veiculo')
+        if status_f:
+            qs = qs.filter(status=status_f)
+        if veiculo_id:
+            qs = qs.filter(veiculo_id=veiculo_id)
+        return qs
+
+    def perform_create(self, serializer):
+        oficina = get_oficina(self.request)
+        veiculo = serializer.validated_data.get('veiculo')
+        if not veiculo or veiculo.oficina_id != oficina.id:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'veiculo': 'Veículo inválido.'})
+        serializer.save(oficina=oficina)
+
+    @action(detail=True, methods=['post'], url_path='itens')
+    def adicionar_item(self, request, pk=None):
+        diag = self.get_object()
+        s = ItemDiagnosticoSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        s.save(diagnostico=diag)
+        return Response(DiagnosticoSerializer(diag, context={'request': request}).data,
+                        status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['patch', 'delete'], url_path='itens/(?P<item_id>[0-9]+)')
+    def item(self, request, pk=None, item_id=None):
+        diag = self.get_object()
+        try:
+            item = diag.itens.get(id=item_id)
+        except ItemDiagnostico.DoesNotExist:
+            return Response({'erro': 'Item não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        if request.method == 'DELETE':
+            item.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        s = ItemDiagnosticoSerializer(item, data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        s.save()
+        return Response(DiagnosticoSerializer(diag, context={'request': request}).data)
+
+    @action(detail=True, methods=['post'], url_path='gerar-orcamento')
+    def gerar_orcamento(self, request, pk=None):
+        diag = self.get_object()
+        if diag.orcamento_id:
+            return Response(
+                {'erro': 'Este diagnóstico já virou orçamento.', 'orcamento_id': diag.orcamento_id},
+                status=status.HTTP_400_BAD_REQUEST)
+        itens = list(diag.itens.all())
+        if not itens:
+            return Response({'erro': 'Adicione ao menos um item antes de gerar o orçamento.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        oficina = get_oficina(request)
+        veiculo = diag.veiculo
+        with transaction.atomic():
+            ultimo = Orcamento.objects.filter(oficina=oficina).order_by('-id').values_list('id', flat=True).first() or 0
+            numero = f'ORC{ultimo + 1:06d}'
+            orc = Orcamento.objects.create(
+                oficina=oficina, cliente=veiculo.cliente, veiculo=veiculo,
+                mecanico=diag.mecanico, numero=numero, problema_relatado=diag.observacoes,
+            )
+            ItemOrcamento.objects.bulk_create([
+                ItemOrcamento(
+                    orcamento=orc, tipo=it.tipo, descricao=it.descricao[:300],
+                    quantidade=it.quantidade, preco_unitario=it.valor_estimado,
+                ) for it in itens
+            ])
+            diag.orcamento = orc
+            diag.status = 'orcado'
+            diag.save(update_fields=['orcamento', 'status', 'atualizado_em'])
+        _log(request, 'criado', 'Orcamento', f'ORC {numero} (via diagnóstico #{diag.id})')
+        return Response({'ok': True, 'orcamento_id': orc.id, 'orcamento_numero': orc.numero})
 
 
 # ── Histórico público por placa ────────────────────────────────────────────────

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { clientesAPI, veiculosAPI } from '../api'
 import type { Cliente, Veiculo, FotoVeiculo } from '../types'
 import PageHeader from '../components/ui/PageHeader'
 import Modal from '../components/ui/Modal'
 import { tipoBadge, statusBadge } from '../components/ui/Badge'
-import { Plus, Search, Pencil, Trash2, Camera, X, Image, HeartPulse, History, Wrench, Package, CircleDollarSign, CalendarClock } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Camera, X, Image, HeartPulse, History, Wrench, Package, CircleDollarSign, CalendarClock, Stethoscope } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 interface ProntuarioItem {
@@ -79,6 +80,8 @@ export default function Veiculos() {
   useEffect(() => { carregar() }, [])
 
   const abrirNovo = () => { setEditando(null); setForm({ ...EMPTY }); setModalOpen(true) }
+  const navigate = useNavigate()
+
   const abrirEditar = (v: Veiculo) => {
     setEditando(v)
     setForm({
@@ -238,6 +241,7 @@ export default function Veiculos() {
                   <td className="px-4 py-3 text-slate-500">{Number(v.quilometragem).toLocaleString('pt-BR')} km</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => navigate(`/diagnosticos?veiculo=${v.id}`)} title="Nova avaliação" className="p-1.5 rounded hover:bg-sky-50 text-sky-600"><Stethoscope size={15} /></button>
                       <button onClick={() => abrirProntuario(v)} title="Prontuário / Histórico" className="p-1.5 rounded hover:bg-amber-50 text-amber-600"><History size={15} /></button>
                       <button onClick={() => gerarSaude(v)} title="Relatório de Saúde" className="p-1.5 rounded hover:bg-green-50 text-green-600"><HeartPulse size={15} /></button>
                       <button onClick={() => abrirFotos(v)} title="Fotos" className="p-1.5 rounded hover:bg-purple-50 text-purple-600"><Camera size={15} /></button>

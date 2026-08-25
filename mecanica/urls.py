@@ -15,6 +15,7 @@ router.register(r'notas-fiscais', views.NotaFiscalViewSet, basename='nota-fiscal
 router.register(r'checklists', views.ChecklistViewSet, basename='checklist')
 router.register(r'agendamentos', views.AgendamentoViewSet, basename='agendamento')
 router.register(r'orcamentos', views.OrcamentoViewSet, basename='orcamento')
+router.register(r'diagnosticos', views.DiagnosticoViewSet, basename='diagnostico')
 router.register(r'garantias', views.GarantiaViewSet, basename='garantia')
 router.register(r'comissoes', views.ComissaoViewSet, basename='comissao')
 router.register(r'catalogo-servicos', views.ServicoCatalogoViewSet, basename='catalogo-servico')

@@ -37,7 +37,7 @@ BEGIN
     'mecanica_cliente','mecanica_veiculo','mecanica_funcionario','mecanica_peca',
     'mecanica_ordemservico','mecanica_checklistentrada','mecanica_agendamento',
     'mecanica_orcamento','mecanica_servicocatalogo','mecanica_logauditoria',
-    'mecanica_garantiadefault'
+    'mecanica_garantiadefault','mecanica_diagnostico'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('ALTER TABLE %I FORCE  ROW LEVEL SECURITY', t);
@@ -62,7 +62,8 @@ BEGIN
     ('mecanica_danochecklist',      'mecanica_checklistentrada','checklist_id'),
     ('mecanica_itemorcamento',      'mecanica_orcamento',       'orcamento_id'),
     ('mecanica_comissaomecanico',   'mecanica_ordemservico',    'ordem_id'),
-    ('mecanica_alertaestoque',      'mecanica_peca',            'peca_id')
+    ('mecanica_alertaestoque',      'mecanica_peca',            'peca_id'),
+    ('mecanica_itemdiagnostico',    'mecanica_diagnostico',     'diagnostico_id')
   ) AS x(tbl, parent, fk)
   LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', r.tbl);

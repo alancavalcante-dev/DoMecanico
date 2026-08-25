@@ -531,3 +531,44 @@ class NotificacaoLog(models.Model):
 
     def __str__(self):
         return f'{self.canal} → {self.destino} ({"ok" if self.sucesso else "falha"})'
+
+
+class Diagnostico(models.Model):
+    """Avaliação técnica do veículo: o mecânico lista os defeitos/itens a trocar
+    (com ✓ de verificado) e depois converte em Orçamento."""
+    STATUS = [('aberto', 'Aberto'), ('concluido', 'Concluído'), ('orcado', 'Orçado')]
+    oficina = models.ForeignKey('accounts.Oficina', on_delete=models.CASCADE, related_name='diagnosticos', db_index=True)
+    veiculo = models.ForeignKey(Veiculo, on_delete=models.CASCADE, related_name='diagnosticos', db_index=True)
+    mecanico = models.ForeignKey(Funcionario, on_delete=models.SET_NULL, null=True, blank=True, related_name='diagnosticos')
+    status = models.CharField(max_length=12, choices=STATUS, default='aberto', db_index=True)
+    observacoes = models.TextField(blank=True)
+    orcamento = models.ForeignKey(Orcamento, on_delete=models.SET_NULL, null=True, blank=True, related_name='diagnostico_origem')
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return f'Diagnóstico #{self.pk} — {self.veiculo.placa}'
+
+    @property
+    def total_estimado(self):
+        return sum((i.quantidade * i.valor_estimado for i in self.itens.all()), 0)
+
+
+class ItemDiagnostico(models.Model):
+    TIPO = [('servico', 'Serviço'), ('peca', 'Peça')]
+    diagnostico = models.ForeignKey(Diagnostico, on_delete=models.CASCADE, related_name='itens')
+    descricao = models.CharField(max_length=300)
+    tipo = models.CharField(max_length=10, choices=TIPO, default='servico')
+    quantidade = models.DecimalField(max_digits=10, decimal_places=2, default=1)
+    valor_estimado = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    verificado = models.BooleanField(default=False)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['id']
+
+    def __str__(self):
+        return self.descricao

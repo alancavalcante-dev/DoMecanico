@@ -23,6 +23,7 @@ MODULO_POR_VIEW = {
     'GarantiaViewSet': 'garantias',
     'ComissaoViewSet': 'comissoes',
     'ServicoCatalogoViewSet': 'ordens',
+    'DiagnosticoViewSet': 'orcamentos',
 }
 
 
