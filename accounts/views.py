@@ -597,6 +597,7 @@ def gerar_link_pagamento(request):
     if fatura_existente and fatura_existente.link_pagamento:
         return Response({
             'link_pagamento': fatura_existente.link_pagamento,
+            'pix_copia_cola': fatura_existente.pix_copia_cola,
             'fatura_numero': fatura_existente.numero,
             'existente': True,
         })
@@ -618,10 +619,15 @@ def gerar_link_pagamento(request):
 
     fatura.gateway_id = resultado.get('gateway_id', '')
     fatura.link_pagamento = link
+    fatura.pix_copia_cola = resultado.get('pix_copia_cola', '')
     fatura.gateway_provider = config.provider
-    fatura.save(update_fields=['gateway_id', 'link_pagamento', 'gateway_provider'])
+    fatura.save(update_fields=['gateway_id', 'link_pagamento', 'pix_copia_cola', 'gateway_provider'])
 
-    return Response({'link_pagamento': link, 'fatura_numero': fatura.numero})
+    return Response({
+        'link_pagamento': link,
+        'pix_copia_cola': fatura.pix_copia_cola,
+        'fatura_numero': fatura.numero,
+    })
 
 
 @api_view(['POST'])

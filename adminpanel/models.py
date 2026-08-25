@@ -142,6 +142,7 @@ class Fatura(models.Model):
     gateway_id = models.CharField(max_length=200, blank=True)
     gateway_provider = models.CharField(max_length=20, blank=True)
     link_pagamento = models.URLField(max_length=500, blank=True)
+    pix_copia_cola = models.TextField(blank=True, default='')  # código PIX "copia e cola"
     observacoes = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)

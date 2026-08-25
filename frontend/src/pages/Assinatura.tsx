@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import { authAPI } from '../api'
 import { useAuth } from '../contexts/AuthContext'
-import { CreditCard, Check, X, AlertTriangle, RefreshCw, ExternalLink, Loader2, Receipt, Copy, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { CreditCard, Check, X, AlertTriangle, RefreshCw, Loader2, Receipt, Copy, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
 
 
 interface Plano {
@@ -74,6 +74,8 @@ export default function Assinatura() {
   const [planoSelecionado, setPlanoSelecionado] = useState('')
   const [loadingLink, setLoadingLink] = useState(false)
   const [showPagar, setShowPagar] = useState(false)
+  const [pixData, setPixData] = useState<{ link_pagamento: string; pix_copia_cola: string } | null>(null)
+  const [pixCopiado, setPixCopiado] = useState(false)
   const [linkCopiado, setLinkCopiado] = useState<number | null>(null)
   const [cancelando, setCancelando] = useState<number | null>(null)
   const [modulosExpandidos, setModulosExpandidos] = useState<Record<string, boolean>>({})
@@ -111,18 +113,39 @@ export default function Assinatura() {
     })
   }
 
+  const fecharPagar = () => { setShowPagar(false); setPixData(null); setPixCopiado(false) }
+
+  const copiarPix = () => {
+    if (!pixData?.pix_copia_cola) return
+    navigator.clipboard.writeText(pixData.pix_copia_cola).then(() => {
+      setPixCopiado(true)
+      setTimeout(() => setPixCopiado(false), 2000)
+    })
+  }
+
+  const atualizarStatus = async () => {
+    try {
+      const { data } = await authAPI.assinatura()
+      setAssinatura(data)
+      await refreshUser()
+      toast.success(data.ativa ? 'Pagamento confirmado! Assinatura ativa.' : 'Ainda não identificamos o pagamento. Tente em instantes.')
+    } catch {
+      toast.error('Não foi possível atualizar o status.')
+    }
+  }
+
   const handleGerarLink = async () => {
     setLoadingLink(true)
     try {
       const { data } = await authAPI.gerarLinkPagamento({ plano_slug: planoSelecionado })
-      if (data.link_pagamento) {
-        window.open(data.link_pagamento, '_blank')
-        toast.success(data.existente ? 'Fatura pendente já existente — redirecionando...' : 'Redirecionando para pagamento...')
-        setShowPagar(false)
+      if (data.link_pagamento || data.pix_copia_cola) {
+        setPixData({ link_pagamento: data.link_pagamento || '', pix_copia_cola: data.pix_copia_cola || '' })
         carregarFaturas()
+      } else {
+        toast.error('Não foi possível gerar a cobrança PIX.')
       }
     } catch (err: any) {
-      const msg = err?.response?.data?.erro || 'Erro ao gerar link de pagamento.'
+      const msg = err?.response?.data?.erro || 'Erro ao gerar cobrança PIX.'
       toast.error(msg)
     } finally {
       setLoadingLink(false)
@@ -387,41 +410,97 @@ export default function Assinatura() {
           <div className="bg-white rounded-2xl p-8 w-full max-w-md border border-slate-200 shadow-xl">
             <h3 className="text-slate-800 font-bold text-xl mb-6">Pagar via PIX</h3>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-slate-500 mb-1">Plano</label>
-                <select
-                  value={planoSelecionado}
-                  onChange={(e) => setPlanoSelecionado(e.target.value)}
-                  className="w-full bg-slate-100 border border-slate-200 text-slate-800 rounded-lg px-4 py-2.5"
+            {!pixData ? (
+              <>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-slate-500 mb-1">Plano</label>
+                    <select
+                      value={planoSelecionado}
+                      onChange={(e) => setPlanoSelecionado(e.target.value)}
+                      className="w-full bg-slate-100 border border-slate-200 text-slate-800 rounded-lg px-4 py-2.5"
+                    >
+                      {planos.map((p) => (
+                        <option key={p.slug} value={p.slug}>
+                          {p.nome} — {fmt(p.preco)}/mês
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleGerarLink}
+                  disabled={loadingLink || !planoSelecionado}
+                  className="w-full mt-6 flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition text-sm"
                 >
-                  {planos.map((p) => (
-                    <option key={p.slug} value={p.slug}>
-                      {p.nome} — {fmt(p.preco)}/mês
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+                  {loadingLink ? (
+                    <><Loader2 size={15} className="animate-spin" /> Gerando PIX...</>
+                  ) : (
+                    <><CreditCard size={15} /> Gerar cobrança PIX</>
+                  )}
+                </button>
 
-            <button
-              onClick={handleGerarLink}
-              disabled={loadingLink || !planoSelecionado}
-              className="w-full mt-6 flex items-center justify-center gap-2 bg-lime-600 hover:bg-lime-700 disabled:opacity-50 text-white font-semibold rounded-lg py-3 transition text-sm"
-            >
-              {loadingLink ? (
-                <><Loader2 size={15} className="animate-spin" /> Gerando link...</>
-              ) : (
-                <><ExternalLink size={15} /> Pagar com AbacatePay (PIX)</>
-              )}
-            </button>
+                <button
+                  onClick={fecharPagar}
+                  className="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg py-2.5 transition text-sm"
+                >
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-slate-500 mb-4 text-center">
+                  Escaneie o QR Code ou copie o código no app do seu banco. Após o pagamento,
+                  a assinatura é reativada automaticamente.
+                </p>
 
-            <button
-              onClick={() => setShowPagar(false)}
-              className="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg py-2.5 transition text-sm"
-            >
-              Cancelar
-            </button>
+                {pixData.link_pagamento && (
+                  <div className="flex justify-center mb-4">
+                    <img
+                      src={pixData.link_pagamento}
+                      alt="QR Code PIX"
+                      className="w-52 h-52 border border-slate-200 rounded-lg bg-white"
+                    />
+                  </div>
+                )}
+
+                {pixData.pix_copia_cola && (
+                  <div className="mb-4">
+                    <label className="block text-sm text-slate-500 mb-1">PIX copia e cola</label>
+                    <div className="flex gap-2">
+                      <input
+                        readOnly
+                        value={pixData.pix_copia_cola}
+                        onFocus={(e) => e.target.select()}
+                        className="flex-1 min-w-0 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700"
+                      />
+                      <button
+                        onClick={copiarPix}
+                        className="shrink-0 flex items-center gap-1 bg-slate-800 hover:bg-slate-900 text-white rounded-lg px-3 text-sm"
+                      >
+                        {pixCopiado ? <CheckCircle size={15} /> : <Copy size={15} />}
+                        {pixCopiado ? 'Copiado' : 'Copiar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={atualizarStatus}
+                  className="w-full flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold rounded-lg py-3 transition text-sm"
+                >
+                  <RefreshCw size={15} /> Já paguei — atualizar status
+                </button>
+
+                <button
+                  onClick={fecharPagar}
+                  className="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg py-2.5 transition text-sm"
+                >
+                  Fechar
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
