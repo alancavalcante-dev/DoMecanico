@@ -120,6 +120,9 @@ export const clientesAPI = {
   criar: (data: object) => api.post('/clientes/', data),
   atualizar: (id: number, data: object) => api.put(`/clientes/${id}/`, data),
   deletar: (id: number) => api.delete(`/clientes/${id}/`),
+  importarCSV: (formData: FormData) => api.post('/clientes/importar-csv/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
 }
 
 export const veiculosAPI = {

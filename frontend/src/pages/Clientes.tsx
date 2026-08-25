@@ -4,7 +4,7 @@ import type { Cliente } from '../types'
 import PageHeader from '../components/ui/PageHeader'
 import Modal from '../components/ui/Modal'
 import Paginacao from '../components/ui/Paginacao'
-import { Plus, Search, Pencil, Trash2, Car, Phone } from 'lucide-react'
+import { Plus, Search, Pencil, Trash2, Car, Phone, Upload, Download, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const EMPTY: Omit<Cliente, 'id' | 'criado_em' | 'total_veiculos' | 'total_ordens' | 'veiculos'> = {
@@ -22,6 +22,12 @@ export default function Clientes() {
   const [editando, setEditando] = useState<Cliente | null>(null)
   const [form, setForm] = useState({ ...EMPTY })
   const [salvando, setSalvando] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importando, setImportando] = useState(false)
+  const [importResult, setImportResult] = useState<
+    { criados_clientes: number; criados_veiculos: number; ignorados: number; erros: string[] } | null
+  >(null)
 
   const carregar = async (s = search, p = page) => {
     setLoading(true)
@@ -80,17 +86,97 @@ export default function Clientes() {
 
   const buscar = (e: React.FormEvent) => { e.preventDefault(); setPage(1); carregar(search, 1) }
 
+  const baixarModelo = () => {
+    const csv =
+      'nome,cpf_cnpj,telefone,celular,email,cidade,estado,placa,marca,modelo,ano,cor\n' +
+      'João Silva,123.456.789-00,,11 99999-0000,joao@email.com,São Paulo,SP,ABC1D23,Fiat,Uno,2015,Prata\n'
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = 'modelo-clientes.csv'
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  const abrirImport = () => { setImportFile(null); setImportResult(null); setImportOpen(true) }
+
+  const handleImportar = async () => {
+    if (!importFile) return
+    setImportando(true)
+    try {
+      const fd = new FormData()
+      fd.append('arquivo', importFile)
+      const { data } = await clientesAPI.importarCSV(fd)
+      setImportResult(data)
+      toast.success(`${data.criados_clientes} cliente(s) importado(s).`)
+      carregar()
+    } catch (err: any) {
+      toast.error(err?.response?.data?.erro || 'Erro ao importar o arquivo.')
+    } finally {
+      setImportando(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader
         title="Clientes"
         subtitle={`${count} cadastrado(s)`}
         action={
-          <button onClick={abrirNovo} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            <Plus size={16} /> Novo Cliente
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={abrirImport} className="flex items-center gap-2 border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Upload size={16} /> Importar
+            </button>
+            <button onClick={abrirNovo} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Plus size={16} /> Novo Cliente
+            </button>
+          </div>
         }
       />
+
+      <Modal open={importOpen} onClose={() => setImportOpen(false)} title="Importar clientes (CSV)">
+        {!importResult ? (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Envie um arquivo <strong>.csv</strong> com uma linha por cliente. Colunas aceitas:{' '}
+              <span className="text-slate-500">nome (obrigatório), cpf_cnpj, telefone, celular, email, cidade, estado</span>{' '}
+              — e, opcionalmente, o veículo: <span className="text-slate-500">placa, marca, modelo, ano, cor</span>.
+            </p>
+            <button type="button" onClick={baixarModelo} className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+              <Download size={15} /> Baixar modelo de exemplo
+            </button>
+            <input
+              type="file" accept=".csv,text/csv"
+              onChange={e => setImportFile(e.target.files?.[0] ?? null)}
+              className="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
+            />
+            <p className="text-xs text-slate-400">Clientes com CPF/CNPJ já cadastrado (e veículos com placa repetida) são ignorados.</p>
+            <button
+              onClick={handleImportar} disabled={!importFile || importando}
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg py-2.5 text-sm font-medium transition-colors"
+            >
+              {importando ? <><Loader2 size={15} className="animate-spin" /> Importando...</> : <><Upload size={15} /> Importar</>}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="bg-green-50 rounded-lg p-3"><div className="text-2xl font-bold text-green-700">{importResult.criados_clientes}</div><div className="text-xs text-slate-500">clientes</div></div>
+              <div className="bg-blue-50 rounded-lg p-3"><div className="text-2xl font-bold text-blue-700">{importResult.criados_veiculos}</div><div className="text-xs text-slate-500">veículos</div></div>
+              <div className="bg-slate-100 rounded-lg p-3"><div className="text-2xl font-bold text-slate-600">{importResult.ignorados}</div><div className="text-xs text-slate-500">ignorados</div></div>
+            </div>
+            {importResult.erros?.length > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 max-h-40 overflow-auto">
+                <p className="text-xs font-semibold text-amber-800 mb-1">Avisos:</p>
+                <ul className="text-xs text-amber-700 space-y-0.5">
+                  {importResult.erros.map((er, i) => <li key={i}>• {er}</li>)}
+                </ul>
+              </div>
+            )}
+            <button onClick={() => setImportOpen(false)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg py-2.5 text-sm transition-colors">Fechar</button>
+          </div>
+        )}
+      </Modal>
 
       <form onSubmit={buscar} className="flex gap-2 mb-5">
         <div className="relative flex-1 max-w-sm">

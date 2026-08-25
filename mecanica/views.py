@@ -135,6 +135,135 @@ class ClienteViewSet(viewsets.ModelViewSet):
         _log(self.request, 'deletado', 'Cliente', instance.nome)
         instance.delete()
 
+    @action(detail=False, methods=['post'], url_path='importar-csv')
+    def importar_csv(self, request):
+        """Importa clientes (e veículos opcionais) de um CSV. Colunas flexíveis:
+        nome (obrigatório), cpf_cnpj, telefone, celular, email, endereco, cidade,
+        estado, cep e — opcional — placa, marca, modelo, ano, cor, km, tipo.
+        Ignora clientes com CPF/CNPJ já existente e veículos com placa já existente."""
+        import csv as _csv, io as _io2, re as _re, unicodedata as _ud
+
+        oficina = get_oficina(request)
+        arquivo = request.FILES.get('arquivo')
+        if not arquivo:
+            return Response({'erro': 'Envie um arquivo CSV no campo "arquivo".'}, status=status.HTTP_400_BAD_REQUEST)
+        if arquivo.size > 3 * 1024 * 1024:
+            return Response({'erro': 'Arquivo muito grande (limite de 3 MB).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        raw = arquivo.read()
+        texto = None
+        for enc in ('utf-8-sig', 'utf-8', 'latin-1'):
+            try:
+                texto = raw.decode(enc)
+                break
+            except Exception:
+                continue
+        if texto is None:
+            return Response({'erro': 'Não consegui ler o arquivo (codificação inválida).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        amostra = texto[:2000]
+        delim = ';' if amostra.count(';') > amostra.count(',') else ','
+        leitor = _csv.DictReader(_io2.StringIO(texto), delimiter=delim)
+
+        def _nk(k):
+            k = ''.join(c for c in _ud.normalize('NFKD', k or '') if not _ud.combining(c))
+            return _re.sub(r'[^a-z0-9]', '', k.lower())
+
+        MAP = {
+            'nome': 'nome', 'cliente': 'nome', 'nomedocliente': 'nome',
+            'cpfcnpj': 'cpf_cnpj', 'cpf': 'cpf_cnpj', 'cnpj': 'cpf_cnpj', 'documento': 'cpf_cnpj',
+            'telefone': 'telefone', 'tel': 'telefone', 'fone': 'telefone',
+            'celular': 'celular', 'whatsapp': 'celular', 'cel': 'celular',
+            'email': 'email', 'endereco': 'endereco', 'cidade': 'cidade',
+            'estado': 'estado', 'uf': 'estado', 'cep': 'cep',
+            'placa': 'placa', 'marca': 'marca', 'modelo': 'modelo', 'ano': 'ano',
+            'cor': 'cor', 'km': 'quilometragem', 'quilometragem': 'quilometragem', 'tipo': 'tipo',
+        }
+
+        def _col(row, campo):
+            for k, v in row.items():
+                nk = _nk(k)
+                if nk in MAP and MAP[nk] == campo:
+                    return (v or '').strip()
+            return ''
+
+        cpfs = set()
+        for c in Cliente.objects.filter(oficina=oficina).values_list('cpf_cnpj', flat=True):
+            n = _re.sub(r'\D', '', c or '')
+            if n:
+                cpfs.add(n)
+        placas = set(
+            _re.sub(r'[^A-Z0-9]', '', (p or '').upper())
+            for p in Veiculo.objects.filter(oficina=oficina).values_list('placa', flat=True)
+        )
+
+        criados_c = criados_v = ignorados = 0
+        erros = []
+        LIMITE = 2000
+        with transaction.atomic():
+            for i, row in enumerate(leitor, start=2):  # linha 1 = cabeçalho
+                if (i - 1) > LIMITE:
+                    erros.append(f'Limite de {LIMITE} linhas atingido; o restante foi ignorado.')
+                    break
+                nome = _col(row, 'nome')
+                if not nome:
+                    continue  # linhas em branco / sem nome
+                cpf = _col(row, 'cpf_cnpj')
+                cpf_n = _re.sub(r'\D', '', cpf)
+                if cpf_n and cpf_n in cpfs:
+                    ignorados += 1
+                    continue
+                try:
+                    cliente = Cliente.objects.create(
+                        oficina=oficina, nome=nome[:200], cpf_cnpj=cpf[:20],
+                        telefone=_col(row, 'telefone')[:20], celular=_col(row, 'celular')[:20],
+                        email=_col(row, 'email')[:254], endereco=_col(row, 'endereco')[:300],
+                        cidade=_col(row, 'cidade')[:100], estado=_col(row, 'estado')[:2].upper(),
+                        cep=_col(row, 'cep')[:10],
+                    )
+                    criados_c += 1
+                    if cpf_n:
+                        cpfs.add(cpf_n)
+                except Exception as e:
+                    erros.append(f'Linha {i}: {str(e)[:120]}')
+                    continue
+
+                placa = _col(row, 'placa')
+                placa_n = _re.sub(r'[^A-Z0-9]', '', placa.upper())
+                marca, modelo = _col(row, 'marca'), _col(row, 'modelo')
+                if placa_n and marca and modelo:
+                    if placa_n in placas:
+                        continue
+                    try:
+                        ano = int(_re.sub(r'\D', '', _col(row, 'ano')) or 0) or None
+                    except Exception:
+                        ano = None
+                    try:
+                        km = int(_re.sub(r'\D', '', _col(row, 'quilometragem')) or 0)
+                    except Exception:
+                        km = 0
+                    tipo = _col(row, 'tipo').lower()
+                    if tipo not in ('moto', 'carro', 'caminhao', 'outro'):
+                        tipo = 'carro'
+                    try:
+                        Veiculo.objects.create(
+                            oficina=oficina, cliente=cliente, tipo=tipo,
+                            marca=marca[:100], modelo=modelo[:100], ano=ano,
+                            placa=placa.upper()[:10], cor=_col(row, 'cor')[:50], quilometragem=km,
+                        )
+                        criados_v += 1
+                        placas.add(placa_n)
+                    except Exception as e:
+                        erros.append(f'Linha {i} (veículo): {str(e)[:120]}')
+
+        _log(request, 'importado', 'Cliente', f'CSV: {criados_c} clientes, {criados_v} veículos')
+        return Response({
+            'criados_clientes': criados_c,
+            'criados_veiculos': criados_v,
+            'ignorados': ignorados,
+            'erros': erros[:20],
+        })
+
 
 class VeiculoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, AssinaturaAtiva, ModuloRequerido]
