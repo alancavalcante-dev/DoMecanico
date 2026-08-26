@@ -38,7 +38,9 @@ class Plano(models.Model):
 
 class Oficina(models.Model):
     nome = models.CharField(max_length=200)
-    cnpj = models.CharField(max_length=18, unique=True)
+    # Opcional no cadastro (trial): reduz atrito. Coletado no pagamento (Perfil).
+    # null=True para não colidir no unique quando vazio (vários NULL são permitidos).
+    cnpj = models.CharField(max_length=18, unique=True, null=True, blank=True)
     telefone = models.CharField(max_length=20, blank=True)
     email = models.EmailField()
     endereco = models.CharField(max_length=300, blank=True)

@@ -12,9 +12,9 @@ class PlanoSerializer(serializers.ModelSerializer):
 class RegistroSerializer(serializers.Serializer):
     # Oficina
     nome_oficina = serializers.CharField(max_length=200)
-    cnpj = serializers.CharField(max_length=18)
+    cnpj = serializers.CharField(max_length=18, required=False, allow_blank=True)
     telefone_oficina = serializers.CharField(max_length=20, required=False, allow_blank=True)
-    email_oficina = serializers.EmailField()
+    email_oficina = serializers.EmailField(required=False, allow_blank=True)
     cidade = serializers.CharField(max_length=100, required=False, allow_blank=True)
     estado = serializers.CharField(max_length=2, required=False, allow_blank=True)
     # Usuário admin
@@ -25,6 +25,8 @@ class RegistroSerializer(serializers.Serializer):
     plano_slug = serializers.CharField(max_length=20)
 
     def validate_cnpj(self, value):
+        if not value or not value.strip():
+            return value  # opcional no trial — coletado no pagamento
         from core.validators import valida_cnpj
         cnpj = ''.join(filter(str.isdigit, value))
         if not valida_cnpj(cnpj):

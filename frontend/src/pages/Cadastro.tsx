@@ -2,7 +2,6 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authAPI } from '../api'
-import { validaCNPJ } from '../utils/validators'
 import { Check } from 'lucide-react'
 
 interface Plano {
@@ -27,7 +26,6 @@ export default function Cadastro() {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     nome_oficina: '',
-    cnpj: '',
     email_oficina: '',
     cidade: '',
     estado: '',
@@ -45,21 +43,8 @@ export default function Cadastro() {
 
   const set = (key: string, value: string) => setForm((f) => ({ ...f, [key]: value }))
 
-  const maskCnpj = (v: string) => {
-    const d = v.replace(/\D/g, '').slice(0, 14)
-    if (d.length > 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
-    if (d.length > 8)  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`
-    if (d.length > 5)  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`
-    if (d.length > 2)  return `${d.slice(0, 2)}.${d.slice(2)}`
-    return d
-  }
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!validaCNPJ(form.cnpj)) {
-      toast.error('CNPJ inválido. Verifique os números digitados.')
-      return
-    }
     setLoading(true)
     try {
       const { data } = await authAPI.registrar({ ...form, plano_slug: planoSlug })
@@ -151,26 +136,14 @@ export default function Cadastro() {
                   placeholder="Auto Center Silva"
                 />
               </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">CNPJ *</label>
+              <div className="sm:col-span-2">
+                <label className="block text-sm text-gray-400 mb-1">E-mail da oficina <span className="text-gray-600">(opcional)</span></label>
                 <input
-                  required
-                  inputMode="numeric"
-                  value={form.cnpj}
-                  onChange={(e) => set('cnpj', maskCnpj(e.target.value))}
-                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500"
-                  placeholder="00.000.000/0001-00"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">E-mail da oficina *</label>
-                <input
-                  required
                   type="email"
                   value={form.email_oficina}
                   onChange={(e) => set('email_oficina', e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-blue-500"
-                  placeholder="contato@oficina.com"
+                  placeholder="Em branco = usa o seu e-mail"
                 />
               </div>
               <div>

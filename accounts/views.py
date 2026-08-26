@@ -202,9 +202,11 @@ def registrar(request):
     # Cria oficina
     oficina = Oficina.objects.create(
         nome=data['nome_oficina'],
-        cnpj=data['cnpj'],
+        # CNPJ opcional no trial (None evita colisão no unique); pedido no pagamento.
+        cnpj=((data.get('cnpj') or '').strip() or None),
         telefone=data.get('telefone_oficina', ''),
-        email=data['email_oficina'],
+        # E-mail da oficina opcional: sem ele, usa o e-mail do admin.
+        email=((data.get('email_oficina') or '').strip() or data['email']),
         cidade=data.get('cidade', ''),
         estado=data.get('estado', ''),
     )
