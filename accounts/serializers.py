@@ -116,24 +116,12 @@ class MeSerializer(serializers.ModelSerializer):
             return None
 
     def get_modulos(self, obj):
+        # Fonte ÚNICA: admin sempre recebe TODOS os módulos (dinâmico, inclusive
+        # os criados depois do cadastro); demais usam a permissão salva. Sempre
+        # intersecta com o plano. Espelha o enforcement de core.permissions.
         try:
-            try:
-                permissoes_membro = obj.membro.permissoes.modulos
-            except Exception:
-                if obj.membro.papel == 'admin':
-                    permissoes_membro = [m[0] for m in MODULOS]
-                else:
-                    return []
-
-            # Intersecta com os módulos disponíveis no plano (se configurados)
-            try:
-                modulos_plano = obj.membro.oficina.assinatura.plano.modulos_disponiveis
-                if modulos_plano:
-                    return [m for m in permissoes_membro if m in modulos_plano]
-            except Exception:
-                pass
-
-            return permissoes_membro
+            from core.permissions import modulos_do_usuario
+            return modulos_do_usuario(obj)
         except Exception:
             return []
 
@@ -158,7 +146,11 @@ class MembroOficinaSerializer(serializers.ModelSerializer):
         return f'{obj.user.first_name} {obj.user.last_name}'.strip() or obj.user.username
 
     def get_modulos(self, obj):
+        # Admin implicitamente tem todos os módulos (não é limitável na Equipe);
+        # demais mostram a permissão concedida (para edição).
         try:
+            if obj.papel == 'admin':
+                return [m[0] for m in MODULOS]
             return obj.permissoes.modulos
         except Exception:
             return []
