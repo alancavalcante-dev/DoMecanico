@@ -3,9 +3,46 @@ from decimal import Decimal
 import hmac
 import hashlib
 import logging
+import re
 from urllib.parse import parse_qs
 
 logger = logging.getLogger(__name__)
+
+
+def _valida_cpf(cpf: str) -> bool:
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        return False
+    for tam in (9, 10):
+        soma = sum(int(cpf[i]) * ((tam + 1) - i) for i in range(tam))
+        dig = (soma * 10) % 11
+        dig = 0 if dig == 10 else dig
+        if dig != int(cpf[tam]):
+            return False
+    return True
+
+
+def _valida_cnpj(cnpj: str) -> bool:
+    if len(cnpj) != 14 or cnpj == cnpj[0] * 14:
+        return False
+    pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+    for pesos, pos in ((pesos1, 12), (pesos2, 13)):
+        soma = sum(int(cnpj[i]) * pesos[i] for i in range(pos))
+        resto = soma % 11
+        dig = 0 if resto < 2 else 11 - resto
+        if dig != int(cnpj[pos]):
+            return False
+    return True
+
+
+def valida_cpf_cnpj(numero: str) -> bool:
+    """True se for um CPF (11) ou CNPJ (14) com dígitos verificadores válidos."""
+    num = re.sub(r'\D', '', numero or '')
+    if len(num) == 11:
+        return _valida_cpf(num)
+    if len(num) == 14:
+        return _valida_cnpj(num)
+    return False
 
 
 def _query_param(headers, *names):
@@ -216,7 +253,15 @@ class PagSeguroAdapter(GatewayBase):
             centavos = int(round(float(fatura.valor) * 100))
             # PIX via QR Code é criado em qr_codes (NÃO em charges). Vence em 3 dias.
             expira = (datetime.now(_tz.utc) + timedelta(days=3)).astimezone().isoformat(timespec='seconds')
-            cnpj = re.sub(r'\D', '', getattr(oficina, 'cnpj', '') or '') or '00000000000000'
+            cnpj = re.sub(r'\D', '', getattr(oficina, 'cnpj', '') or '')
+            # O PagBank valida os dígitos verificadores: um CNPJ/CPF inválido
+            # retorna HTTP 400 (code 40002). Antecipamos com mensagem clara.
+            if not valida_cpf_cnpj(cnpj):
+                logger.error(f'PagSeguro criar_cobranca: CNPJ/CPF inválido (oficina {getattr(oficina, "id", "?")}): "{cnpj}"')
+                return {
+                    'gateway_id': '', 'link_pagamento': '',
+                    'erro': 'O CNPJ/CPF da oficina é inválido. Corrija o cadastro da oficina antes de gerar o pagamento.',
+                }
             webhook_url = f"{settings.FRONTEND_URL.rstrip('/')}/api/admin-panel/webhook/gateway/"
             payload = {
                 'reference_id': fatura.numero,

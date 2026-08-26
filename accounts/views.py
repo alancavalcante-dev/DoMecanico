@@ -617,7 +617,8 @@ def gerar_link_pagamento(request):
 
     if not link:
         fatura.delete()
-        return Response({'erro': 'Não foi possível gerar o link de pagamento.'}, status=status.HTTP_502_BAD_GATEWAY)
+        erro_msg = resultado.get('erro') or 'Não foi possível gerar o link de pagamento. Tente novamente.'
+        return Response({'erro': erro_msg}, status=status.HTTP_502_BAD_GATEWAY)
 
     fatura.gateway_id = resultado.get('gateway_id', '')
     fatura.link_pagamento = link
