@@ -42,6 +42,15 @@ def use_bypass() -> bool:
     return getattr(_state, 'bypass', False)
 
 
+def enable_bypass_for_command():
+    """Comandos de management/cron rodam FORA do ciclo de request (sem o
+    RLSMiddleware), então `app.current_oficina` nunca é definida e o RLS
+    esconderia todas as linhas das tabelas de oficina. Chame isto no início do
+    `handle()` de comandos que precisam enxergar TODAS as oficinas (lembretes,
+    cobrança, expiração). É no-op quando RLS_ENABLED é False."""
+    _state.bypass = True
+
+
 class RLSRouter:
     """Roteia as queries para `bypass` ou `default` conforme o tipo de request
     (definido pelo RLSMiddleware). Só entra em DATABASE_ROUTERS quando RLS_ENABLED."""

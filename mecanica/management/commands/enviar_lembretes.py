@@ -24,6 +24,10 @@ class Command(BaseCommand):
     help = 'Envia lembretes de agendamento via WhatsApp para o dia seguinte'
 
     def handle(self, *args, **options):
+        # Cron roda sem middleware: sem isto o RLS esconde TODOS os agendamentos.
+        from core.rls import enable_bypass_for_command
+        enable_bypass_for_command()
+
         amanha = date.today() + timedelta(days=1)
 
         agendamentos = (

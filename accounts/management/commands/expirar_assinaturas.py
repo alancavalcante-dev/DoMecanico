@@ -30,6 +30,9 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        from core.rls import enable_bypass_for_command
+        enable_bypass_for_command()  # cron sem middleware: enxergar todas as oficinas
+
         agora = timezone.now()
         dry = options['dry_run']
         # Só suspende quem venceu HÁ MAIS de CARENCIA_DIAS dias; na carência o

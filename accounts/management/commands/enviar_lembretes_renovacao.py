@@ -10,6 +10,9 @@ class Command(BaseCommand):
     help = 'Envia emails de lembrete de renovação para assinaturas próximas do vencimento.'
 
     def handle(self, *args, **options):
+        from core.rls import enable_bypass_for_command
+        enable_bypass_for_command()  # cron sem middleware: enxergar todas as oficinas
+
         from accounts.models import Assinatura, CARENCIA_DIAS
         from accounts.email_assinatura import enviar_lembrete_renovacao, enviar_aviso_carencia
         from adminpanel.models import LogAtividade
