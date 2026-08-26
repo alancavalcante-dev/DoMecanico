@@ -62,6 +62,7 @@ export default function Veiculos() {
   const [prontData, setProntData] = useState<Prontuario | null>(null)
   const [prontLoading, setProntLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
   const carregar = async (s = search) => {
     setLoading(true)
@@ -156,17 +157,17 @@ export default function Veiculos() {
   }
 
   const uploadFotos = async (files: FileList | null) => {
-    if (!files || !fotosModal) return
+    if (!files || !files.length || !fotosModal) return
     setUploadingFotos(true)
     const fd = new FormData()
-    Array.from(files).forEach(f => fd.append('fotos', f))
+    fd.append('foto', files[0])  // uma foto por veículo (substitui a anterior)
     try {
       await veiculosAPI.uploadFotos(fotosModal.id, fd)
-      toast.success(`${files.length} foto(s) enviada(s)!`)
+      toast.success('Foto salva!')
       const r = await veiculosAPI.buscar(fotosModal.id)
       setFotosModal(r.data)
     } catch {
-      toast.error('Erro ao enviar fotos.')
+      toast.error('Erro ao enviar a foto.')
     } finally {
       setUploadingFotos(false)
     }
@@ -327,18 +328,33 @@ export default function Veiculos() {
       </Modal>
 
       {/* Modal Fotos */}
-      <Modal open={!!fotosModal} onClose={() => setFotosModal(null)} title={`Fotos — ${fotosModal?.placa} ${fotosModal?.marca} ${fotosModal?.modelo}`} size="xl">
+      <Modal open={!!fotosModal} onClose={() => setFotosModal(null)} title={`Foto — ${fotosModal?.placa} ${fotosModal?.marca} ${fotosModal?.modelo}`} size="xl">
         <div className="space-y-4">
-          <div
-            className="border-2 border-dashed border-blue-300 rounded-xl p-8 text-center cursor-pointer hover:bg-blue-50 transition-colors"
-            onClick={() => fileRef.current?.click()}
-          >
-            <Camera size={32} className="mx-auto text-blue-400 mb-2" />
-            <p className="text-sm text-slate-500">Clique para selecionar fotos</p>
-            <p className="text-xs text-slate-400 mt-1">JPG, PNG, WEBP — múltiplas fotos permitidas</p>
-            <input ref={fileRef} type="file" multiple accept="image/*" className="hidden"
-              onChange={e => uploadFotos(e.target.files)} />
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => cameraRef.current?.click()}
+              disabled={uploadingFotos}
+              className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-blue-300 rounded-xl p-6 text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+            >
+              <Camera size={28} />
+              <span className="text-sm font-medium">Tirar foto</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploadingFotos}
+              className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-xl p-6 text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            >
+              <Image size={28} />
+              <span className="text-sm font-medium">Da galeria</span>
+            </button>
           </div>
+          <p className="text-xs text-center text-slate-400">Uma foto por veículo — a nova substitui a anterior. JPG, PNG ou WEBP.</p>
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden"
+            onChange={e => { uploadFotos(e.target.files); e.target.value = '' }} />
+          <input ref={fileRef} type="file" accept="image/*" className="hidden"
+            onChange={e => { uploadFotos(e.target.files); e.target.value = '' }} />
           {uploadingFotos && (
             <div className="flex items-center justify-center gap-2 text-sm text-blue-600">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />

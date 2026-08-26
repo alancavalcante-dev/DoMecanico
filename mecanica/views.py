@@ -298,20 +298,23 @@ class VeiculoViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='upload-foto')
     def upload_foto(self, request, pk=None):
         veiculo = self.get_object()
-        fotos = request.FILES.getlist('fotos')
-        if not fotos:
+        # Uma foto por veículo: aceita 'foto' (novo) ou 'fotos' (legado) e usa a primeira.
+        foto = request.FILES.get('foto') or next(iter(request.FILES.getlist('fotos')), None)
+        if not foto:
             return Response({'erro': 'Nenhuma foto enviada.'}, status=status.HTTP_400_BAD_REQUEST)
         MAX_SIZE = 10 * 1024 * 1024  # 10 MB
-        criadas = []
-        for foto in fotos:
-            if foto.size > MAX_SIZE:
-                return Response({'erro': 'Arquivo muito grande. Limite: 10 MB.'}, status=status.HTTP_400_BAD_REQUEST)
-            if not _validar_imagem(foto):
-                return Response({'erro': 'Arquivo inválido. Envie uma imagem JPEG, PNG, WebP ou GIF.'}, status=status.HTTP_400_BAD_REQUEST)
-            foto = _comprimir_imagem(foto)
-            obj = FotoVeiculo.objects.create(veiculo=veiculo, foto=foto, descricao=request.data.get('descricao', ''))
-            criadas.append(FotoVeiculoSerializer(obj, context={'request': request}).data)
-        return Response(criadas, status=status.HTTP_201_CREATED)
+        if foto.size > MAX_SIZE:
+            return Response({'erro': 'Arquivo muito grande. Limite: 10 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not _validar_imagem(foto):
+            return Response({'erro': 'Arquivo inválido. Envie uma imagem JPEG, PNG, WebP ou GIF.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Substitui a foto anterior (uma por veículo) e libera o storage do arquivo antigo.
+        for antiga in veiculo.fotos.all():
+            antiga.foto.delete(save=False)
+            antiga.delete()
+        # Qualidade baixa para economizar espaço (foto de veículo não precisa de alta resolução).
+        foto = _comprimir_imagem(foto, max_dim=1024, quality=55)
+        obj = FotoVeiculo.objects.create(veiculo=veiculo, foto=foto, descricao=request.data.get('descricao', ''))
+        return Response([FotoVeiculoSerializer(obj, context={'request': request}).data], status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['delete'], url_path='foto/(?P<foto_id>[^/.]+)')
     def deletar_foto(self, request, pk=None, foto_id=None):
