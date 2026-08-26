@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authAPI } from '../api'
 import { useAuth } from '../contexts/AuthContext'
-import { CreditCard, Check, X, AlertTriangle, RefreshCw, Loader2, Receipt, Copy, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { CreditCard, Check, X, AlertTriangle, RefreshCw, Loader2, Receipt, Copy, CheckCircle, ChevronDown, ChevronUp, LifeBuoy, Building2 } from 'lucide-react'
 
 
 interface Plano {
@@ -188,6 +189,9 @@ export default function Assinatura() {
             Apenas o <strong>administrador da oficina</strong> pode gerenciar a assinatura e os pagamentos.
             Fale com o responsável para regularizar.
           </p>
+          <Link to="/suporte" className="mt-4 inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-500 font-medium">
+            <LifeBuoy className="w-4 h-4" /> Falar com o Suporte
+          </Link>
         </div>
       </div>
     )
@@ -262,6 +266,34 @@ export default function Assinatura() {
           </button>
         </div>
       )}
+
+      {/* Ajuda rápida: suporte + dados da oficina (acessíveis mesmo com acesso bloqueado) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+        <Link
+          to="/suporte"
+          className="flex items-center gap-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm transition"
+        >
+          <div className="bg-blue-50 text-blue-600 rounded-xl p-2.5 shrink-0">
+            <LifeBuoy className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-slate-800 font-semibold text-sm">Falar com o Suporte</p>
+            <p className="text-slate-500 text-xs">Problema com pagamento ou acesso? Fale com a gente.</p>
+          </div>
+        </Link>
+        <Link
+          to="/perfil"
+          className="flex items-center gap-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl p-4 shadow-sm transition"
+        >
+          <div className="bg-emerald-50 text-emerald-600 rounded-xl p-2.5 shrink-0">
+            <Building2 className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-slate-800 font-semibold text-sm">Dados da Oficina</p>
+            <p className="text-slate-500 text-xs">Corrija CNPJ, endereço e outros dados do cadastro.</p>
+          </div>
+        </Link>
+      </div>
 
       {/* Trocar plano */}
       <h2 className="text-slate-800 font-semibold mb-4">{planos.length > 1 ? 'Alterar plano' : 'Seu plano'}</h2>

@@ -3,9 +3,11 @@ import { useAuth } from '../contexts/AuthContext'
 import { authAPI } from '../api'
 import toast from 'react-hot-toast'
 import { Upload, Building2, Palette, Save, ImageIcon } from 'lucide-react'
+import { validaCNPJ } from '../utils/validators'
 
 interface OficinaForm {
   nome: string
+  cnpj: string
   telefone: string
   endereco: string
   cidade: string
@@ -20,6 +22,7 @@ export default function Perfil() {
 
   const [form, setForm] = useState<OficinaForm>({
     nome: '',
+    cnpj: '',
     telefone: '',
     endereco: '',
     cidade: '',
@@ -39,6 +42,7 @@ export default function Perfil() {
       const o = user.oficina as any
       setForm({
         nome: o.nome || '',
+        cnpj: o.cnpj || '',
         telefone: o.telefone || '',
         endereco: o.endereco || '',
         cidade: o.cidade || '',
@@ -75,8 +79,21 @@ export default function Perfil() {
     if (file) handleFileSelect(file)
   }
 
+  const maskCnpj = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 14)
+    if (d.length > 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
+    if (d.length > 8)  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`
+    if (d.length > 5)  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`
+    if (d.length > 2)  return `${d.slice(0, 2)}.${d.slice(2)}`
+    return d
+  }
+
   const salvarDados = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (form.cnpj && !validaCNPJ(form.cnpj)) {
+      toast.error('CNPJ inválido. Verifique os números digitados.')
+      return
+    }
     setSalvandoDados(true)
     try {
       await authAPI.atualizarOficina(form)
@@ -268,6 +285,18 @@ export default function Perfil() {
                 onChange={(e) => setForm(p => ({ ...p, nome: e.target.value }))}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">CNPJ *</label>
+              <input
+                type="text"
+                required
+                value={form.cnpj}
+                onChange={(e) => setForm(p => ({ ...p, cnpj: maskCnpj(e.target.value) }))}
+                placeholder="00.000.000/0000-00"
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">Usado na cobrança da assinatura — precisa ser válido.</p>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Telefone</label>

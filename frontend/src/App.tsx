@@ -79,12 +79,16 @@ function PageLoader() {
 }
 
 // ── Guards ────────────────────────────────────────────────────────────────────
+// Rotas liberadas mesmo com a assinatura bloqueada: pagar, pedir suporte,
+// corrigir os dados da oficina (ex.: CNPJ errado) e ver a ajuda.
+const ROTAS_LIVRES_BLOQUEIO = ['/assinatura', '/suporte', '/perfil', '/ajuda']
+
 function AuthGuard() {
   const { user, loading } = useAuth()
   const { pathname } = useLocation()
   if (loading) return <PageLoader />
   if (!user) return <Navigate to="/login" replace />
-  if (user.assinatura && !user.assinatura.ativa && pathname !== '/assinatura') {
+  if (user.assinatura && !user.assinatura.ativa && !ROTAS_LIVRES_BLOQUEIO.includes(pathname)) {
     return <Navigate to="/assinatura" replace />
   }
   return <Layout />

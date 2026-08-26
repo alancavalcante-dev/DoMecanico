@@ -57,6 +57,12 @@ class OficinaSerializer(serializers.ModelSerializer):
         model = Oficina
         fields = '__all__'
 
+    def validate_cnpj(self, value):
+        from core.validators import valida_cnpj
+        if value and not valida_cnpj(value):
+            raise serializers.ValidationError('CNPJ inválido. Verifique os números digitados.')
+        return value
+
     def get_logo_url(self, obj):
         if not obj.logo:
             return None
