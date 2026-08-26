@@ -292,12 +292,26 @@ class PagSeguroAdapter(GatewayBase):
         # continua valendo nos dois ambientes).
         if getattr(self.config, 'ambiente', 'sandbox') != 'producao':
             return True
+        fonte = 'webhook_secret' if (self.config.webhook_secret or '').strip() else 'chave_secreta'
         token = (self.config.webhook_secret or self.config.chave_secreta or '').strip()
         if not token:
+            logger.warning('PagSeguro webhook: sem token para validar assinatura '
+                           '(webhook_secret e chave_secreta vazios) — liberando.')
             return True
         recebido = headers.get('HTTP_X_AUTHENTICITY_TOKEN', '')
         calculado = hashlib.sha256((token + '-').encode('utf-8') + payload_raw).hexdigest()
-        return hmac.compare_digest(recebido, calculado)
+        ok = hmac.compare_digest(recebido, calculado)
+        if not ok:
+            # Diagnóstico do 1º pagamento real (só hashes/metadados — NÃO loga o token).
+            logger.error(
+                'PagSeguro webhook: assinatura NÃO confere. '
+                f'header_presente={bool(recebido)} recebido={recebido[:64] or "(vazio)"} '
+                f'calculado={calculado[:64]} fonte_token={fonte} corpo_bytes={len(payload_raw)}. '
+                'Se o header vier preenchido mas diferente do calculado, o PagBank está '
+                'assinando com outro token — copie o token do webhook do painel PagBank '
+                'para o campo webhook_secret.'
+            )
+        return ok
 
 
 class AbacatePayAdapter(GatewayBase):
