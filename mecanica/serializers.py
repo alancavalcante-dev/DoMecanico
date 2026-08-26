@@ -44,6 +44,13 @@ class ClienteSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['oficina']
 
+    def validate_cpf_cnpj(self, value):
+        # Opcional no cadastro do cliente; valida os dígitos só quando preenchido.
+        from core.validators import valida_cpf_cnpj
+        if value and not valida_cpf_cnpj(value):
+            raise serializers.ValidationError('CPF ou CNPJ inválido. Verifique os números digitados.')
+        return value
+
     def get_total_veiculos(self, obj):
         return obj.veiculos.count()
 

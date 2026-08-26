@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { clientesAPI } from '../api'
+import { validaCpfCnpj } from '../utils/validators'
 import type { Cliente } from '../types'
 import PageHeader from '../components/ui/PageHeader'
 import Modal from '../components/ui/Modal'
@@ -55,6 +56,10 @@ export default function Clientes() {
 
   const salvar = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (form.cpf_cnpj && !validaCpfCnpj(form.cpf_cnpj)) {
+      toast.error('CPF ou CNPJ inválido. Verifique os números digitados.')
+      return
+    }
     setSalvando(true)
     try {
       if (editando) {

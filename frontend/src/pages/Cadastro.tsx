@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authAPI } from '../api'
+import { validaCNPJ } from '../utils/validators'
 import { Check } from 'lucide-react'
 
 interface Plano {
@@ -55,6 +56,10 @@ export default function Cadastro() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+    if (!validaCNPJ(form.cnpj)) {
+      toast.error('CNPJ inválido. Verifique os números digitados.')
+      return
+    }
     setLoading(true)
     try {
       const { data } = await authAPI.registrar({ ...form, plano_slug: planoSlug })

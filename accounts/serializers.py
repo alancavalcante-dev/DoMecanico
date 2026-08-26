@@ -25,7 +25,10 @@ class RegistroSerializer(serializers.Serializer):
     plano_slug = serializers.CharField(max_length=20)
 
     def validate_cnpj(self, value):
+        from core.validators import valida_cnpj
         cnpj = ''.join(filter(str.isdigit, value))
+        if not valida_cnpj(cnpj):
+            raise serializers.ValidationError('CNPJ inválido. Verifique os números digitados.')
         if Oficina.objects.filter(cnpj__icontains=cnpj[:8]).exists():
             raise serializers.ValidationError('CNPJ já cadastrado.')
         return value
