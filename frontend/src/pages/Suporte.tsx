@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { authAPI } from '../api'
 import PageHeader from '../components/ui/PageHeader'
-import { LifeBuoy, Send, CheckCircle2, Loader2 } from 'lucide-react'
+import { LifeBuoy, Send, CheckCircle2, Loader2, MessageCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { CONTATO } from '../config'
 
 interface Chamado {
   id: number
@@ -55,6 +56,14 @@ export default function Suporte() {
   return (
     <div>
       <PageHeader title="Suporte" subtitle="Abra um chamado e acompanhe as respostas da nossa equipe" />
+
+      <a
+        href={`https://wa.me/${CONTATO.whatsapp}?text=${encodeURIComponent('Olá! Preciso de ajuda com o DoMecânico.')}`}
+        target="_blank" rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 mb-6 text-sm text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg px-3 py-2 transition"
+      >
+        <MessageCircle size={16} /> Falar direto no WhatsApp — {CONTATO.whatsappDisplay}
+      </a>
 
       <form onSubmit={abrir} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6 max-w-2xl">
         <label className="text-sm font-medium text-slate-700">Descreva seu problema ou dúvida</label>

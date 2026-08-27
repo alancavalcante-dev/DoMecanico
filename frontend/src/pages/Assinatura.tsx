@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authAPI } from '../api'
 import { useAuth } from '../contexts/AuthContext'
-import { CreditCard, Check, X, AlertTriangle, RefreshCw, Loader2, Receipt, Copy, CheckCircle, ChevronDown, ChevronUp, LifeBuoy, Building2 } from 'lucide-react'
+import { CONTATO, PAGAMENTO_MANUAL } from '../config'
+import { CreditCard, Check, X, AlertTriangle, RefreshCw, Loader2, Receipt, Copy, CheckCircle, ChevronDown, ChevronUp, LifeBuoy, Building2, MessageCircle } from 'lucide-react'
 
 
 interface Plano {
@@ -77,6 +78,7 @@ export default function Assinatura() {
   const [showPagar, setShowPagar] = useState(false)
   const [pixData, setPixData] = useState<{ link_pagamento: string; pix_copia_cola: string } | null>(null)
   const [pixCopiado, setPixCopiado] = useState(false)
+  const [chaveCopiada, setChaveCopiada] = useState(false)
   const [linkCopiado, setLinkCopiado] = useState<number | null>(null)
   const [cancelando, setCancelando] = useState<number | null>(null)
   const [modulosExpandidos, setModulosExpandidos] = useState<Record<string, boolean>>({})
@@ -115,6 +117,13 @@ export default function Assinatura() {
   }
 
   const fecharPagar = () => { setShowPagar(false); setPixData(null); setPixCopiado(false) }
+
+  const copiarChave = () => {
+    navigator.clipboard.writeText(CONTATO.pixKey).then(() => {
+      setChaveCopiada(true)
+      setTimeout(() => setChaveCopiada(false), 2000)
+    })
+  }
 
   const copiarPix = () => {
     if (!pixData?.pix_copia_cola) return
@@ -442,7 +451,58 @@ export default function Assinatura() {
           <div className="bg-white rounded-2xl p-8 w-full max-w-md border border-slate-200 shadow-xl">
             <h3 className="text-slate-800 font-bold text-xl mb-6">Pagar via PIX</h3>
 
-            {!pixData ? (
+            {PAGAMENTO_MANUAL ? (
+              <div className="space-y-4">
+                <p className="text-sm text-slate-500">
+                  Faça um PIX do valor do plano para a chave abaixo e nos envie o comprovante
+                  no WhatsApp — ativamos sua assinatura na hora.
+                </p>
+
+                <div>
+                  <label className="block text-sm text-slate-500 mb-1">Plano</label>
+                  <select
+                    value={planoSelecionado}
+                    onChange={(e) => setPlanoSelecionado(e.target.value)}
+                    className="w-full bg-slate-100 border border-slate-200 text-slate-800 rounded-lg px-4 py-2.5"
+                  >
+                    {planos.map((p) => (
+                      <option key={p.slug} value={p.slug}>{p.nome} — {fmt(p.preco)}/mês</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">Chave PIX (aleatória)</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-sm text-slate-800 break-all">{CONTATO.pixKey}</code>
+                      <button onClick={copiarChave} className="shrink-0 flex items-center gap-1 text-xs text-blue-600 hover:text-blue-500">
+                        {chaveCopiada ? <><CheckCircle size={14} /> Copiado</> : <><Copy size={14} /> Copiar</>}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Favorecido</p>
+                    <p className="text-sm text-slate-800 font-medium">{CONTATO.pixNome}</p>
+                  </div>
+                </div>
+
+                <a
+                  href={`https://wa.me/${CONTATO.whatsapp}?text=${encodeURIComponent('Olá! Paguei a assinatura do DoMecânico via PIX e estou enviando o comprovante.')}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg py-3 transition text-sm"
+                >
+                  <MessageCircle size={16} /> Enviar comprovante no WhatsApp
+                </a>
+
+                <button
+                  onClick={fecharPagar}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg py-2.5 transition text-sm"
+                >
+                  Fechar
+                </button>
+              </div>
+            ) : !pixData ? (
               <>
                 <div className="space-y-4">
                   <div>

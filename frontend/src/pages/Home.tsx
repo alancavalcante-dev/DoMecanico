@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   ClipboardList, Users, Package, BarChart3, Calendar,
   FileText, Shield, MessageCircle, CheckCircle, Star, ArrowRight,
-  ChevronDown, Zap, Clock, TrendingUp, Car, Receipt, Bell,
+  ChevronDown, Zap, Clock, TrendingUp, Car, Bell,
   Menu, X, Phone, Mail, MapPin, Play, ChevronRight,
   Stethoscope, Smartphone, HeartPulse, Globe,
 } from 'lucide-react'
@@ -758,7 +758,7 @@ export default function Home() {
               <span>·</span>
               <Link to="/termos" className="hover:text-gray-400 transition-colors">Termos</Link>
               <span>·</span>
-              <span className="flex items-center gap-1.5"><Receipt className="w-3.5 h-3.5" /> CNPJ: 00.000.000/0000-00</span>
+              <span className="flex items-center gap-1.5">Alan Pereira Cavalcante</span>
             </div>
           </div>
         </div>
