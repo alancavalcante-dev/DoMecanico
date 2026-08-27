@@ -597,9 +597,9 @@ export default function OrdensServico() {
                     ))}
                   </select>
                 )}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <input required value={addServico.descricao} onChange={e => setAddServico(p => ({ ...p, descricao: e.target.value }))} placeholder="Descrição do serviço"
-                    className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    className="basis-full sm:flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   <input required type="number" step="0.01" value={addServico.quantidade} onChange={e => setAddServico(p => ({ ...p, quantidade: e.target.value }))} placeholder="Qtd"
                     className="w-16 border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
                   <CurrencyInput value={addServico.preco_unitario} onChange={v => setAddServico(p => ({ ...p, preco_unitario: v }))} placeholder="R$ Valor"
@@ -642,14 +642,14 @@ export default function OrdensServico() {
                 </table>
                 </div>
               )}
-              <form onSubmit={adicionarPeca} className="flex gap-2">
+              <form onSubmit={adicionarPeca} className="flex flex-wrap gap-2">
                 <select value={addPeca.peca} onChange={e => onPecaSelect(e.target.value)}
-                  className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  className="basis-full sm:flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">Peça do estoque (opcional)</option>
                   {pecasEstoque.map(p => <option key={p.id} value={p.id}>{p.nome} (Estq: {parseFloat(p.quantidade)})</option>)}
                 </select>
                 <input value={addPeca.descricao} onChange={e => setAddPeca(p => ({ ...p, descricao: e.target.value }))} placeholder="Descrição"
-                  className="flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  className="basis-full sm:flex-1 border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 <input type="number" step="0.01" value={addPeca.quantidade} onChange={e => setAddPeca(p => ({ ...p, quantidade: e.target.value }))} placeholder="Qtd"
                   className="w-16 border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 <CurrencyInput value={addPeca.preco_unitario} onChange={v => setAddPeca(p => ({ ...p, preco_unitario: v }))} placeholder="R$"

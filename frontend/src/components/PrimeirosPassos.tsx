@@ -46,32 +46,47 @@ export default function PrimeirosPassos() {
     setOculto(true)
   }
 
+  const pct = Math.round((feitos / passos.length) * 100)
+
   return (
-    <div className="bg-gradient-to-br from-violet-50 to-blue-50 border border-violet-100 rounded-xl p-5 mb-6">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <Rocket size={18} className="text-violet-600" />
-          <h3 className="font-semibold text-slate-800">
-            Primeiros passos <span className="text-slate-400 font-normal">({feitos}/{passos.length})</span>
-          </h3>
+    <div className="bg-gradient-to-br from-violet-50 to-blue-50 border border-violet-100 rounded-xl p-4 sm:p-5 mb-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Rocket size={20} className="text-violet-600 shrink-0" />
+          <div className="min-w-0">
+            <h3 className="font-semibold text-slate-800 leading-tight">Primeiros passos</h3>
+            <p className="text-xs text-slate-500">Deixe sua oficina pronta em poucos minutos</p>
+          </div>
         </div>
-        <button onClick={dispensar} className="text-slate-400 hover:text-slate-600" title="Dispensar">
+        <button onClick={dispensar} className="shrink-0 -mt-1 -mr-1 p-1 text-slate-400 hover:text-slate-600" title="Dispensar">
           <X size={16} />
         </button>
       </div>
-      <div className="mt-3 grid sm:grid-cols-2 gap-2">
+
+      {/* Barra de progresso */}
+      <div className="mt-3 flex items-center gap-2">
+        <div className="flex-1 h-2 bg-white/70 rounded-full overflow-hidden">
+          <div className="h-full bg-violet-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+        </div>
+        <span className="shrink-0 text-xs font-semibold text-violet-700">{feitos}/{passos.length}</span>
+      </div>
+
+      {/* Passos — linha inteira clicável no mobile, texto quebra (não corta) */}
+      <div className="mt-3 space-y-2">
         {passos.map((p, i) => (
-          <div key={i} className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2 ${p.feito ? 'bg-white/50' : 'bg-white'}`}>
-            <div className="flex items-center gap-2 min-w-0">
-              {p.feito
-                ? <CheckCircle2 size={16} className="text-green-500 shrink-0" />
-                : <Circle size={16} className="text-slate-300 shrink-0" />}
-              <span className={`text-sm truncate ${p.feito ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{p.label}</span>
+          p.feito ? (
+            <div key={i} className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 bg-white/40">
+              <CheckCircle2 size={18} className="text-green-500 shrink-0" />
+              <span className="text-sm text-slate-400 line-through leading-snug">{p.label}</span>
             </div>
-            {!p.feito && (
-              <Link to={p.to} className="shrink-0 text-xs font-medium text-violet-600 hover:underline">{p.cta} →</Link>
-            )}
-          </div>
+          ) : (
+            <Link key={i} to={p.to}
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 bg-white shadow-sm hover:shadow active:scale-[0.99] transition">
+              <Circle size={18} className="text-violet-400 shrink-0" />
+              <span className="flex-1 text-sm text-slate-700 leading-snug">{p.label}</span>
+              <span className="shrink-0 text-xs font-semibold text-violet-600">{p.cta} →</span>
+            </Link>
+          )
         ))}
       </div>
     </div>

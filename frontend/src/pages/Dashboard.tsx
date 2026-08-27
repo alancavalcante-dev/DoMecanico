@@ -56,11 +56,11 @@ interface CardProps {
 
 function StatCard({ title, value, icon, color, sub }: CardProps) {
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-100 flex items-start gap-4">
-      <div className={`p-3 rounded-lg ${color}`}>{icon}</div>
+    <div className="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-slate-100 flex items-start gap-3 sm:gap-4">
+      <div className={`p-2.5 sm:p-3 rounded-lg shrink-0 ${color}`}>{icon}</div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-slate-500">{title}</p>
-        <p className="text-2xl font-bold text-slate-800 mt-0.5">{value}</p>
+        <p className="text-xs sm:text-sm text-slate-500 truncate">{title}</p>
+        <p className="text-lg sm:text-2xl font-bold text-slate-800 mt-0.5 break-words leading-tight">{value}</p>
         {sub && <div className="mt-1">{sub}</div>}
       </div>
     </div>

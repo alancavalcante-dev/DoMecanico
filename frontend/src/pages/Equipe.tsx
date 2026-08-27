@@ -464,7 +464,8 @@ export default function Equipe() {
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto overscroll-x-contain">
+          <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
               <tr>
                 <th className="px-5 py-3 text-left">Membro</th>
@@ -545,6 +546,7 @@ export default function Equipe() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

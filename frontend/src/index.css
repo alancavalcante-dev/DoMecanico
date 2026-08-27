@@ -14,3 +14,18 @@ body {
 #root {
   min-height: 100vh;
 }
+
+/* Mobile: fonte >= 16px nos campos evita o ZOOM automático do iOS ao focar.
+   (o !important vence o text-sm do Tailwind; só no mobile, desktop fica igual) */
+@media (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Contêineres roláveis não "vazam" o scroll para a página atrás (drawer, modais). */
+.scroll-contain {
+  overscroll-behavior: contain;
+}

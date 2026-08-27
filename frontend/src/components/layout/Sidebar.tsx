@@ -5,7 +5,7 @@ import {
   Calendar, FileCheck, ShieldCheck, DollarSign, BookOpen, UsersRound, MessageCircle, KeyRound, Eye, EyeOff,
   Building2, ChevronDown, X, Globe, Wrench, Bug, LifeBuoy, Tags, Stethoscope,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { authAPI } from '../../api'
 import toast from 'react-hot-toast'
@@ -246,6 +246,15 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
   const handleLogout = () => { logout().then(() => navigate('/login')) }
 
+  // Trava o scroll do fundo enquanto o menu mobile está aberto (evita o scroll
+  // da página "vazar" quando o usuário rola a lista de módulos).
+  useEffect(() => {
+    if (!open) return
+    const anterior = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = anterior }
+  }, [open])
+
   const trial = user?.assinatura?.status === 'trial'
   const diasTrial = user?.assinatura?.dias_trial_restantes ?? 0
 
@@ -281,7 +290,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         )}
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-blue-600 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto overscroll-contain [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-blue-600 [&::-webkit-scrollbar-thumb]:rounded-full">
           <NavLink
             to="/dashboard"
             end
