@@ -463,9 +463,10 @@ export default function Equipe() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="overflow-x-auto overscroll-x-contain">
-          <table className="w-full min-w-[720px] text-sm">
+        <>
+        {/* Desktop: tabela */}
+        <div className="hidden lg:block bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+          <table className="w-full text-sm">
             <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
               <tr>
                 <th className="px-5 py-3 text-left">Membro</th>
@@ -546,8 +547,66 @@ export default function Equipe() {
               })}
             </tbody>
           </table>
-          </div>
         </div>
+
+        {/* Mobile: cards */}
+        <div className="lg:hidden space-y-3">
+          {membros.map(m => {
+            const isMe = m.email === user?.email
+            return (
+              <div key={m.id} className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold shrink-0">
+                    {m.nome.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-800 leading-tight">
+                      {m.nome} {isMe && <span className="text-xs text-slate-400 font-normal">(você)</span>}
+                    </p>
+                    <p className="text-xs text-slate-400 break-all">{m.email}</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {isAdmin && !isMe ? (
+                    <select value={m.papel} onChange={e => alterarPapel(m, e.target.value)}
+                      className="border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="admin">Administrador</option>
+                      <option value="mecanico">Mecânico</option>
+                      <option value="atendente">Atendente</option>
+                    </select>
+                  ) : (
+                    <PapelBadge papel={m.papel} display={m.papel_display} />
+                  )}
+                  <span className="text-xs text-slate-500">
+                    {m.papel === 'admin' ? 'Acesso total' : `${m.modulos.length} módulo${m.modulos.length !== 1 ? 's' : ''}`}
+                  </span>
+                  <span className="text-xs text-slate-400">· desde {new Date(m.criado_em).toLocaleDateString('pt-BR')}</span>
+                </div>
+
+                {isAdmin && !isMe && (
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+                    {m.papel !== 'admin' && (
+                      <button onClick={() => setMembroPermissoes(m)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-600 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 rounded-lg transition-colors">
+                        <Settings2 size={13} /> Permissões
+                      </button>
+                    )}
+                    <button onClick={() => resetarSenha(m)}
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-600 hover:text-amber-600 hover:bg-amber-50 border border-slate-200 rounded-lg transition-colors">
+                      <KeyRound size={13} /> Nova senha
+                    </button>
+                    <button onClick={() => removerMembro(m)}
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs text-slate-600 hover:text-red-600 hover:bg-red-50 border border-slate-200 rounded-lg transition-colors">
+                      <Trash2 size={13} /> Remover
+                    </button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+        </>
       )}
 
       {/* Modal criar membro */}
