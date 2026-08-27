@@ -149,7 +149,7 @@ function SeletorVeiculo({ clienteId, onSelect }: { clienteId: number; onSelect: 
   if (veiculos.length === 0) return null
 
   return (
-    <div className="col-span-2">
+    <div className="sm:col-span-2">
       <label className="block text-xs text-slate-500 mb-1">Veículo cadastrado</label>
       <div className="flex flex-wrap gap-2">
         {veiculos.map(v => (
@@ -501,19 +501,19 @@ export default function Agendamentos() {
                 onChange={e => setForm(p => ({ ...p, veiculo_descricao: e.target.value }))}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-xs text-slate-500 mb-1">Serviço desejado *</label>
               <input required value={form.servico_desejado} placeholder="Ex: Troca de óleo, revisão..."
                 onChange={e => setForm(p => ({ ...p, servico_desejado: e.target.value }))}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-xs text-slate-500 mb-1">Data e hora *</label>
               <input required type="datetime-local" value={form.data_hora}
                 onChange={e => setForm(p => ({ ...p, data_hora: e.target.value }))}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <label className="block text-xs text-slate-500 mb-1">Observações</label>
               <textarea rows={2} value={form.observacoes}
                 onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))}
