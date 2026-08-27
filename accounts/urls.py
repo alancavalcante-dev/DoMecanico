@@ -18,6 +18,7 @@ urlpatterns = [
     path('assinatura/', views.minha_assinatura, name='assinatura'),
     path('assinatura/pagar/', views.simular_pagamento, name='pagar'),
     path('assinatura/gerar-link-pagamento/', views.gerar_link_pagamento, name='gerar_link_pagamento'),
+    path('assinatura/pagamento-info/', views.pagamento_info, name='pagamento_info'),
     path('assinatura/trocar-plano/', views.trocar_plano, name='trocar_plano'),
     path('assinatura/faturas/', views.minhas_faturas, name='minhas_faturas'),
     path('assinatura/faturas/<int:fatura_id>/cancelar/', views.cancelar_minha_fatura, name='cancelar_minha_fatura'),

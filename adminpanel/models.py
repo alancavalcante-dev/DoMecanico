@@ -114,6 +114,11 @@ class GatewayConfig(models.Model):
     chave_secreta = models.CharField(max_length=500, blank=True)
     webhook_secret = models.CharField(max_length=500, blank=True)
     ambiente = models.CharField(max_length=10, choices=[('sandbox', 'Sandbox'), ('producao', 'Produção')], default='sandbox')
+    # Modo Manual (PIX): configurado pelo admin e exibido pra oficina pagar.
+    pix_chave = models.CharField(max_length=200, blank=True)
+    pix_favorecido = models.CharField(max_length=200, blank=True)
+    pix_qrcode = models.ImageField(upload_to='pix/', null=True, blank=True)
+    whatsapp_suporte = models.CharField(max_length=30, blank=True, help_text='Só dígitos com DDI, ex: 5511986815754')
     config_extra = models.JSONField(default=dict, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)

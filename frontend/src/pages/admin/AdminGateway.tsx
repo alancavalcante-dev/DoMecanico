@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   CreditCard, Eye, EyeOff, Copy, CheckCircle, AlertTriangle,
-  Save, Loader2, Landmark, Banknote, Zap, Leaf,
+  Save, Loader2, Landmark, Banknote, Zap, Leaf, Upload,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminAPI } from '../../api'
@@ -14,6 +14,10 @@ interface ProviderConfig {
   chave_secreta: string
   webhook_secret: string
   ambiente: Ambiente
+  pix_chave: string
+  pix_favorecido: string
+  pix_qrcode: string
+  whatsapp_suporte: string
 }
 
 const EMPTY_CONFIG = (): ProviderConfig => ({
@@ -21,6 +25,10 @@ const EMPTY_CONFIG = (): ProviderConfig => ({
   chave_secreta: '',
   webhook_secret: '',
   ambiente: 'sandbox',
+  pix_chave: '',
+  pix_favorecido: '',
+  pix_qrcode: '',
+  whatsapp_suporte: '',
 })
 
 const GATEWAYS = [
@@ -42,18 +50,21 @@ export default function AdminGateway() {
   const [mostrarSecreta, setMostrarSecreta] = useState(false)
   const [mostrarWebhook, setMostrarWebhook] = useState(false)
   const [urlCopiada, setUrlCopiada] = useState(false)
+  const [qrFile, setQrFile] = useState<File | null>(null)
+  const [qrPreview, setQrPreview] = useState('')
 
-  useEffect(() => {
+  const carregar = (marcarSelecionado = true) =>
     adminAPI.gateway()
       .then(({ data }) => {
         const ativo = (data.gateway_ativo || 'manual') as GatewayTipo
         setGatewayAtivo(ativo)
-        setSelected(ativo)
+        if (marcarSelecionado) setSelected(ativo)
         if (data.configs) setConfigs(data.configs)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
+
+  useEffect(() => { carregar() }, [])
 
   const current = configs[selected] ?? EMPTY_CONFIG()
 
@@ -67,14 +78,33 @@ export default function AdminGateway() {
     setSelected(gw)
     setMostrarSecreta(false)
     setMostrarWebhook(false)
+    setQrFile(null)
+    setQrPreview('')
+  }
+
+  const onQrSelect = (file: File | null) => {
+    setQrFile(file)
+    setQrPreview(file ? URL.createObjectURL(file) : '')
   }
 
   const salvar = async () => {
     setSalvando(true)
     try {
-      await adminAPI.gatewaySalvar({ gateway: selected, ...current })
-      setGatewayAtivo(selected)
+      if (selected === 'manual') {
+        const fd = new FormData()
+        fd.append('gateway', 'manual')
+        fd.append('pix_chave', current.pix_chave || '')
+        fd.append('pix_favorecido', current.pix_favorecido || '')
+        fd.append('whatsapp_suporte', current.whatsapp_suporte || '')
+        if (qrFile) fd.append('pix_qrcode', qrFile)
+        await adminAPI.gatewaySalvar(fd)
+      } else {
+        await adminAPI.gatewaySalvar({ gateway: selected, ...current })
+      }
       toast.success('Configuração salva e gateway ativado!')
+      setQrFile(null)
+      setQrPreview('')
+      await carregar(false)
     } catch {
       toast.error('Erro ao salvar configuração.')
     } finally {
@@ -146,13 +176,55 @@ export default function AdminGateway() {
         </h2>
 
         {selected === 'manual' ? (
-          <div className="flex items-start gap-3 bg-slate-800/60 border border-slate-700 rounded-xl p-4">
-            <Banknote size={20} className="text-slate-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-white font-medium text-sm">Modo Manual</p>
-              <p className="text-gray-400 text-sm mt-1">
-                Pagamentos registrados manualmente. Nenhuma integração com gateway externo.
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+              <Banknote size={20} className="text-slate-400 shrink-0 mt-0.5" />
+              <p className="text-gray-400 text-sm">
+                Cobrança por <span className="text-white font-medium">PIX manual</span>: a oficina vê estes dados na tela de assinatura, paga e envia o comprovante no seu WhatsApp — e você ativa a assinatura na mão.
               </p>
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Chave PIX</label>
+              <input type="text" value={current.pix_chave}
+                onChange={e => setField('pix_chave', e.target.value)}
+                placeholder="CPF, e-mail, telefone ou chave aleatória" className={inputCls} />
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Favorecido (nome de quem recebe)</label>
+              <input type="text" value={current.pix_favorecido}
+                onChange={e => setField('pix_favorecido', e.target.value)}
+                placeholder="Ex: Alan Pereira Cavalcante" className={inputCls} />
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">WhatsApp (recebe os comprovantes)</label>
+              <input type="text" value={current.whatsapp_suporte}
+                onChange={e => setField('whatsapp_suporte', e.target.value.replace(/\D/g, ''))}
+                placeholder="5511986815754 — só números, com DDI 55" className={inputCls} />
+            </div>
+
+            <div>
+              <label className="block text-xs text-gray-500 mb-2">QR Code do PIX (imagem, opcional)</label>
+              <div className="flex items-center gap-4">
+                {(qrPreview || current.pix_qrcode) ? (
+                  <img src={qrPreview || current.pix_qrcode} alt="QR Code PIX"
+                    className="w-28 h-28 rounded-xl border border-gray-700 object-contain bg-white p-1" />
+                ) : (
+                  <div className="w-28 h-28 rounded-xl border border-dashed border-gray-700 flex items-center justify-center text-gray-600 text-xs text-center px-2">
+                    Sem QR Code
+                  </div>
+                )}
+                <div>
+                  <label className="cursor-pointer inline-flex items-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 rounded-lg px-3 py-2 text-sm">
+                    <Upload size={15} /> Enviar imagem
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={e => onQrSelect(e.target.files?.[0] ?? null)} />
+                  </label>
+                  <p className="text-gray-600 text-xs mt-2">PNG ou JPG do QR que seu banco gerou.</p>
+                </div>
+              </div>
             </div>
           </div>
         ) : (

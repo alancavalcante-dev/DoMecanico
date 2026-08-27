@@ -553,6 +553,27 @@ def simular_pagamento(request):
 
 DIAS_ANTECIPACAO_RENOVACAO = 7  # permite renovar quando restar até X dias
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pagamento_info(request):
+    """Info de pagamento pra tela de assinatura da oficina: gateway ativo e, no
+    modo manual, os dados do PIX (chave, favorecido, QR Code, WhatsApp)."""
+    from adminpanel.models import GatewayConfig
+    active = GatewayConfig.objects.filter(ativo=True).order_by('-id').first()
+    provider = active.provider if active else 'manual'
+    manual = provider == 'manual'
+    return Response({
+        'provider': provider,
+        'manual': manual,
+        'pix_chave': (active.pix_chave if active and manual else ''),
+        'pix_favorecido': (active.pix_favorecido if active and manual else ''),
+        'pix_qrcode': (request.build_absolute_uri(active.pix_qrcode.url)
+                       if active and manual and active.pix_qrcode else ''),
+        'whatsapp': (active.whatsapp_suporte if active else ''),
+    })
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def gerar_link_pagamento(request):

@@ -812,6 +812,10 @@ class GatewayConfigView(APIView):
                 'chave_secreta': self._mascarar(cfg.chave_secreta) if cfg else '',
                 'webhook_secret': self._mascarar(cfg.webhook_secret) if cfg else '',
                 'ambiente': cfg.ambiente if cfg else 'sandbox',
+                'pix_chave': cfg.pix_chave if cfg else '',
+                'pix_favorecido': cfg.pix_favorecido if cfg else '',
+                'pix_qrcode': (request.build_absolute_uri(cfg.pix_qrcode.url) if cfg and cfg.pix_qrcode else ''),
+                'whatsapp_suporte': cfg.whatsapp_suporte if cfg else '',
             }
 
         return Response({'gateway_ativo': gateway_ativo, 'configs': configs})
@@ -834,6 +838,15 @@ class GatewayConfigView(APIView):
         novo_webhook = data.get('webhook_secret') or ''
         if novo_webhook and '•' not in novo_webhook:
             cfg.webhook_secret = novo_webhook
+
+        # Modo Manual (PIX): chave, favorecido, WhatsApp e imagem do QR Code.
+        cfg.pix_chave = data.get('pix_chave', cfg.pix_chave or '')
+        cfg.pix_favorecido = data.get('pix_favorecido', cfg.pix_favorecido or '')
+        cfg.whatsapp_suporte = data.get('whatsapp_suporte', cfg.whatsapp_suporte or '')
+        if request.FILES.get('pix_qrcode'):
+            cfg.pix_qrcode = request.FILES['pix_qrcode']
+        elif str(data.get('remover_qrcode', '')).lower() in ('1', 'true'):
+            cfg.pix_qrcode = None
 
         GatewayConfig.objects.exclude(provider=provider).update(ativo=False)
         cfg.ativo = True

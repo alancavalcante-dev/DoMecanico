@@ -3,7 +3,11 @@ import { authAPI } from '../api'
 import PageHeader from '../components/ui/PageHeader'
 import { LifeBuoy, Send, CheckCircle2, Loader2, MessageCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { CONTATO } from '../config'
+
+const fmtWhats = (w: string) => {
+  const d = (w || '').replace(/\D/g, '')
+  return d.length >= 12 ? `+${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4, 9)}-${d.slice(9)}` : (w || '')
+}
 
 interface Chamado {
   id: number
@@ -27,12 +31,16 @@ export default function Suporte() {
   const [loading, setLoading] = useState(true)
   const [mensagem, setMensagem] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [whatsapp, setWhatsapp] = useState('')
 
   const carregar = () => {
     setLoading(true)
     authAPI.meusChamados().then(({ data }) => setChamados(data)).catch(() => {}).finally(() => setLoading(false))
   }
-  useEffect(() => { carregar() }, [])
+  useEffect(() => {
+    carregar()
+    authAPI.pagamentoInfo().then(({ data }) => setWhatsapp(data.whatsapp || '')).catch(() => {})
+  }, [])
 
   const abrir = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,13 +65,15 @@ export default function Suporte() {
     <div>
       <PageHeader title="Suporte" subtitle="Abra um chamado e acompanhe as respostas da nossa equipe" />
 
-      <a
-        href={`https://wa.me/${CONTATO.whatsapp}?text=${encodeURIComponent('Olá! Preciso de ajuda com o DoMecânico.')}`}
-        target="_blank" rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 mb-6 text-sm text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg px-3 py-2 transition"
-      >
-        <MessageCircle size={16} /> Falar direto no WhatsApp — {CONTATO.whatsappDisplay}
-      </a>
+      {whatsapp && (
+        <a
+          href={`https://wa.me/${whatsapp}?text=${encodeURIComponent('Olá! Preciso de ajuda com o DoMecânico.')}`}
+          target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 mb-6 text-sm text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg px-3 py-2 transition"
+        >
+          <MessageCircle size={16} /> Falar direto no WhatsApp — {fmtWhats(whatsapp)}
+        </a>
+      )}
 
       <form onSubmit={abrir} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6 max-w-2xl">
         <label className="text-sm font-medium text-slate-700">Descreva seu problema ou dúvida</label>

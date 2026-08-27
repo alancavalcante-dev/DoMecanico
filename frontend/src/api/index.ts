@@ -82,6 +82,7 @@ export const authAPI = {
   assinatura: () => api.get('/auth/assinatura/'),
   pagar: (data: object) => api.post('/auth/assinatura/pagar/', data),
   gerarLinkPagamento: (data: object) => api.post('/auth/assinatura/gerar-link-pagamento/', data),
+  pagamentoInfo: () => api.get('/auth/assinatura/pagamento-info/'),
   trocarPlano: (data: object) => api.post('/auth/assinatura/trocar-plano/', data),
   minhasFaturas: () => api.get('/auth/assinatura/faturas/'),
   cancelarFatura: (id: number) => api.post(`/auth/assinatura/faturas/${id}/cancelar/`),
@@ -264,7 +265,9 @@ export const adminAPI = {
 
   // Gateway de pagamento (usa adminApi -> renova token no 401)
   gateway: () => adminApi.get('/admin-panel/gateway/'),
-  gatewaySalvar: (data: object) => adminApi.post('/admin-panel/gateway/', data),
+  gatewaySalvar: (data: object) =>
+    adminApi.post('/admin-panel/gateway/', data,
+      data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : undefined),
 
   // Anúncios / novidades
   anuncios: () => adminApi.get('/admin-panel/anuncios/'),
