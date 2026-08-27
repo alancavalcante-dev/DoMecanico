@@ -522,7 +522,7 @@ export default function OrdensServico() {
             </div>
 
             {/* Status */}
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-sm font-medium text-slate-700">Status:</span>
               {statusBadge(detalheOS.status)}
               <select

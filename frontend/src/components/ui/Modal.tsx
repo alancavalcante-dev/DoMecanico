@@ -34,14 +34,14 @@ export default function Modal({ open, onClose, title, children, size = 'md', dar
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className={`relative ${bg} rounded-xl shadow-xl w-full ${sizeMap[size]} max-h-[90vh] flex flex-col`}>
-        <div className={`flex items-center justify-between px-6 py-4 border-b ${borderCls}`}>
-          <h2 className={`text-lg font-semibold ${titleCls}`}>{title}</h2>
-          <button onClick={onClose} className={`p-1 rounded-lg transition-colors ${closeCls}`}>
+      <div className={`relative ${bg} rounded-xl shadow-xl w-full ${sizeMap[size]} max-h-[90vh] flex flex-col min-w-0 overflow-hidden`}>
+        <div className={`flex items-center justify-between px-4 sm:px-6 py-4 border-b ${borderCls}`}>
+          <h2 className={`text-lg font-semibold truncate ${titleCls}`}>{title}</h2>
+          <button onClick={onClose} className={`shrink-0 p-1 rounded-lg transition-colors ${closeCls}`}>
             <X size={20} />
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-6 py-4">{children}</div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0 px-4 sm:px-6 py-4">{children}</div>
       </div>
     </div>
   )

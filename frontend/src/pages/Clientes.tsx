@@ -253,32 +253,32 @@ export default function Clientes() {
         <form onSubmit={salvar} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="text-sm font-medium text-slate-700">Nome *</label>
+              <label className="block text-sm font-medium text-slate-700">Nome *</label>
               <input required value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700">CPF/CNPJ</label>
+              <label className="block text-sm font-medium text-slate-700">CPF/CNPJ</label>
               <input value={form.cpf_cnpj} onChange={e => setForm(f => ({ ...f, cpf_cnpj: e.target.value }))}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700">Email</label>
+              <label className="block text-sm font-medium text-slate-700">Email</label>
               <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700">Telefone</label>
+              <label className="block text-sm font-medium text-slate-700">Telefone</label>
               <input value={form.telefone} onChange={e => setForm(f => ({ ...f, telefone: e.target.value }))}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
-              <label className="text-sm font-medium text-slate-700">Celular</label>
+              <label className="block text-sm font-medium text-slate-700">Celular</label>
               <input value={form.celular} onChange={e => setForm(f => ({ ...f, celular: e.target.value }))}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="sm:col-span-2">
-              <label className="text-sm font-medium text-slate-700">CEP</label>
+              <label className="block text-sm font-medium text-slate-700">CEP</label>
               <input value={form.cep}
                 onChange={e => setForm(f => ({ ...f, cep: e.target.value }))}
                 onBlur={async e => {
@@ -302,24 +302,24 @@ export default function Clientes() {
               <p className="mt-1 text-xs text-slate-400">Preenche endereço, cidade e estado automaticamente.</p>
             </div>
             <div className="sm:col-span-2">
-              <label className="text-sm font-medium text-slate-700">Endereço</label>
+              <label className="block text-sm font-medium text-slate-700">Endereço</label>
               <input value={form.endereco} onChange={e => setForm(f => ({ ...f, endereco: e.target.value }))}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div className="grid grid-cols-2 gap-2 sm:col-span-2">
               <div>
-                <label className="text-sm font-medium text-slate-700">Cidade</label>
+                <label className="block text-sm font-medium text-slate-700">Cidade</label>
                 <input value={form.cidade} onChange={e => setForm(f => ({ ...f, cidade: e.target.value }))}
                   className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="text-sm font-medium text-slate-700">Estado</label>
+                <label className="block text-sm font-medium text-slate-700">Estado</label>
                 <input maxLength={2} value={form.estado} onChange={e => setForm(f => ({ ...f, estado: e.target.value.toUpperCase() }))}
                   className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
             </div>
             <div className="col-span-2">
-              <label className="text-sm font-medium text-slate-700">Observações</label>
+              <label className="block text-sm font-medium text-slate-700">Observações</label>
               <textarea rows={3} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))}
                 className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
             </div>
