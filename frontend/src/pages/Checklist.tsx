@@ -5,6 +5,7 @@ import PageHeader from '../components/ui/PageHeader'
 import Modal from '../components/ui/Modal'
 import { Plus, Search, ClipboardCheck, FileDown, Trash2, Link, CheckCircle, Clock, X, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { abrirPdf } from '../utils/pdf'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
 interface Dano {
@@ -390,8 +391,7 @@ export default function ChecklistPage() {
   const gerarPDF = async (id: number) => {
     try {
       const r = await checklistAPI.pdf(id)
-      const url = URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }))
-      window.open(url, '_blank')
+      abrirPdf(r.data, `checklist-${id}.pdf`)
     } catch {
       toast.error('Erro ao gerar PDF.')
     }

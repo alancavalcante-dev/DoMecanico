@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal'
 import { tipoBadge, statusBadge } from '../components/ui/Badge'
 import { Plus, Search, Pencil, Trash2, Camera, X, Image, HeartPulse, History, Wrench, Package, CircleDollarSign, CalendarClock, Stethoscope } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { abrirPdf } from '../utils/pdf'
 
 interface ProntuarioItem {
   id: number
@@ -129,8 +130,7 @@ export default function Veiculos() {
   const gerarSaude = async (v: Veiculo) => {
     try {
       const r = await veiculosAPI.saudePDF(v.id)
-      const url = URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }))
-      window.open(url, '_blank')
+      abrirPdf(r.data, `saude-${v.placa}.pdf`)
     } catch {
       toast.error('Erro ao gerar relatório de saúde.')
     }

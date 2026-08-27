@@ -7,6 +7,7 @@ import Modal from '../components/ui/Modal'
 import { statusBadge } from '../components/ui/Badge'
 import { Plus, Search, Eye, Trash2, Printer, X, PlusCircle, Link2, Pencil, Check, ShieldCheck, ShieldPlus, LayoutGrid, List } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { abrirPdf } from '../utils/pdf'
 
 function KmSaidaEditor({ os, onSaved }: { os: OrdemServico; onSaved: (km: number) => void }) {
   const [editando, setEditando] = useState(false)
@@ -258,8 +259,7 @@ export default function OrdensServico() {
   const gerarPDF = async (os: OrdemServico) => {
     try {
       const r = await ordensAPI.gerarPDF(os.id)
-      const url = URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }))
-      window.open(url, '_blank')
+      abrirPdf(r.data, `OS-${os.numero}.pdf`)
     } catch {
       toast.error('Erro ao gerar PDF.')
     }

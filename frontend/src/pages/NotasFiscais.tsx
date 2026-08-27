@@ -5,6 +5,7 @@ import PageHeader from '../components/ui/PageHeader'
 import Modal from '../components/ui/Modal'
 import { Plus, Printer, Search, FileText } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { abrirPdf } from '../utils/pdf'
 
 export default function NotasFiscais() {
   const [notas, setNotas] = useState<NotaFiscal[]>([])
@@ -55,8 +56,7 @@ export default function NotasFiscais() {
   const imprimir = async (nf: NotaFiscal) => {
     try {
       const r = await notasAPI.imprimir(nf.id)
-      const url = URL.createObjectURL(new Blob([r.data], { type: 'application/pdf' }))
-      window.open(url, '_blank')
+      abrirPdf(r.data, `comprovante-${nf.id}.pdf`)
     } catch {
       toast.error('Erro ao imprimir o comprovante.')
     }
