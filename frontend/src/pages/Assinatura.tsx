@@ -81,6 +81,7 @@ export default function Assinatura() {
   const [pixCopiado, setPixCopiado] = useState(false)
   const [chaveCopiada, setChaveCopiada] = useState(false)
   const [pagInfo, setPagInfo] = useState<PagInfo | null>(null)
+  const [pago, setPago] = useState(false)
   const [linkCopiado, setLinkCopiado] = useState<number | null>(null)
   const [cancelando, setCancelando] = useState<number | null>(null)
   const [modulosExpandidos, setModulosExpandidos] = useState<Record<string, boolean>>({})
@@ -97,6 +98,24 @@ export default function Assinatura() {
     authAPI.pagamentoInfo().then(({ data }) => setPagInfo(data)).catch(() => {})
     carregarFaturas()
   }, [])
+
+  // Enquanto o QR do PIX está na tela, checa a cada 5s se o pagamento entrou.
+  useEffect(() => {
+    if (!pixData || pago) return
+    const inicial = assinatura?.data_fim ?? null
+    const iv = setInterval(async () => {
+      try {
+        const { data } = await authAPI.assinatura()
+        if (data.data_fim !== inicial && (data.ativa || data.status === 'ativa')) {
+          setAssinatura(data)
+          setPago(true)
+          clearInterval(iv)
+        }
+      } catch { /* ignora e tenta de novo */ }
+    }, 5000)
+    const stop = setTimeout(() => clearInterval(iv), 10 * 60 * 1000)
+    return () => { clearInterval(iv); clearTimeout(stop) }
+  }, [pixData, pago])
 
   const cancelarFatura = async (f: Fatura) => {
     if (!window.confirm(`Cancelar a fatura ${f.numero}?`)) return
@@ -119,7 +138,7 @@ export default function Assinatura() {
     })
   }
 
-  const fecharPagar = () => { setShowPagar(false); setPixData(null); setPixCopiado(false) }
+  const fecharPagar = () => { setShowPagar(false); setPixData(null); setPixCopiado(false); setPago(false) }
 
   const copiarChave = () => {
     if (!pagInfo?.pix_chave) return
@@ -563,11 +582,21 @@ export default function Assinatura() {
                   Cancelar
                 </button>
               </>
+            ) : pago ? (
+              <div className="text-center py-6">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-3" />
+                <p className="text-slate-800 font-bold text-lg">Pagamento confirmado!</p>
+                <p className="text-slate-500 text-sm mt-1">Sua assinatura está ativa. 🎉</p>
+                <button onClick={fecharPagar}
+                  className="mt-5 w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2.5 text-sm font-semibold">
+                  Fechar
+                </button>
+              </div>
             ) : (
               <>
                 <p className="text-sm text-slate-500 mb-4 text-center">
-                  Escaneie o QR Code ou copie o código no app do seu banco. Após o pagamento,
-                  a assinatura é reativada automaticamente.
+                  Escaneie o QR Code ou copie o código no app do seu banco. Assim que
+                  você pagar, a confirmação aparece aqui automaticamente.
                 </p>
 
                 {pixData.link_pagamento && (
@@ -600,6 +629,10 @@ export default function Assinatura() {
                     </div>
                   </div>
                 )}
+
+                <div className="flex items-center justify-center gap-2 text-xs text-slate-400 mb-3">
+                  <Loader2 size={13} className="animate-spin" /> Aguardando confirmação do pagamento…
+                </div>
 
                 <button
                   onClick={atualizarStatus}
