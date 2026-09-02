@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { adminAPI } from '../../api'
-import { Search, Users, ChevronRight, X, AlertTriangle, CheckCircle, Ban, KeyRound, Mail, Copy } from 'lucide-react'
+import { Search, Users, ChevronRight, X, AlertTriangle, CheckCircle, Ban, KeyRound, Mail, Copy, CalendarClock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import Modal from '../../components/ui/Modal'
 
@@ -70,6 +70,8 @@ export default function AdminOficinas() {
   const [acao, setAcao] = useState<{ tipo: string; oficina: Oficina } | null>(null)
   const [diasExtender, setDiasExtender] = useState(7)
   const [planoTrocar, setPlanoTrocar] = useState('')
+  const [dataFimEditar, setDataFimEditar] = useState('')
+  const [statusEditar, setStatusEditar] = useState('ativa')
   const [planos, setPlanos] = useState<{ id: number; slug: string; nome: string }[]>([])
   const [senhaGerada, setSenhaGerada] = useState<{ email: string; senha: string } | null>(null)
 
@@ -97,6 +99,7 @@ export default function AdminOficinas() {
       let data: Record<string, unknown> = { acao: acao.tipo }
       if (acao.tipo === 'extender_trial') data.dias = diasExtender
       if (acao.tipo === 'trocar_plano') data.plano_slug = planoTrocar
+      if (acao.tipo === 'editar_vencimento') { data.data_fim = dataFimEditar; data.status = statusEditar }
       const r = await adminAPI.oficinaAcao(acao.oficina.id, data)
       if (acao.tipo === 'resetar_senha') {
         setSenhaGerada({ email: r.data.email, senha: r.data.senha_gerada })
@@ -260,6 +263,15 @@ export default function AdminOficinas() {
                     className="flex items-center gap-1 bg-violet-900/40 text-violet-400 hover:bg-violet-900/60 px-3 py-1.5 rounded-lg text-xs font-medium">
                     Trocar Plano
                   </button>
+                  <button onClick={() => {
+                    const df = detalhe.assinatura?.data_fim
+                    setDataFimEditar(df ? new Date(df).toISOString().slice(0, 10) : '')
+                    setStatusEditar(detalhe.assinatura?.status || 'ativa')
+                    setAcao({ tipo: 'editar_vencimento', oficina: detalhe as unknown as Oficina })
+                  }}
+                    className="flex items-center gap-1 bg-blue-900/40 text-blue-400 hover:bg-blue-900/60 px-3 py-1.5 rounded-lg text-xs font-medium">
+                    <CalendarClock size={13} /> Editar vencimento
+                  </button>
                 </div>
               </div>
             )}
@@ -346,6 +358,7 @@ export default function AdminOficinas() {
               {acao.tipo === 'cancelar' && `Cancelar assinatura de "${acao.oficina.nome}"?`}
               {acao.tipo === 'extender_trial' && `Extender trial de "${acao.oficina.nome}":`}
               {acao.tipo === 'trocar_plano' && `Trocar plano de "${acao.oficina.nome}" para:`}
+              {acao.tipo === 'editar_vencimento' && `Ajustar vencimento e status de "${acao.oficina.nome}":`}
               {acao.tipo === 'resetar_senha' && `Gerar uma nova senha para o administrador de "${acao.oficina.nome}"? A senha atual deixará de funcionar imediatamente.`}
               {acao.tipo === 'enviar_email_recuperacao' && `Enviar o e-mail de redefinição de senha para o e-mail principal de "${acao.oficina.nome}"?`}
             </p>
@@ -358,6 +371,21 @@ export default function AdminOficinas() {
                 className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm mb-4">
                 {planos.map(p => <option key={p.slug} value={p.slug}>{p.nome}</option>)}
               </select>
+            )}
+            {acao.tipo === 'editar_vencimento' && (
+              <div className="space-y-2 mb-4">
+                <label className="block text-xs text-gray-500">Vence em</label>
+                <input type="date" value={dataFimEditar} onChange={e => setDataFimEditar(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm" />
+                <label className="block text-xs text-gray-500">Status</label>
+                <select value={statusEditar} onChange={e => setStatusEditar(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm">
+                  <option value="ativa">Ativa</option>
+                  <option value="trial">Trial</option>
+                  <option value="suspensa">Suspensa</option>
+                  <option value="cancelada">Cancelada</option>
+                </select>
+              </div>
             )}
             <div className="flex gap-3">
               <button onClick={() => setAcao(null)} className="flex-1 bg-gray-800 text-gray-300 rounded-xl py-2.5 text-sm">Cancelar</button>

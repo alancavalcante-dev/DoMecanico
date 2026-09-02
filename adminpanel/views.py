@@ -341,6 +341,26 @@ def admin_oficina_acao(request, pk):
         registrar_log('aviso', 'assinatura', f'Oficina "{of.nome}" cancelada por admin.', request.user, request=request)
         return Response({'ok': True, 'status': ass.status})
 
+    elif acao == 'editar_vencimento':
+        from datetime import datetime, time as _time
+        from django.utils.dateparse import parse_datetime, parse_date
+        raw = (request.data.get('data_fim') or '').strip()
+        if raw:
+            dt = parse_datetime(raw) or parse_date(raw)
+            if not dt:
+                return Response({'erro': 'Data inválida.'}, status=400)
+            if not isinstance(dt, datetime):
+                dt = datetime.combine(dt, _time(23, 59))
+            ass.data_fim = timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+        else:
+            ass.data_fim = None
+        novo_status = request.data.get('status')
+        if novo_status in ('trial', 'ativa', 'suspensa', 'cancelada'):
+            ass.status = novo_status
+        ass.save()
+        registrar_log('info', 'assinatura', f'Vencimento da oficina "{of.nome}" ajustado por admin.', request.user, request=request)
+        return Response({'ok': True, 'data_fim': ass.data_fim, 'status': ass.status})
+
     elif acao == 'trocar_plano':
         plano_slug = request.data.get('plano_slug')
         try:
