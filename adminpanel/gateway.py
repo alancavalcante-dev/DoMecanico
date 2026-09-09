@@ -421,11 +421,177 @@ class AbacatePayAdapter(GatewayBase):
         return hmac.compare_digest(recebido, secret)
 
 
+class MercadoPagoAdapter(GatewayBase):
+    # MP usa o MESMO host em teste e produção; o que separa os ambientes é o token
+    # (TEST-... = teste, APP_USR-... = produção). Não há whitelist/homologação para
+    # receber PIX pela Checkout API — as credenciais de produção saem direto no painel.
+    BASE_URL = 'https://api.mercadopago.com'
+
+    def __init__(self, config):
+        super().__init__(config)
+        self.headers_req = {
+            'Authorization': f'Bearer {config.chave_secreta}',
+            'Content-Type': 'application/json',
+        }
+
+    def criar_cobranca(self, fatura, oficina):
+        import requests
+        from datetime import datetime, timedelta
+        from django.conf import settings
+        try:
+            doc = re.sub(r'\D', '', getattr(oficina, 'cnpj', '') or '')
+            # MP aceita pagador com CPF (11) ou CNPJ (14). Se vier documento, valida os
+            # dígitos antes para evitar HTTP 400 do gateway.
+            if doc and not valida_cpf_cnpj(doc):
+                logger.error(f'MercadoPago criar_cobranca: CPF/CNPJ inválido (oficina {getattr(oficina, "id", "?")}): "{doc}"')
+                return {
+                    'gateway_id': '', 'link_pagamento': '',
+                    'erro': 'O CPF/CNPJ da oficina é inválido. Corrija o cadastro da oficina antes de gerar o pagamento.',
+                }
+
+            # Expiração do QR: 3 dias. MP exige ISO 8601 com milissegundos e offset (+03:00).
+            exp = datetime.now().astimezone() + timedelta(days=3)
+            date_exp = exp.strftime('%Y-%m-%dT%H:%M:%S.000%z')
+            date_exp = date_exp[:-2] + ':' + date_exp[-2:]  # +0300 -> +03:00
+
+            nome = (oficina.nome or 'Cliente').strip()
+            partes = nome.split(' ', 1)
+            payer = {
+                'email': oficina.email or 'contato@domecanico.net',
+                'first_name': partes[0],
+                'last_name': partes[1] if len(partes) > 1 else partes[0],
+            }
+            if doc:
+                payer['identification'] = {'type': 'CNPJ' if len(doc) > 11 else 'CPF', 'number': doc}
+
+            webhook_url = f"{settings.FRONTEND_URL.rstrip('/')}/api/admin-panel/webhook/gateway/"
+            payload = {
+                'transaction_amount': float(fatura.valor),
+                'description': f'DoMecânico - Fatura {fatura.numero}',
+                'payment_method_id': 'pix',
+                'external_reference': fatura.numero,
+                'notification_url': webhook_url,
+                'date_of_expiration': date_exp,
+                'payer': payer,
+            }
+            headers = dict(self.headers_req)
+            # Idempotência: reenvios com o mesmo número de fatura não geram cobrança dupla.
+            headers['X-Idempotency-Key'] = f'fatura-{fatura.numero}'
+            resp = requests.post(f'{self.BASE_URL}/v1/payments', headers=headers, json=payload, timeout=15)
+            if not resp.ok:
+                logger.error(f'MercadoPago criar_cobranca: HTTP {resp.status_code} — {resp.text[:300]}')
+                return {'gateway_id': '', 'link_pagamento': ''}
+            data = resp.json()
+            tx = (data.get('point_of_interaction') or {}).get('transaction_data') or {}
+            b64 = tx.get('qr_code_base64', '')
+            # link_pagamento = imagem PNG do QR (o front usa como <img src>); MP entrega
+            # em base64, então montamos um data URI. Fallback: ticket_url (página do MP).
+            link = f'data:image/png;base64,{b64}' if b64 else tx.get('ticket_url', '')
+            return {
+                'gateway_id': str(data.get('id', '')),
+                'link_pagamento': link,
+                'pix_copia_cola': tx.get('qr_code', ''),
+            }
+        except Exception as e:
+            logger.error(f'MercadoPago criar_cobranca: {e}')
+            return {'gateway_id': '', 'link_pagamento': ''}
+
+    def cancelar_cobranca(self, gateway_id):
+        import requests
+        try:
+            requests.put(
+                f'{self.BASE_URL}/v1/payments/{gateway_id}',
+                headers=self.headers_req, json={'status': 'cancelled'}, timeout=10,
+            )
+            return True
+        except Exception:
+            return False
+
+    def processar_webhook(self, payload, headers):
+        import requests
+        # O MP notifica apenas o ID do pagamento (type=payment, data.id=...). Precisamos
+        # CONSULTAR a API para saber o status real — o que também autentica o evento:
+        # um webhook forjado não consegue dar baixa porque só marcamos 'pago' se a própria
+        # API do MP responder 'approved'.
+        tipo = payload.get('type') or payload.get('topic') or _query_param(headers, 'type', 'topic')
+        if tipo != 'payment':
+            return {}
+        pid = str(
+            (payload.get('data') or {}).get('id')
+            or payload.get('id')
+            or _query_param(headers, 'data.id', 'id')
+            or ''
+        )
+        if not pid:
+            return {}
+        try:
+            resp = requests.get(f'{self.BASE_URL}/v1/payments/{pid}', headers=self.headers_req, timeout=15)
+            if not resp.ok:
+                logger.error(f'MercadoPago webhook: consulta ao pagamento {pid} HTTP {resp.status_code}')
+                return {}
+            pay = resp.json()
+        except Exception as e:
+            logger.error(f'MercadoPago webhook: erro ao consultar {pid}: {e}')
+            return {}
+
+        status = pay.get('status', '')
+        ref = pay.get('external_reference', '')
+        if status == 'approved':
+            return {
+                'gateway_id': str(pay.get('id', '')),
+                'status': 'pago',
+                'valor': Decimal(str(pay.get('transaction_amount', 0))),
+                'metodo': 'PIX',
+                'fatura_numero': ref,
+            }
+        if status in ('cancelled', 'rejected', 'refunded', 'charged_back'):
+            return {'gateway_id': str(pay.get('id', '')), 'status': 'cancelado', 'fatura_numero': ref}
+        return {}
+
+    def verificar_assinatura_webhook(self, payload_raw, headers):
+        # IMPORTANTE: para o MP a fronteira de segurança NÃO é a assinatura do webhook,
+        # e sim o re-consulta da API em processar_webhook — só marcamos 'pago' quando a
+        # própria API do MP (autenticada com o nosso token) responde 'approved'. Por isso
+        # um webhook forjado não consegue dar baixa. A verificação do header `x-signature`
+        # (ts=<ts>,v1=<hmac_sha256> sobre  id:<data.id>;request-id:<x-request-id>;ts:<ts>; )
+        # entra como observabilidade: logamos divergência, mas NÃO bloqueamos — assim um
+        # detalhe de formato do header nunca impede um pagamento real de confirmar sozinho.
+        secret = (self.config.webhook_secret or '').strip()
+        if not secret:
+            return True
+        try:
+            sig = headers.get('HTTP_X_SIGNATURE', '')
+            req_id = headers.get('HTTP_X_REQUEST_ID', '')
+            ts, v1 = '', ''
+            for parte in sig.split(','):
+                chave, _, valor = parte.partition('=')
+                chave = chave.strip()
+                if chave == 'ts':
+                    ts = valor.strip()
+                elif chave == 'v1':
+                    v1 = valor.strip()
+            data_id = _query_param(headers, 'data.id', 'id')
+            if not data_id and payload_raw:
+                import json as _json
+                corpo = _json.loads(payload_raw.decode('utf-8'))
+                data_id = str((corpo.get('data') or {}).get('id') or corpo.get('id') or '')
+            if ts and v1 and data_id:
+                manifest = f'id:{data_id};request-id:{req_id};ts:{ts};'
+                calc = hmac.new(secret.encode('utf-8'), manifest.encode('utf-8'), hashlib.sha256).hexdigest()
+                if not hmac.compare_digest(calc, v1):
+                    logger.warning('MercadoPago webhook: x-signature não confere '
+                                   '(seguindo mesmo assim; a baixa depende da consulta à API do MP).')
+        except Exception as e:
+            logger.warning(f'MercadoPago webhook: falha ao checar x-signature ({e}); seguindo.')
+        return True
+
+
 GATEWAY_ADAPTERS = {
     'stripe': StripeAdapter,
     'asaas': AsaasAdapter,
     'pagseguro': PagSeguroAdapter,
     'abacatepay': AbacatePayAdapter,
+    'mercadopago': MercadoPagoAdapter,
     'manual': ManualAdapter,
 }
 

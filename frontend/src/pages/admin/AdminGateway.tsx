@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import {
   CreditCard, Eye, EyeOff, Copy, CheckCircle, AlertTriangle,
-  Save, Loader2, Landmark, Banknote, Zap, Leaf, Upload,
+  Save, Loader2, Landmark, Banknote, Zap, Leaf, Upload, Wallet,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminAPI } from '../../api'
 
-type GatewayTipo = 'manual' | 'stripe' | 'asaas' | 'pagseguro' | 'abacatepay'
+type GatewayTipo = 'manual' | 'stripe' | 'asaas' | 'pagseguro' | 'abacatepay' | 'mercadopago'
 type Ambiente = 'sandbox' | 'producao'
 
 interface ProviderConfig {
@@ -37,6 +37,7 @@ const GATEWAYS = [
   { id: 'asaas' as GatewayTipo, nome: 'Asaas', descricao: 'Gateway brasileiro: PIX, boleto e cartão', icon: Zap, cor: 'text-green-400' },
   { id: 'pagseguro' as GatewayTipo, nome: 'PagSeguro', descricao: 'Gateway PagSeguro / PagBank', icon: Landmark, cor: 'text-amber-400' },
   { id: 'abacatepay' as GatewayTipo, nome: 'Abacate Pay', descricao: 'Gateway brasileiro PIX — simples e direto', icon: Leaf, cor: 'text-lime-400' },
+  { id: 'mercadopago' as GatewayTipo, nome: 'Mercado Pago', descricao: 'PIX por API — aceita CPF, sem homologação', icon: Wallet, cor: 'text-sky-400' },
 ]
 
 const WEBHOOK_URL = `${window.location.origin}/api/admin-panel/webhook/gateway/`
@@ -268,7 +269,7 @@ export default function AdminGateway() {
             {/* Chave secreta / API Key */}
             <div>
               <label className="block text-xs text-gray-500 mb-1">
-                {selected === 'asaas' ? 'Access Token' : selected === 'abacatepay' ? 'API Key' : 'Chave Secreta'}
+                {selected === 'asaas' || selected === 'mercadopago' ? 'Access Token' : selected === 'abacatepay' ? 'API Key' : 'Chave Secreta'}
               </label>
               <div className="relative">
                 <input
@@ -279,6 +280,7 @@ export default function AdminGateway() {
                     selected === 'stripe' ? 'sk_test_...'
                     : selected === 'asaas' ? '$aas_...'
                     : selected === 'abacatepay' ? 'abc_dev_...'
+                    : selected === 'mercadopago' ? 'APP_USR-... (produção) ou TEST-...'
                     : 'sua-chave-secreta'
                   }
                   className={`${inputCls} pr-10`}
@@ -291,9 +293,11 @@ export default function AdminGateway() {
             </div>
 
             {/* Webhook secret */}
-            {(selected === 'stripe' || selected === 'pagseguro' || selected === 'abacatepay') && (
+            {(selected === 'stripe' || selected === 'pagseguro' || selected === 'abacatepay' || selected === 'mercadopago') && (
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Webhook Secret</label>
+                <label className="block text-xs text-gray-500 mb-1">
+                  {selected === 'mercadopago' ? 'Assinatura secreta do webhook' : 'Webhook Secret'}
+                </label>
                 <div className="relative">
                   <input
                     type={mostrarWebhook ? 'text' : 'password'}
@@ -302,6 +306,7 @@ export default function AdminGateway() {
                     placeholder={
                       selected === 'stripe' ? 'whsec_...'
                       : selected === 'abacatepay' ? 'Chave HMAC (opcional)'
+                      : selected === 'mercadopago' ? 'Painel MP → Webhooks (recomendado)'
                       : 'webhook-secret'
                     }
                     className={`${inputCls} pr-10`}
@@ -318,13 +323,14 @@ export default function AdminGateway() {
       </div>
 
       {/* URL de Webhook */}
-      {(selected === 'stripe' || selected === 'abacatepay' || selected === 'pagseguro') && (
+      {(selected === 'stripe' || selected === 'abacatepay' || selected === 'pagseguro' || selected === 'mercadopago') && (
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
           <h2 className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-3">URL de Webhook</h2>
           <p className="text-gray-500 text-xs mb-3">
             {selected === 'abacatepay' && <>Registre no painel do <span className="text-gray-300">Abacate Pay → Webhooks</span>:</>}
             {selected === 'stripe' && <>Registre no painel do <span className="text-gray-300">Stripe → Developers → Webhooks</span>:</>}
             {selected === 'pagseguro' && <>Registre no painel do <span className="text-gray-300">PagSeguro → Notificações</span>:</>}
+            {selected === 'mercadopago' && <>Registre no painel do <span className="text-gray-300">Mercado Pago → Suas integrações → Webhooks</span> (evento <span className="text-gray-300">Pagamentos</span>):</>}
           </p>
           <div className="flex items-center gap-3 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3">
             <code className="text-green-400 text-xs flex-1 break-all font-mono">{WEBHOOK_URL}</code>

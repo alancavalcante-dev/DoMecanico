@@ -106,6 +106,7 @@ class GatewayConfig(models.Model):
         ('asaas', 'Asaas'),
         ('pagseguro', 'PagSeguro'),
         ('abacatepay', 'Abacate Pay'),
+        ('mercadopago', 'Mercado Pago'),
         ('manual', 'Manual (sem gateway)'),
     ]
     provider = models.CharField(max_length=20, choices=PROVIDERS, default='manual')
@@ -146,7 +147,9 @@ class Fatura(models.Model):
     metodo_pagamento = models.CharField(max_length=50, blank=True)
     gateway_id = models.CharField(max_length=200, blank=True)
     gateway_provider = models.CharField(max_length=20, blank=True)
-    link_pagamento = models.URLField(max_length=500, blank=True)
+    # TextField (não URLField): o Mercado Pago entrega o QR como imagem base64
+    # (data URI), que passa de 500 chars e não é uma URL http válida.
+    link_pagamento = models.TextField(blank=True, default='')
     pix_copia_cola = models.TextField(blank=True, default='')  # código PIX "copia e cola"
     observacoes = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
