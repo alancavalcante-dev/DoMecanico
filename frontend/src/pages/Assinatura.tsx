@@ -93,6 +93,11 @@ export default function Assinatura() {
     authAPI.assinatura().then(({ data }) => {
       setAssinatura(data)
       setPlanoSelecionado(data.plano?.slug || '')
+      // Se a assinatura já está ativa mas o contexto do guard está desatualizado
+      // (pagou e ficou preso em /assinatura), ressincroniza pra liberar os módulos.
+      if ((data.ativa || data.status === 'ativa') && user?.assinatura && !user.assinatura.ativa) {
+        refreshUser()
+      }
     })
     authAPI.planos().then(({ data }) => setPlanos(data))
     authAPI.pagamentoInfo().then(({ data }) => setPagInfo(data)).catch(() => {})
@@ -110,6 +115,9 @@ export default function Assinatura() {
           setAssinatura(data)
           setPago(true)
           clearInterval(iv)
+          // Sincroniza o contexto (o guard de módulos lê user.assinatura.ativa),
+          // senão o acesso continua travado mesmo com a assinatura já ativa.
+          await refreshUser()
         }
       } catch { /* ignora e tenta de novo */ }
     }, 5000)
