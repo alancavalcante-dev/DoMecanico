@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState, useRef } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { FlaskConical } from 'lucide-react'
 import { authAPI } from './api'
@@ -10,6 +10,7 @@ import { useAdminAuth } from './contexts/AdminAuthContext'
 import Layout from './components/layout/Layout'
 import AdminLayout from './components/admin/AdminLayout'
 import ErrorBoundary from './components/ErrorBoundary'
+import { initTracking, trackPageView } from './utils/tracking'
 
 // ── Páginas públicas ──────────────────────────────────────────────────────────
 const Home              = lazy(() => import('./pages/Home'))
@@ -190,6 +191,7 @@ function upsertCanonical(href: string) {
 
 function PageTitle() {
   const { pathname } = useLocation()
+  const primeiraRota = useRef(true)
   useEffect(() => {
     // Título
     const exact = PAGE_TITLES[pathname]
@@ -209,6 +211,15 @@ function PageTitle() {
       document.head.querySelector('link[rel="canonical"]')?.remove()
     } else {
       upsertCanonical(`https://domecanico.net${pathname === '/' ? '/' : pathname}`)
+    }
+
+    // Rastreamento de anúncios (Meta Pixel + Google) — SOMENTE nas páginas
+    // públicas de marketing (onde o tráfego pago cai). Nunca na área logada,
+    // pra não enviar caminhos com dados/IDs de cliente a terceiros.
+    if (!privada) {
+      initTracking()  // idempotente; dispara o 1º PageView de cada tracker
+      if (primeiraRota.current) primeiraRota.current = false
+      else trackPageView(pathname)
     }
   }, [pathname])
   return null

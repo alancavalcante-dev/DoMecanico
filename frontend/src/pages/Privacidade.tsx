@@ -64,19 +64,20 @@ Adotamos as seguintes medidas de segurança:
   },
   {
     titulo: '7. Cookies',
-    conteudo: `Utilizamos apenas cookies técnicos essenciais para o funcionamento do sistema:
+    conteudo: `Cookies técnicos essenciais para o funcionamento do sistema:
 
 • **Token de sessão**: mantém você autenticado enquanto usa o sistema.
 • **Preferências de interface**: salva configurações de layout no navegador.
 
-Não utilizamos cookies de rastreamento, analytics de terceiros ou publicidade.`,
+Nas **páginas públicas** do site (institucional e cadastro) também usamos cookies de **analytics e publicidade** de terceiros — **Meta Pixel** (Meta/Facebook) e **Google Analytics/Ads** — para medir a eficácia dos nossos anúncios. Esses cookies **não são carregados na área logada** de gestão da oficina, que permanece livre de rastreamento de terceiros.`,
   },
   {
     titulo: '8. Compartilhamento com terceiros',
     conteudo: `Compartilhamos dados com terceiros apenas nas seguintes situações:
 
-• **AbacatePay**: processamento de pagamentos. Regido pela política de privacidade deles.
+• **AbacatePay / Mercado Pago**: processamento de pagamentos. Regidos pelas políticas de privacidade deles.
 • **Hostinger**: infraestrutura de hospedagem do servidor no Brasil.
+• **Meta e Google** (apenas páginas públicas): dados de navegação para medição de anúncios (Meta Pixel e Google Analytics/Ads).
 • **Evolution API** (opcional): se o cliente configurar a integração de WhatsApp, os dados de contato dos clientes da oficina trafegam por esta API.
 
 Todos os parceiros são selecionados com critérios de segurança e privacidade.`,
