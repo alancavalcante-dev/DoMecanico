@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authAPI } from '../api'
+import { trackCadastroConcluido } from '../utils/tracking'
 import { Check } from 'lucide-react'
 
 interface Plano {
@@ -48,6 +49,8 @@ export default function Cadastro() {
     setLoading(true)
     try {
       const { data } = await authAPI.registrar({ ...form, plano_slug: planoSlug })
+      // Conversão p/ os anúncios (dispara ANTES de sair da página pública).
+      trackCadastroConcluido()
       // Cookies httpOnly são setados pelo backend — basta navegar
       toast.success(data.mensagem)
       navigate('/dashboard')

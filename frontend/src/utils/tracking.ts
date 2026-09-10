@@ -11,6 +11,7 @@
 const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID as string | undefined
 const GA_ID = import.meta.env.VITE_GA_ID as string | undefined              // GA4:  G-XXXXXXX
 const GOOGLE_ADS_ID = import.meta.env.VITE_GOOGLE_ADS_ID as string | undefined  // Ads: AW-XXXXXXX
+const GOOGLE_ADS_LABEL = import.meta.env.VITE_GOOGLE_ADS_LABEL as string | undefined  // rótulo da conversão (AW-XXXX/RÓTULO)
 
 declare global {
   interface Window {
@@ -76,6 +77,24 @@ export function trackPageView(path: string): void {
   try {
     if (META_PIXEL_ID && window.fbq) window.fbq('track', 'PageView')
     if (GA_ID && window.gtag) window.gtag('event', 'page_view', { page_path: path })
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Conversão de CADASTRO concluído — é o evento que faz o anúncio otimizar.
+ * Meta: CompleteRegistration. Google: evento GA4 `sign_up` (importável como
+ * conversão no Ads) e, se houver rótulo, a conversão direta do Google Ads.
+ * Chamar no sucesso do cadastro (ainda na página pública, com os pixels já carregados).
+ */
+export function trackCadastroConcluido(): void {
+  try {
+    if (META_PIXEL_ID && window.fbq) window.fbq('track', 'CompleteRegistration')
+    if (GA_ID && window.gtag) window.gtag('event', 'sign_up')
+    if (GOOGLE_ADS_ID && GOOGLE_ADS_LABEL && window.gtag) {
+      window.gtag('event', 'conversion', { send_to: `${GOOGLE_ADS_ID}/${GOOGLE_ADS_LABEL}` })
+    }
   } catch {
     /* ignore */
   }
