@@ -11,7 +11,8 @@
 const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID as string | undefined
 const GA_ID = import.meta.env.VITE_GA_ID as string | undefined              // GA4:  G-XXXXXXX
 const GOOGLE_ADS_ID = import.meta.env.VITE_GOOGLE_ADS_ID as string | undefined  // Ads: AW-XXXXXXX
-const GOOGLE_ADS_LABEL = import.meta.env.VITE_GOOGLE_ADS_LABEL as string | undefined  // rótulo da conversão (AW-XXXX/RÓTULO)
+const GOOGLE_ADS_LABEL = import.meta.env.VITE_GOOGLE_ADS_LABEL as string | undefined  // rótulo da conversão de CADASTRO (AW-XXXX/RÓTULO)
+const GOOGLE_ADS_LABEL_ASSINATURA = import.meta.env.VITE_GOOGLE_ADS_LABEL_ASSINATURA as string | undefined  // rótulo da conversão de ASSINATURA PAGA
 
 declare global {
   interface Window {
@@ -94,6 +95,43 @@ export function trackCadastroConcluido(): void {
     if (GA_ID && window.gtag) window.gtag('event', 'sign_up')
     if (GOOGLE_ADS_ID && GOOGLE_ADS_LABEL && window.gtag) {
       window.gtag('event', 'conversion', { send_to: `${GOOGLE_ADS_ID}/${GOOGLE_ADS_LABEL}` })
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/**
+ * Conversão de ASSINATURA PAGA — o evento que REALMENTE importa pra otimizar
+ * o tráfego pago. O cadastro grátis atrai curioso; o pagamento identifica o
+ * cliente de verdade, e é com base nele que os algoritmos devem aprender a quem
+ * mostrar o anúncio. Chamar quando o pagamento do PIX é confirmado.
+ *
+ * Meta: Purchase (com valor/moeda). Google: GA4 `purchase` (importável como
+ * conversão no Ads) e, se houver rótulo próprio de assinatura, a conversão
+ * direta do Google Ads. `valor` é o preço mensal do plano (BRL).
+ */
+export function trackAssinaturaPaga(valor?: number, transacaoId?: string): void {
+  try {
+    const value = typeof valor === 'number' && isFinite(valor) && valor > 0 ? valor : undefined
+
+    if (META_PIXEL_ID && window.fbq) {
+      window.fbq('track', 'Purchase', value != null ? { value, currency: 'BRL' } : { currency: 'BRL' })
+    }
+    if (GA_ID && window.gtag) {
+      window.gtag('event', 'purchase', {
+        currency: 'BRL',
+        ...(value != null ? { value } : {}),
+        ...(transacaoId ? { transaction_id: transacaoId } : {}),
+      })
+    }
+    if (GOOGLE_ADS_ID && GOOGLE_ADS_LABEL_ASSINATURA && window.gtag) {
+      window.gtag('event', 'conversion', {
+        send_to: `${GOOGLE_ADS_ID}/${GOOGLE_ADS_LABEL_ASSINATURA}`,
+        currency: 'BRL',
+        ...(value != null ? { value } : {}),
+        ...(transacaoId ? { transaction_id: transacaoId } : {}),
+      })
     }
   } catch {
     /* ignore */
