@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ClipboardList, Users, Package, BarChart3, Calendar,
-  FileText, Shield, MessageCircle, CheckCircle, Star, ArrowRight,
-  ChevronDown, Zap, Clock, TrendingUp, Car, Bell,
-  Menu, X, Phone, Mail, MapPin, Play, ChevronRight,
-  Stethoscope, Smartphone, HeartPulse, Globe,
+  Wrench, Check, ArrowRight, ChevronDown, MapPin, FileText, Package,
+  ShieldCheck, Clock, Globe, ArrowLeftRight, Menu, X,
 } from 'lucide-react'
 import { authAPI } from '../api'
+import './home.css'
 
 interface Plano {
   id: number
@@ -16,751 +14,399 @@ interface Plano {
   preco: string
   max_usuarios: number
   max_clientes: number
-  tem_nota_fiscal: boolean
-  tem_relatorios: boolean
   destaque: boolean
   modulos_disponiveis: string[]
 }
 
 const MODULO_LABEL: Record<string, string> = {
-  dashboard: 'Dashboard',
-  clientes: 'Clientes',
-  veiculos: 'Veículos',
-  estoque: 'Estoque',
-  funcionarios: 'Funcionários',
-  ordens: 'Ordens de Serviço',
-  notas_fiscais: 'Comprovantes de Serviço',
-  relatorios: 'Relatórios',
-  checklist: 'Checklist de Entrada',
-  agendamentos: 'Agendamentos',
-  orcamentos: 'Orçamentos',
-  garantias: 'Garantias',
-  comissoes: 'Comissões',
-  whatsapp: 'WhatsApp',
-  equipe: 'Equipe',
+  dashboard: 'Dashboard', clientes: 'Clientes', veiculos: 'Veículos', estoque: 'Estoque',
+  funcionarios: 'Funcionários', ordens: 'Ordens de Serviço', notas_fiscais: 'Comprovantes',
+  relatorios: 'Relatórios', checklist: 'Checklist de Entrada', agendamentos: 'Agendamentos',
+  orcamentos: 'Orçamentos', garantias: 'Garantias', comissoes: 'Comissões',
+  whatsapp: 'WhatsApp', equipe: 'Equipe',
 }
-
-function useCountUp(target: number, duration = 1500, start = false) {
-  const [value, setValue] = useState(0)
-  useEffect(() => {
-    if (!start) return
-    let startTime: number
-    const step = (timestamp: number) => {
-      if (!startTime) startTime = timestamp
-      const progress = Math.min((timestamp - startTime) / duration, 1)
-      setValue(Math.floor(progress * target))
-      if (progress < 1) requestAnimationFrame(step)
-    }
-    requestAnimationFrame(step)
-  }, [target, duration, start])
-  return value
-}
-
-function StatCard({ value, suffix, label, start }: { value: number; suffix: string; label: string; start: boolean }) {
-  const count = useCountUp(value, 1200, start)
-  return (
-    <div className="text-center">
-      <div className="text-4xl font-black text-blue-400">
-        {count}{suffix}
-      </div>
-      <div className="text-gray-400 mt-1 text-sm">{label}</div>
-    </div>
-  )
-}
-
-const RECURSOS = [
-  {
-    icon: ClipboardList,
-    titulo: 'Ordens de Serviço',
-    desc: 'Crie, gerencie e acompanhe todas as OS em tempo real. Adicione serviços, peças e gere PDFs profissionais com um clique.',
-    cor: 'blue',
-  },
-  {
-    icon: Car,
-    titulo: 'Checklist de Entrada',
-    desc: 'Registre o estado do veículo na entrada com fotos e assinatura digital do cliente. Nunca mais tenha disputas sobre danos pré-existentes.',
-    cor: 'purple',
-  },
-  {
-    icon: Package,
-    titulo: 'Controle de Estoque',
-    desc: 'Monitore peças em tempo real com alertas automáticos de estoque mínimo. Saiba exatamente o que você tem e o que precisa comprar.',
-    cor: 'green',
-  },
-  {
-    icon: FileText,
-    titulo: 'Orçamentos',
-    desc: 'Monte orçamentos detalhados com serviços e peças separados. Cliente aprova pelo celular e vira OS automaticamente.',
-    cor: 'yellow',
-  },
-  {
-    icon: Stethoscope,
-    titulo: 'Diagnóstico do Veículo',
-    desc: 'O mecânico lista os defeitos e peças ao avaliar o carro e transforma tudo em orçamento com um clique. Mais rápido e nada esquecido.',
-    cor: 'sky',
-  },
-  {
-    icon: Calendar,
-    titulo: 'Agendamentos',
-    desc: 'Agenda online integrada com notificações automáticas por WhatsApp para o cliente e para a sua equipe.',
-    cor: 'pink',
-  },
-  {
-    icon: BarChart3,
-    titulo: 'Relatórios',
-    desc: 'Dashboards completos de faturamento, serviços mais realizados, desempenho de mecânicos e muito mais.',
-    cor: 'orange',
-  },
-  {
-    icon: MessageCircle,
-    titulo: 'WhatsApp Automático',
-    desc: 'Notifique clientes quando a OS for concluída, orçamento enviado ou agendamento confirmado — tudo automático.',
-    cor: 'teal',
-  },
-  {
-    icon: Shield,
-    titulo: 'Garantias',
-    desc: 'Registre garantias por serviço com prazo e condições. Cliente acompanha pelo link público sem precisar ligar.',
-    cor: 'indigo',
-  },
-  {
-    icon: Users,
-    titulo: 'Gestão de Equipe',
-    desc: 'Controle de acesso por módulo para cada funcionário. Mecânico vê só o que precisa, gerente vê tudo.',
-    cor: 'red',
-  },
-  {
-    icon: Smartphone,
-    titulo: 'Portal do Cliente',
-    desc: 'Seu cliente acompanha a ordem de serviço, vê as fotos e o status por um link exclusivo — sem precisar ligar. Imagem de oficina moderna.',
-    cor: 'violet',
-  },
-  {
-    icon: HeartPulse,
-    titulo: 'Prontuário do Veículo',
-    desc: 'Histórico completo de tudo que já foi feito no carro, com relatório de saúde e sugestão das próximas revisões.',
-    cor: 'emerald',
-  },
-  {
-    icon: Globe,
-    titulo: 'Mini-site da Oficina',
-    desc: 'Sua oficina ganha uma página pública com serviços e agendamento online — ótimo para ser encontrada no Google.',
-    cor: 'rose',
-  },
-]
-
-const COR_MAP: Record<string, string> = {
-  blue: 'bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20',
-  purple: 'bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20',
-  green: 'bg-green-500/10 text-green-400 group-hover:bg-green-500/20',
-  yellow: 'bg-yellow-500/10 text-yellow-400 group-hover:bg-yellow-500/20',
-  pink: 'bg-pink-500/10 text-pink-400 group-hover:bg-pink-500/20',
-  orange: 'bg-orange-500/10 text-orange-400 group-hover:bg-orange-500/20',
-  teal: 'bg-teal-500/10 text-teal-400 group-hover:bg-teal-500/20',
-  indigo: 'bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500/20',
-  red: 'bg-red-500/10 text-red-400 group-hover:bg-red-500/20',
-  sky: 'bg-sky-500/10 text-sky-400 group-hover:bg-sky-500/20',
-  violet: 'bg-violet-500/10 text-violet-400 group-hover:bg-violet-500/20',
-  emerald: 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20',
-  rose: 'bg-rose-500/10 text-rose-400 group-hover:bg-rose-500/20',
-}
-
-const DEPOIMENTOS = [
-  {
-    nome: 'Carlos Henrique',
-    cargo: 'Proprietário — Oficina CH Motors',
-    texto: 'Antes perdia horas procurando OS em papel. Hoje tudo está no sistema, meus clientes adoram o acompanhamento pelo celular.',
-    estrelas: 5,
-    avatar: 'CH',
-  },
-  {
-    nome: 'Fernanda Oliveira',
-    cargo: 'Gestora — Auto Center FO',
-    texto: 'O checklist de entrada salvou minha vida! Um cliente alegou um arranhão que já estava no veículo — mostrei a foto assinada e resolveu na hora.',
-    estrelas: 5,
-    avatar: 'FO',
-  },
-  {
-    nome: 'Marcos Pereira',
-    cargo: 'Dono — MP Mecânica',
-    texto: 'Triplicamos nossa capacidade sem contratar mais ninguém. O estoque e as ordens de serviço integrados fazem toda a diferença.',
-    estrelas: 5,
-    avatar: 'MP',
-  },
-]
 
 const PERGUNTAS = [
-  {
-    p: 'Preciso instalar algum programa?',
-    r: 'Não. O DoMecânico é 100% online. Acesse pelo navegador de qualquer computador, tablet ou celular, sem instalação.',
-  },
-  {
-    p: 'Posso testar antes de pagar?',
-    r: 'Sim! Todos os planos incluem 14 dias de trial gratuito com acesso completo. Sem precisar de cartão de crédito.',
-  },
-  {
-    p: 'Quantos usuários posso ter?',
-    r: 'Depende do plano. No Starter até 2 usuários, no Pro até 5 e no Enterprise ilimitado. Cada usuário tem permissões individuais.',
-  },
-  {
-    p: 'O WhatsApp automático funciona com meu número?',
-    r: 'Sim. Integração via Evolution API com seu próprio número do WhatsApp. Não há custo adicional por mensagem.',
-  },
-  {
-    p: 'Posso cancelar quando quiser?',
-    r: 'Sim, sem fidelidade. Cancele a qualquer momento pelo painel e seus dados ficam disponíveis por 30 dias.',
-  },
-  {
-    p: 'Os dados da minha oficina ficam seguros?',
-    r: 'Totalmente. Cada oficina tem dados isolados, autenticação com token JWT e backups automáticos diários.',
-  },
+  { p: 'Preciso instalar algum programa?', r: 'Não. O DoMecânico é 100% online — abre no navegador do computador, tablet ou celular, sem instalar nada.' },
+  { p: 'Posso testar antes de pagar?', r: 'Sim! São 14 dias grátis com tudo liberado, sem precisar de cartão de crédito.' },
+  { p: 'O WhatsApp automático usa meu número?', r: 'Sim, integra com o seu próprio número via Evolution API. Sem custo por mensagem.' },
+  { p: 'Posso cancelar quando quiser?', r: 'Sim, sem fidelidade. Cancela pelo painel a qualquer momento e seus dados ficam disponíveis por 30 dias.' },
+  { p: 'Os dados da minha oficina ficam seguros?', r: 'Cada oficina tem os dados isolados, autenticação por token e backups. Sua oficina não enxerga a de ninguém.' },
 ]
 
-function FAQ({ p, r }: { p: string; r: string }) {
+const WA = ({ size = 18 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2Zm5.6 14.2c-.24.67-1.4 1.28-1.92 1.32-.5.05-1.12.24-3.66-.77-3.09-1.23-5.05-4.38-5.2-4.58-.15-.2-1.24-1.65-1.24-3.15s.79-2.24 1.07-2.55c.28-.3.6-.38.8-.38h.58c.19 0 .44-.07.68.52.24.6.83 2.06.9 2.2.07.15.12.32.02.52-.1.2-.15.32-.3.5l-.44.5c-.15.15-.3.31-.13.6.17.3.76 1.25 1.63 2.02 1.12.99 2.06 1.3 2.36 1.45.3.15.47.13.64-.08.17-.2.73-.85.93-1.15.2-.3.4-.24.67-.15.27.1 1.72.81 2.02.96.3.15.5.22.57.34.07.12.07.7-.17 1.38Z"/></svg>
+)
+
+function FAQItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="border border-gray-800 rounded-xl overflow-hidden">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-gray-800/50 transition-colors"
-      >
-        <span className="font-medium text-white">{p}</span>
-        <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+    <div className={`faq-item ${open ? 'open' : ''}`}>
+      <button className="faq-q" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        {q}<ChevronDown size={18} />
       </button>
-      {open && (
-        <div className="px-6 pb-5 text-gray-400 text-sm leading-relaxed border-t border-gray-800 pt-4">
-          {r}
-        </div>
-      )}
+      {open && <div className="faq-a">{a}</div>}
     </div>
   )
 }
 
 export default function Home() {
-  const [menuOpen, setMenuOpen] = useState(false)
   const [planos, setPlanos] = useState<Plano[]>([])
-  const [statsVisible, setStatsVisible] = useState(false)
-  const statsRef = useRef<HTMLDivElement>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [pi, setPi] = useState(0)
+
+  const baRef = useRef<HTMLDivElement>(null)
+  const gripRef = useRef<HTMLDivElement>(null)
+  const dragging = useRef(false)
 
   useEffect(() => {
     authAPI.planos().then(({ data }) => setPlanos(data)).catch(() => {})
   }, [])
 
+  // Linha do tempo do carro no celular: avança 1→2→3, segura o "pronto", reinicia.
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setStatsVisible(true) },
-      { threshold: 0.3 }
-    )
-    if (statsRef.current) observer.observe(statsRef.current)
-    return () => observer.disconnect()
+    const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches
+    if (reduce) { setPi(2); return }
+    const id = setInterval(() => setPi(v => (v + 1) % 4), 1650)
+    return () => clearInterval(id)
   }, [])
 
+  const setX = (clientX: number) => {
+    const el = baRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    const pct = Math.max(4, Math.min(96, ((clientX - r.left) / r.width) * 100))
+    el.style.setProperty('--x', pct + '%')
+    gripRef.current?.setAttribute('aria-valuenow', String(Math.round(pct)))
+  }
+  const onGripKey = (e: React.KeyboardEvent) => {
+    const el = baRef.current
+    if (!el) return
+    const cur = parseFloat(getComputedStyle(el).getPropertyValue('--x')) || 52
+    if (e.key === 'ArrowLeft') { el.style.setProperty('--x', Math.max(4, cur - 4) + '%'); e.preventDefault() }
+    if (e.key === 'ArrowRight') { el.style.setProperty('--x', Math.min(96, cur + 4) + '%'); e.preventDefault() }
+  }
+
+  const NAV = [
+    { href: '#recursos', label: 'Recursos' },
+    { href: '#como', label: 'Como funciona' },
+    { href: '#planos', label: 'Planos' },
+  ]
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-
-      {/* ── NAV ───────────────────────────────────────────────── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-950/80 backdrop-blur-md border-b border-gray-800/50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/logotipo.png" alt="DoMecânico" className="h-10 w-auto object-contain" />
+    <div className="lp">
+      {/* NAV */}
+      <nav>
+        <div className="wrap nav-in">
+          <a className="brand" href="#top"><Wrench size={22} strokeWidth={2.1} />Do<b>Mecânico</b></a>
+          <div className="nav-links">
+            {NAV.map(n => <a key={n.href} href={n.href}>{n.label}</a>)}
+            <Link to="/acompanhar">Acompanhar carro</Link>
           </div>
-
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#recursos" className="text-gray-400 hover:text-white text-sm transition-colors">Recursos</a>
-            <a href="#planos" className="text-gray-400 hover:text-white text-sm transition-colors">Planos</a>
-            <a href="#depoimentos" className="text-gray-400 hover:text-white text-sm transition-colors">Depoimentos</a>
-            <a href="#faq" className="text-gray-400 hover:text-white text-sm transition-colors">FAQ</a>
-            <Link to="/acompanhar" className="text-gray-400 hover:text-white text-sm transition-colors">Acompanhar carro</Link>
-            <Link to="/contato" className="text-gray-400 hover:text-white text-sm transition-colors">Suporte</Link>
+          <div className="nav-cta">
+            <Link className="enter" to="/login">Entrar</Link>
+            <Link className="btn btn-primary" to="/cadastro">Teste grátis</Link>
+            <button className="nav-toggle" onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
+              {menuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
           </div>
-
-          <div className="hidden md:flex items-center gap-3">
-            <Link to="/login" className="text-sm text-gray-400 hover:text-white transition-colors px-4 py-2">
-              Entrar
-            </Link>
-            <Link to="/cadastro" className="text-sm bg-blue-600 hover:bg-blue-500 transition-colors px-4 py-2 rounded-lg font-medium">
-              Teste Grátis
-            </Link>
-          </div>
-
-          <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 text-gray-400">
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
-
-        {menuOpen && (
-          <div className="md:hidden bg-gray-900 border-t border-gray-800 px-6 py-4 flex flex-col gap-4">
-            <a href="#recursos" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white">Recursos</a>
-            <a href="#planos" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white">Planos</a>
-            <a href="#depoimentos" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white">Depoimentos</a>
-            <a href="#faq" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white">FAQ</a>
-            <Link to="/acompanhar" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white">Acompanhar meu carro</Link>
-            <Link to="/contato" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white">Suporte</Link>
-            <div className="flex gap-3 pt-2 border-t border-gray-800">
-              <Link to="/login" className="flex-1 text-center py-2 border border-gray-700 rounded-lg text-sm">Entrar</Link>
-              <Link to="/cadastro" className="flex-1 text-center py-2 bg-blue-600 rounded-lg text-sm font-medium">Teste Grátis</Link>
-            </div>
-          </div>
-        )}
+        <div className={`nav-mobile ${menuOpen ? 'open' : ''}`}>
+          {NAV.map(n => <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)}>{n.label}</a>)}
+          <Link to="/acompanhar" onClick={() => setMenuOpen(false)}>Acompanhar carro</Link>
+          <Link to="/login" onClick={() => setMenuOpen(false)}>Entrar</Link>
+        </div>
       </nav>
 
-      {/* ── HERO ──────────────────────────────────────────────── */}
-      <section className="relative pt-32 pb-24 px-6 overflow-hidden">
-        {/* fundo decorativo */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-blue-600/10 rounded-full blur-3xl" />
-          <div className="absolute top-40 left-10 w-64 h-64 bg-purple-600/5 rounded-full blur-3xl" />
-          <div className="absolute top-60 right-10 w-80 h-80 bg-blue-800/5 rounded-full blur-3xl" />
-        </div>
-
-        <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-blue-600/10 border border-blue-500/20 rounded-full px-4 py-1.5 text-sm text-blue-400 mb-8">
-            <Zap className="w-3.5 h-3.5" />
-            Sistema completo para oficinas mecânicas
-          </div>
-
-          <h1 className="text-5xl md:text-7xl font-black leading-tight tracking-tight mb-6">
-            Sua oficina no{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
-              próximo nível
-            </span>
-          </h1>
-
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Gerencie ordens de serviço, estoque, clientes e equipe em um só lugar.
-            Seus clientes acompanham o veículo pelo celular, em tempo real.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/cadastro"
-              className="group flex items-center gap-2 bg-blue-600 hover:bg-blue-500 transition-all px-8 py-4 rounded-xl font-semibold text-lg shadow-lg shadow-blue-600/25"
-            >
-              Comece grátis por 14 dias
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <a
-              href="#recursos"
-              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors px-6 py-4"
-            >
-              <Play className="w-4 h-4" />
-              Ver como funciona
-            </a>
-          </div>
-
-          <p className="text-gray-600 text-sm mt-6">Sem cartão de crédito · Cancele quando quiser</p>
-        </div>
-
-        {/* preview do sistema */}
-        <div className="relative max-w-5xl mx-auto mt-16">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-1 shadow-2xl">
-            <div className="bg-gray-800 rounded-t-xl flex items-center gap-2 px-4 py-3">
-              <div className="w-3 h-3 rounded-full bg-red-500/70" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
-              <div className="w-3 h-3 rounded-full bg-green-500/70" />
-              <div className="flex-1 bg-gray-700 rounded-full h-5 mx-8 flex items-center px-3">
-                <span className="text-gray-500 text-xs">app.domecanico.net</span>
-              </div>
-            </div>
-            <div className="bg-gray-950 rounded-b-xl p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: 'OS Abertas', value: '12', icon: ClipboardList, cor: 'blue' },
-                { label: 'Agendamentos hoje', value: '5', icon: Calendar, cor: 'purple' },
-                { label: 'Faturamento mês', value: 'R$ 28.4k', icon: TrendingUp, cor: 'green' },
-                { label: 'Alertas estoque', value: '3', icon: Bell, cor: 'yellow' },
-              ].map((item) => (
-                <div key={item.label} className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-                  <item.icon className={`w-5 h-5 mb-2 ${
-                    item.cor === 'blue' ? 'text-blue-400' :
-                    item.cor === 'purple' ? 'text-purple-400' :
-                    item.cor === 'green' ? 'text-green-400' : 'text-yellow-400'
-                  }`} />
-                  <div className="text-xl font-bold">{item.value}</div>
-                  <div className="text-gray-500 text-xs mt-0.5">{item.label}</div>
-                </div>
-              ))}
-              <div className="col-span-2 md:col-span-4 bg-gray-900 rounded-xl border border-gray-800 p-4">
-                <div className="text-xs text-gray-500 mb-3 font-medium uppercase tracking-wider">Ordens recentes</div>
-                {[
-                  { num: 'OS-0041', cliente: 'João Silva', veiculo: 'Fiat Uno 2019', status: 'em_andamento', cor: 'blue' },
-                  { num: 'OS-0040', cliente: 'Maria Costa', veiculo: 'Honda Civic 2021', status: 'concluida', cor: 'green' },
-                  { num: 'OS-0039', cliente: 'Pedro Souza', veiculo: 'VW Gol 2017', status: 'aguardando', cor: 'yellow' },
-                ].map((os) => (
-                  <div key={os.num} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-400 text-xs font-mono">{os.num}</span>
-                      <div>
-                        <div className="text-sm font-medium">{os.cliente}</div>
-                        <div className="text-xs text-gray-500">{os.veiculo}</div>
-                      </div>
-                    </div>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      os.cor === 'blue' ? 'bg-blue-500/10 text-blue-400' :
-                      os.cor === 'green' ? 'bg-green-500/10 text-green-400' :
-                      'bg-yellow-500/10 text-yellow-400'
-                    }`}>
-                      {os.status === 'em_andamento' ? 'Em andamento' : os.status === 'concluida' ? 'Concluída' : 'Aguardando'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-12 bg-blue-600/10 blur-2xl rounded-full" />
-        </div>
-      </section>
-
-      {/* ── STATS ─────────────────────────────────────────────── */}
-      <section ref={statsRef} className="py-20 px-6 border-y border-gray-800/50">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-10">
-          <StatCard value={500} suffix="+" label="Oficinas cadastradas" start={statsVisible} />
-          <StatCard value={98} suffix="%" label="Taxa de satisfação" start={statsVisible} />
-          <StatCard value={14} suffix=" dias" label="Trial gratuito" start={statsVisible} />
-          <StatCard value={24} suffix="/7" label="Suporte disponível" start={statsVisible} />
-        </div>
-      </section>
-
-      {/* ── COMO FUNCIONA ─────────────────────────────────────── */}
-      <section className="py-24 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="text-blue-400 text-sm font-medium mb-3 tracking-wider uppercase">Como funciona</div>
-            <h2 className="text-3xl md:text-4xl font-black">Simples para você, incrível para o cliente</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                num: '01',
-                titulo: 'Cadastre e configure',
-                desc: 'Crie sua conta em 2 minutos, cadastre seus funcionários e defina permissões de acesso para cada um.',
-                icon: Users,
-              },
-              {
-                num: '02',
-                titulo: 'Abra a OS e trabalhe',
-                desc: 'Faça o checklist do veículo, adicione serviços e peças, acompanhe o progresso em tempo real.',
-                icon: ClipboardList,
-              },
-              {
-                num: '03',
-                titulo: 'Cliente acompanha tudo',
-                desc: 'O cliente recebe um link único e acompanha o status da OS, fotos do checklist e garantias dos serviços.',
-                icon: Phone,
-              },
-            ].map((step) => (
-              <div key={step.num} className="relative">
-                <div className="text-6xl font-black text-gray-800 mb-4">{step.num}</div>
-                <div className="w-10 h-10 bg-blue-600/10 rounded-xl flex items-center justify-center mb-4">
-                  <step.icon className="w-5 h-5 text-blue-400" />
-                </div>
-                <h3 className="text-lg font-bold mb-2">{step.titulo}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── RECURSOS ──────────────────────────────────────────── */}
-      <section id="recursos" className="py-24 px-6 bg-gray-900/30">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="text-blue-400 text-sm font-medium mb-3 tracking-wider uppercase">Recursos</div>
-            <h2 className="text-3xl md:text-4xl font-black">Tudo que sua oficina precisa</h2>
-            <p className="text-gray-400 mt-4 max-w-xl mx-auto">
-              Módulos integrados que cobrem desde a entrada do veículo até o pós-venda.
-            </p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {RECURSOS.map((r) => (
-              <div
-                key={r.titulo}
-                className="group bg-gray-900 border border-gray-800 hover:border-gray-700 rounded-2xl p-6 transition-all hover:-translate-y-1"
-              >
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 transition-colors ${COR_MAP[r.cor]}`}>
-                  <r.icon className="w-5 h-5" />
-                </div>
-                <h3 className="font-bold mb-2">{r.titulo}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed">{r.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── ACOMPANHAMENTO PÚBLICO ────────────────────────────── */}
-      <section className="py-24 px-6">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-16 items-center">
+      {/* HERO */}
+      <header className="hero" id="top">
+        <div className="wrap hero-grid">
           <div>
-            <div className="text-blue-400 text-sm font-medium mb-3 tracking-wider uppercase">Link de acompanhamento</div>
-            <h2 className="text-3xl md:text-4xl font-black mb-6">
-              Seu cliente sabe exatamente o que está acontecendo
-            </h2>
-            <p className="text-gray-400 leading-relaxed mb-8">
-              Cada OS gera um link único que o cliente acessa pelo celular, sem app, sem login.
-              Veja o status, as fotos do checklist assinado, o orçamento aprovado e as garantias dos serviços.
-            </p>
-            <div className="space-y-4">
-              {[
-                'Status da OS em tempo real',
-                'Checklist com fotos e assinatura digital',
-                'Orçamento aprovado e itens realizados',
-                'Garantias por serviço com prazo',
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-                  <span className="text-gray-300">{item}</span>
-                </div>
-              ))}
+            <span className="tag"><span className="dot"></span> Gestão para oficinas — do orçamento à retirada</span>
+            <h1 className="hero-h">A sua oficina,<br /><span className="strike">no caderninho</span> <span className="kw">no sistema.</span></h1>
+            <p className="hero-sub">Ordem de serviço, orçamento, estoque e o cliente acompanhando o carro pelo celular. Tudo num lugar só — do jeito que oficina precisa.</p>
+            <div className="hero-cta">
+              <Link className="btn btn-primary" to="/cadastro">Começar grátis — 14 dias <ArrowRight size={17} /></Link>
+              <a className="btn btn-ghost" href="#acompanhar">Ver uma OS de verdade</a>
             </div>
-            <Link
-              to="/acompanhar"
-              className="inline-flex items-center gap-2 mt-8 text-blue-400 hover:text-blue-300 transition-colors font-medium"
-            >
-              Ver demonstração
-              <ChevronRight className="w-4 h-4" />
-            </Link>
+            <div className="micro">
+              <span><Check size={15} /> Sem cartão</span>
+              <span><Check size={15} /> Cancela quando quiser</span>
+              <span><Check size={15} /> Feito no Brasil</span>
+            </div>
           </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-sm font-bold">JS</div>
-              <div>
-                <div className="font-medium">João Silva</div>
-                <div className="text-gray-500 text-xs">Honda Civic 2021 · ABC-1234</div>
+
+          <div className="shot">
+            <div className="browser">
+              <div className="bar"><i></i><i></i><i></i><span className="url">app.domecanico.net/ordens</span></div>
+              <div className="board">
+                <div>
+                  <div className="col-h"><span className="stat" style={{ background: 'var(--wait)' }}></span> Aguardando <span className="n">2</span></div>
+                  <div className="os"><div className="cli">Pedro Souza</div><div className="veic"><span>VW Gol 2017</span><span className="plate">GDA-2017</span></div><div className="foot"><span className="pill wait">Na fila</span><span className="money">R$ 320</span></div></div>
+                  <div className="os"><div className="cli">Ana Prado</div><div className="veic"><span>Fiat Strada</span><span className="plate">RIO2A45</span></div><div className="foot"><span className="pill wait">Na fila</span><span className="money">R$ 180</span></div></div>
+                </div>
+                <div>
+                  <div className="col-h"><span className="stat" style={{ background: 'var(--progress)' }}></span> Em andamento <span className="n">1</span></div>
+                  <div className="os"><div className="cli">João Silva</div><div className="veic"><span>Honda Civic 2021</span><span className="plate">ABC-1234</span></div><div className="foot"><span className="pill prog">Freios</span><span className="money">R$ 890</span></div></div>
+                </div>
+                <div>
+                  <div className="col-h"><span className="stat" style={{ background: 'var(--done)' }}></span> Pronto <span className="n">1</span></div>
+                  <div className="os"><div className="cli">Maria Costa</div><div className="veic"><span>Fiat Uno 2019</span><span className="plate">MEL5J12</span></div><div className="foot"><span className="pill done">Retirar</span><span className="money">R$ 240</span></div></div>
+                </div>
               </div>
-              <span className="ml-auto bg-blue-500/10 text-blue-400 text-xs px-2 py-1 rounded-full">Em andamento</span>
             </div>
-            <div className="space-y-3">
-              {[
-                { label: 'Troca de óleo + filtro', status: 'done' },
-                { label: 'Alinhamento e balanceamento', status: 'done' },
-                { label: 'Revisão sistema de freios', status: 'progress' },
-                { label: 'Limpeza de bico injetor', status: 'pending' },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center gap-3 py-2 border-b border-gray-800 last:border-0">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    item.status === 'done' ? 'bg-green-500/20' :
-                    item.status === 'progress' ? 'bg-blue-500/20' : 'bg-gray-700'
-                  }`}>
-                    {item.status === 'done' && <CheckCircle className="w-3 h-3 text-green-400" />}
-                    {item.status === 'progress' && <Clock className="w-3 h-3 text-blue-400" />}
-                  </div>
-                  <span className={`text-sm ${item.status === 'pending' ? 'text-gray-500' : 'text-gray-300'}`}>
-                    {item.label}
+            <div className="wa">
+              <div className="ic"><WA size={19} /></div>
+              <div><div className="who">DoMecânico</div><div className="msg">Oi João! Seu Civic tá pronto 🚗 Pode buscar quando quiser.</div><div className="tm">agora</div></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* BEFORE / AFTER */}
+      <section id="acompanhar">
+        <div className="wrap">
+          <div className="ba-band">
+            <span className="eyebrow">O anti-caderninho</span>
+            <h2 className="sec-t">Do caderno pro sistema.</h2>
+            <p className="sec-lead">Arraste e compare: de um lado a OS que some, borra e ninguém acha. Do outro, a mesma oficina — organizada, com placa, km, valor e histórico.</p>
+            <div
+              className="ba" ref={baRef}
+              onPointerDown={e => { dragging.current = true; setX(e.clientX); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }}
+              onPointerMove={e => { if (dragging.current) setX(e.clientX) }}
+              onPointerUp={() => { dragging.current = false }}
+            >
+              <div className="ba-layer ba-after">
+                <div className="board" style={{ gridTemplateColumns: '1fr' }}>
+                  <div className="os" style={{ margin: '0 0 8px' }}><div className="cli">João Silva — Honda Civic 2021</div><div className="veic"><span className="plate">ABC-1234</span><span>47.320 km</span></div><div className="foot"><span className="pill prog">Revisão de freios</span><span className="money">R$ 890,00</span></div></div>
+                  <div className="os" style={{ margin: '0 0 8px' }}><div className="cli">Maria Costa — Fiat Uno 2019</div><div className="veic"><span className="plate">MEL5J12</span><span>88.140 km</span></div><div className="foot"><span className="pill done">Troca de óleo</span><span className="money">R$ 240,00</span></div></div>
+                  <div className="os" style={{ margin: 0 }}><div className="cli">Pedro Souza — VW Gol 2017</div><div className="veic"><span className="plate">GDA-2017</span><span>121.500 km</span></div><div className="foot"><span className="pill wait">Orçamento</span><span className="money">R$ 320,00</span></div></div>
+                </div>
+              </div>
+              <div className="ba-layer ba-before">
+                <div className="pad">
+                  <span className="hdr">Serviços — segunda</span><br />
+                  Civic prata — freio <span className="red">?? R$</span><br />
+                  Uno — <span className="scratch">oleo</span> feito ✓<br />
+                  Gol do <span className="bl">Zé</span> — ver caixa de marcha<br />
+                  <span className="red">Cliente ligou</span> — qual mesmo??<br />
+                  Strada — <span className="scratch">amanhã</span> hoje
+                  <div className="stain"></div>
+                </div>
+              </div>
+              <span className="ba-tags ba-tag-b">CADERNO</span>
+              <span className="ba-tags ba-tag-a">DoMecânico</span>
+              <div className="handle">
+                <div className="grip" ref={gripRef} tabIndex={0} role="slider" aria-label="Comparar caderno e sistema"
+                  aria-valuemin={0} aria-valuemax={100} aria-valuenow={52} onKeyDown={onGripKey}>
+                  <ArrowLeftRight size={18} />
+                </div>
+              </div>
+            </div>
+            <p className="ba-hint">← arraste para comparar →</p>
+          </div>
+        </div>
+      </section>
+
+      {/* LIVE / PHONE */}
+      <section id="como">
+        <div className="wrap live-grid">
+          <div>
+            <span className="eyebrow">Enquanto você trabalha</span>
+            <h2 className="sec-t">O cliente pergunta "tá pronto?"<br />Agora ele vê sozinho.</h2>
+            <p className="sec-lead">Cada OS gera um link. Sem app, sem login: o cliente abre no celular e vê o status, as fotos do checklist e o valor aprovado.</p>
+            <div className="steps">
+              <div className="step"><span className="k">01</span><div><b>Abre a OS e faz o checklist</b><p>Fotos e assinatura na entrada. Fim da discussão sobre arranhão que já existia.</p></div></div>
+              <div className="step"><span className="k">02</span><div><b>Trabalha e atualiza o status</b><p>Aguardando, em andamento, pronto. Peças e serviços somam o valor sozinhos.</p></div></div>
+              <div className="step"><span className="k">03</span><div><b>Avisa no WhatsApp, automático</b><p>Ao marcar "pronto", o cliente recebe a mensagem — sem você parar o serviço.</p></div></div>
+            </div>
+          </div>
+          <div className="phone phone-fl">
+            <div className="phone-frame">
+              <div className="phone-notch"></div>
+              <div className="phone-scr">
+                <div className={`p-wa ${pi >= 2 ? 'show' : ''}`}>
+                  <div className="ic"><WA size={16} /></div>
+                  <div><b>DoMecânico</b><p>Seu Civic tá pronto 🚗 Pode buscar!</p></div>
+                </div>
+                <div className="sbar">
+                  <span>14:32</span>
+                  <span className="rt">
+                    <svg width="15" height="11" viewBox="0 0 24 18" fill="currentColor" aria-hidden="true"><rect x="0" y="12" width="4" height="6" rx="1"/><rect x="6" y="8" width="4" height="10" rx="1"/><rect x="12" y="4" width="4" height="14" rx="1"/><rect x="18" y="0" width="4" height="18" rx="1"/></svg>
+                    <svg width="18" height="11" viewBox="0 0 26 14" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="1" y="1" width="20" height="12" rx="3"/><rect x="3.5" y="3.5" width="15" height="7" rx="1.5" fill="currentColor" stroke="none"/><rect x="23" y="4.5" width="2.4" height="5" rx="1.2" fill="currentColor" stroke="none"/></svg>
                   </span>
                 </div>
-              ))}
-            </div>
-            <div className="mt-6 bg-green-500/5 border border-green-500/20 rounded-xl p-4">
-              <div className="text-xs text-green-400 font-medium mb-1">Checklist assinado</div>
-              <div className="text-xs text-gray-500">Nenhum dano registrado na entrada · 47.320 km</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── PLANOS ────────────────────────────────────────────── */}
-      <section id="planos" className="py-24 px-6 bg-gray-900/30">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="text-blue-400 text-sm font-medium mb-3 tracking-wider uppercase">Planos</div>
-            <h2 className="text-3xl md:text-4xl font-black">Escolha o plano ideal</h2>
-            <p className="text-gray-400 mt-4">14 dias grátis em todos os planos. Sem cartão de crédito.</p>
-          </div>
-
-          {planos.length === 0 ? (
-            <div className="grid md:grid-cols-3 gap-6">
-              {['Starter', 'Pro', 'Enterprise'].map((nome, i) => (
-                <div key={nome} className={`bg-gray-900 border rounded-2xl p-8 ${i === 1 ? 'border-blue-500 ring-1 ring-blue-500/30' : 'border-gray-800'}`}>
-                  <div className="text-gray-500 text-sm animate-pulse">Carregando plano...</div>
+                <div className="p-hd">
+                  <div className="of"><MapPin size={12} /> Auto Center do Zé</div>
+                  <div className="car">Honda Civic 2021</div>
+                  <div className="meta"><span className="plate">ABC-1234</span><span className="chip">47.320 km</span></div>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className={`grid gap-6 ${planos.length === 1 ? 'max-w-sm mx-auto' : planos.length === 2 ? 'md:grid-cols-2 max-w-2xl mx-auto' : 'md:grid-cols-3'}`}>
-              {planos.map((plano) => (
-                <div
-                  key={plano.id}
-                  className={`relative bg-gray-900 border rounded-2xl p-8 flex flex-col transition-all hover:-translate-y-1 ${
-                    plano.destaque
-                      ? 'border-blue-500 ring-1 ring-blue-500/30 shadow-lg shadow-blue-500/10'
-                      : 'border-gray-800 hover:border-gray-700'
-                  }`}
-                >
-                  {plano.destaque && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-4 py-1 rounded-full">
-                      MAIS POPULAR
+                <div className="p-body">
+                  <div className="p-title">Acompanhe seu carro</div>
+                  {[
+                    { t: 'Veículo recebido', tm: '08:12' },
+                    { t: 'Em serviço — freios', tm: '10:40' },
+                    { t: 'Pronto pra retirar', tm: '14:30' },
+                  ].map((s, idx) => (
+                    <div key={s.t} className={`pstep ${idx <= pi ? 'on' : ''}`}>
+                      <div className="dot"><Check size={12} strokeWidth={3.2} /></div>
+                      <div><div className="st">{s.t}</div><div className="tm">{s.tm}</div></div>
                     </div>
-                  )}
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold mb-1">{plano.nome}</h3>
-                    <div className="flex items-end gap-1 mt-4">
-                      <span className="text-gray-500 text-sm">R$</span>
-                      <span className="text-4xl font-black">
-                        {parseFloat(plano.preco) === 0 ? '0' : parseFloat(plano.preco).toFixed(0)}
-                      </span>
-                      <span className="text-gray-500 text-sm mb-1">/mês</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 mb-8 flex-1">
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <Users className="w-4 h-4 text-gray-600" />
-                      {plano.max_usuarios === -1 ? 'Usuários ilimitados' : `Até ${plano.max_usuarios} usuários`}
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <Users className="w-4 h-4 text-gray-600" />
-                      {plano.max_clientes === -1 ? 'Clientes ilimitados' : `Até ${plano.max_clientes} clientes`}
-                    </div>
-                    {plano.modulos_disponiveis && plano.modulos_disponiveis.length > 0 && (
-                      <div className="pt-3 border-t border-gray-800">
-                        <div className="text-xs text-gray-600 mb-2 uppercase tracking-wider">Módulos inclusos</div>
-                        <div className="space-y-1.5">
-                          {plano.modulos_disponiveis.map((m) => (
-                            <div key={m} className="flex items-center gap-2 text-sm text-gray-300">
-                              <CheckCircle className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                              {MODULO_LABEL[m] || m}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <Link
-                    to="/cadastro"
-                    className={`w-full text-center py-3 rounded-xl font-semibold transition-all text-sm ${
-                      plano.destaque
-                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/25'
-                        : 'bg-gray-800 hover:bg-gray-700 text-gray-200'
-                    }`}
-                  >
-                    Começar grátis
-                  </Link>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ── DEPOIMENTOS ───────────────────────────────────────── */}
-      <section id="depoimentos" className="py-24 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="text-blue-400 text-sm font-medium mb-3 tracking-wider uppercase">Depoimentos</div>
-            <h2 className="text-3xl md:text-4xl font-black">O que dizem nossos clientes</h2>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6">
-            {DEPOIMENTOS.map((d) => (
-              <div key={d.nome} className="bg-gray-900 border border-gray-800 rounded-2xl p-6">
-                <div className="flex gap-1 mb-4">
-                  {Array.from({ length: d.estrelas }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
                   ))}
-                </div>
-                <p className="text-gray-300 text-sm leading-relaxed mb-6">"{d.texto}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-blue-600/20 rounded-full flex items-center justify-center text-xs font-bold text-blue-400">
-                    {d.avatar}
+                  <div className="p-check">
+                    <div className="th"><ShieldCheck size={16} /></div>
+                    <div><b>Checklist assinado</b><p>Sem avarias na entrada</p></div>
                   </div>
-                  <div>
-                    <div className="text-sm font-medium">{d.nome}</div>
-                    <div className="text-xs text-gray-500">{d.cargo}</div>
+                  <div className="p-cta">
+                    <div className="b">Ver orçamento <span className="mono">R$ 890,00</span></div>
+                    <div className="ripple"></div>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── FAQ ───────────────────────────────────────────────── */}
-      <section id="faq" className="py-24 px-6 bg-gray-900/30">
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-12">
-            <div className="text-blue-400 text-sm font-medium mb-3 tracking-wider uppercase">FAQ</div>
-            <h2 className="text-3xl font-black">Perguntas frequentes</h2>
-          </div>
-          <div className="space-y-3">
-            {PERGUNTAS.map((item) => (
-              <FAQ key={item.p} p={item.p} r={item.r} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA FINAL ─────────────────────────────────────────── */}
-      <section className="py-24 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="bg-gradient-to-br from-blue-600/20 to-cyan-600/10 border border-blue-500/20 rounded-3xl p-12">
-            <h2 className="text-3xl md:text-4xl font-black mb-4">
-              Pronto para transformar sua oficina?
-            </h2>
-            <p className="text-gray-400 mb-8 max-w-lg mx-auto">
-              Junte-se a centenas de mecânicos que já profissionalizaram a gestão com o DoMecânico.
-            </p>
-            <Link
-              to="/cadastro"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 transition-all px-8 py-4 rounded-xl font-semibold text-lg shadow-lg shadow-blue-600/30"
-            >
-              Criar conta gratuita
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <p className="text-gray-600 text-sm mt-4">14 dias grátis · Sem cartão · Cancele quando quiser</p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FOOTER ────────────────────────────────────────────── */}
-      <footer className="border-t border-gray-800 py-12 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-10">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <img src="/logotipo.png" alt="DoMecânico" className="h-8 w-auto object-contain" />
+      {/* RECURSOS (bento) */}
+      <section id="recursos">
+        <div className="wrap">
+          <div className="sec-head"><span className="eyebrow">Recursos</span><h2 className="sec-t">Tudo que a oficina usa no dia — junto.</h2></div>
+          <div className="bento">
+            <div className="card c-wide">
+              <div className="ic"><FileText size={20} /></div>
+              <h3>Ordem de serviço &amp; orçamento</h3>
+              <p>Monta o orçamento com peças e serviços separados; o cliente aprova pelo celular e vira OS num toque.</p>
+              <div className="receipt">
+                <div className="row"><span>Pastilha de freio diant.</span><span>R$ 180,00</span></div>
+                <div className="row"><span>Disco (par)</span><span>R$ 420,00</span></div>
+                <div className="row"><span>Mão de obra</span><span>R$ 290,00</span></div>
+                <div className="row tot"><span>Total aprovado</span><span>R$ 890,00</span></div>
               </div>
-              <p className="text-gray-500 text-sm leading-relaxed max-w-xs">
-                Sistema de gestão completo para oficinas mecânicas. Simples, rápido e profissional.
-              </p>
-              <div className="flex flex-col gap-2 mt-4">
-                <a href="mailto:contato@domecanico.net" className="flex items-center gap-2 text-gray-500 hover:text-gray-300 text-sm transition-colors">
-                  <Mail className="w-4 h-4" /> contato@domecanico.net
-                </a>
-                <div className="flex items-center gap-2 text-gray-500 text-sm">
-                  <MapPin className="w-4 h-4" /> Brasil
+            </div>
+            <div className="card c-nar">
+              <div className="ic"><Package size={20} /></div>
+              <h3>Estoque</h3>
+              <p>Peça baixa sozinha na OS. Alerta quando chega no mínimo.</p>
+              <div className="mini"><span className="chip">Óleo 5W30 · 4</span><span className="chip">Filtro · 1 ⚠</span></div>
+            </div>
+            <div className="card c-nar">
+              <div className="ic"><ShieldCheck size={20} /></div>
+              <h3>Checklist de entrada</h3>
+              <p>Fotos e assinatura do estado do carro. Zero discussão depois.</p>
+            </div>
+            <div className="card c-nar">
+              <div className="ic"><Clock size={20} /></div>
+              <h3>Prontuário do veículo</h3>
+              <p>Histórico de tudo que já passou no carro + próximas revisões.</p>
+            </div>
+            <div className="card c-nar">
+              <div className="ic"><Globe size={20} /></div>
+              <h3>Mini-site da oficina</h3>
+              <p>Página pública com serviços e agendamento — achável no Google.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PROVA / FUNDADOR */}
+      <section>
+        <div className="wrap">
+          <div className="sec-head"><span className="eyebrow">Sem enrolação</span><h2 className="sec-t">Por que confiar num sistema novo?</h2></div>
+          <div className="proof" style={{ marginTop: 30 }}>
+            <div className="founder">
+              <p className="q">"Fiz o DoMecânico do lado de dentro da oficina, vendo OS sumir no caderno e cliente ligando três vezes pra saber do carro. Cada tela aqui resolve uma dor que eu vi de perto — não é um sistema genérico com cara de oficina."</p>
+              <div className="sig"><div className="av">A</div><div><div className="nm">Alan Pereira Cavalcante</div><div className="rl">Criador do DoMecânico</div></div></div>
+            </div>
+            <div>
+              <p style={{ color: 'var(--ink-soft)', fontSize: 15, marginBottom: 14 }}>O que muda na prática:</p>
+              <div className="vs">
+                <div className="line"><span className="old">OS no papel que some</span><span className="arw">→</span><span className="new">Tudo salvo e buscável</span></div>
+                <div className="line"><span className="old">"Quanto ficou mesmo?"</span><span className="arw">→</span><span className="new">Valor somado sozinho</span></div>
+                <div className="line"><span className="old">Cliente liga 3x</span><span className="arw">→</span><span className="new">Acompanha pelo link</span></div>
+                <div className="line"><span className="old">"Esse risco já tinha?"</span><span className="arw">→</span><span className="new">Foto assinada na entrada</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PLANOS */}
+      <section id="planos">
+        <div className="wrap">
+          <div className="sec-head"><span className="eyebrow">Planos</span><h2 className="sec-t">Comece grátis. Escolha depois.</h2><p className="sec-lead">14 dias com tudo liberado, sem cartão. Cancela quando quiser.</p></div>
+          <div className="plans">
+            {planos.length === 0 ? (
+              ['Starter', 'Pro', 'Enterprise'].map((n, i) => (
+                <div key={n} className={`plan ${i === 1 ? 'feat' : ''}`}>
+                  <div className="nm">{n}</div>
+                  <div className="price"><span className="c">R$</span><span className="v">—</span><span className="per">/mês</span></div>
+                  <ul><li style={{ color: 'var(--ink-faint)' }}>Carregando…</li></ul>
                 </div>
-              </div>
+              ))
+            ) : (
+              planos.map(plano => (
+                <div key={plano.id} className={`plan ${plano.destaque ? 'feat' : ''}`}>
+                  {plano.destaque && <span className="badge">MAIS USADO</span>}
+                  <div className="nm">{plano.nome}</div>
+                  <div className="price">
+                    <span className="c">R$</span>
+                    <span className="v">{parseFloat(plano.preco) === 0 ? '0' : parseFloat(plano.preco).toFixed(0)}</span>
+                    <span className="per">/mês</span>
+                  </div>
+                  <ul>
+                    <li><Check size={16} strokeWidth={2.6} /> {plano.max_usuarios === -1 ? 'Usuários ilimitados' : `Até ${plano.max_usuarios} usuários`}</li>
+                    {(plano.modulos_disponiveis || []).slice(0, 4).map(m => (
+                      <li key={m}><Check size={16} strokeWidth={2.6} /> {MODULO_LABEL[m] || m}</li>
+                    ))}
+                  </ul>
+                  <Link to="/cadastro" className={`btn ${plano.destaque ? 'btn-primary' : 'btn-ghost'}`}>Começar grátis</Link>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq">
+        <div className="wrap">
+          <div className="sec-head" style={{ textAlign: 'center', margin: '0 auto 8px' }}>
+            <span className="eyebrow">Perguntas frequentes</span>
+            <h2 className="sec-t">Ainda com dúvida?</h2>
+          </div>
+          <div className="faq">
+            {PERGUNTAS.map(item => <FAQItem key={item.p} q={item.p} a={item.r} />)}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section>
+        <div className="wrap">
+          <div className="cta">
+            <div className="grid-bg"></div>
+            <h2>Tira a oficina do caderno hoje.</h2>
+            <p>14 dias grátis, com tudo liberado. Sem cartão, sem instalar nada — abre no navegador do PC ou do celular.</p>
+            <Link className="btn" to="/cadastro">Criar minha conta grátis <ArrowRight size={17} /></Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer>
+        <div className="wrap">
+          <div className="foot-grid">
+            <div style={{ maxWidth: 320 }}>
+              <a className="brand" href="#top"><Wrench size={22} strokeWidth={2.1} />Do<b>Mecânico</b></a>
+              <p>Sistema de gestão para oficinas mecânicas. Simples, rápido e do jeito de quem está no dia a dia da oficina.</p>
             </div>
-            <div>
-              <div className="font-semibold text-sm mb-4">Produto</div>
-              <div className="space-y-2">
-                <div><a href="#recursos" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Recursos</a></div>
-                <div><a href="#planos" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Planos</a></div>
-                <div><Link to="/acompanhar" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Acompanhar OS</Link></div>
-                <div><Link to="/contato" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Suporte</Link></div>
-              </div>
-            </div>
-            <div>
-              <div className="font-semibold text-sm mb-4">Legal</div>
-              <div className="space-y-2">
-                <div><Link to="/privacidade" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Política de Privacidade</Link></div>
-                <div><Link to="/termos" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Termos de Uso</Link></div>
-                <div><Link to="/login" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Entrar</Link></div>
-                <div><Link to="/cadastro" className="text-gray-500 hover:text-gray-300 text-sm transition-colors">Criar conta</Link></div>
-              </div>
+            <div className="foot-links">
+              <div className="foot-col"><h4>Produto</h4><a href="#recursos">Recursos</a><a href="#planos">Planos</a><Link to="/acompanhar">Acompanhar carro</Link></div>
+              <div className="foot-col"><h4>Legal</h4><Link to="/privacidade">Privacidade</Link><Link to="/termos">Termos</Link><Link to="/login">Entrar</Link></div>
             </div>
           </div>
-          <div className="border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-gray-600 text-xs">© {new Date().getFullYear()} DoMecânico. Todos os direitos reservados.</div>
-            <div className="flex items-center gap-4 text-gray-600 text-xs">
-              <Link to="/privacidade" className="hover:text-gray-400 transition-colors">LGPD / Privacidade</Link>
-              <span>·</span>
-              <Link to="/termos" className="hover:text-gray-400 transition-colors">Termos</Link>
-              <span>·</span>
-              <span className="flex items-center gap-1.5">Alan Pereira Cavalcante</span>
-            </div>
-          </div>
+          <div className="foot-btm"><span>© {new Date().getFullYear()} DoMecânico. Todos os direitos reservados.</span><span className="mono">Alan Pereira Cavalcante</span></div>
         </div>
       </footer>
     </div>
