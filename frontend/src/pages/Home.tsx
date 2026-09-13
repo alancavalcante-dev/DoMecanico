@@ -14,16 +14,34 @@ interface Plano {
   preco: string
   max_usuarios: number
   max_clientes: number
+  tem_nota_fiscal: boolean
+  tem_relatorios: boolean
+  tem_fotos_veiculo: boolean
   destaque: boolean
   modulos_disponiveis: string[]
 }
 
-const MODULO_LABEL: Record<string, string> = {
-  dashboard: 'Dashboard', clientes: 'Clientes', veiculos: 'Veículos', estoque: 'Estoque',
-  funcionarios: 'Funcionários', ordens: 'Ordens de Serviço', notas_fiscais: 'Comprovantes',
-  relatorios: 'Relatórios', checklist: 'Checklist de Entrada', agendamentos: 'Agendamentos',
-  orcamentos: 'Orçamentos', garantias: 'Garantias', comissoes: 'Comissões',
-  whatsapp: 'WhatsApp', equipe: 'Equipe',
+// Recursos-destaque exibidos nos cards de plano (✓/✗ conforme a config do Admin).
+// Mostra o que DIFERENCIA os planos, não a base que todos têm.
+const tem = (p: Plano, m: string) => (p.modulos_disponiveis || []).includes(m)
+const DESTAQUES: { label: string; on: (p: Plano) => boolean }[] = [
+  { label: 'Ordens de serviço e orçamentos', on: p => tem(p, 'ordens') },
+  { label: 'Diagnósticos', on: p => tem(p, 'diagnosticos') },
+  { label: 'Checklist de entrada', on: p => tem(p, 'checklist') },
+  { label: 'Estoque e comissões', on: p => tem(p, 'estoque') },
+  { label: 'Agendamentos', on: p => tem(p, 'agendamentos') },
+  { label: 'Fotos de veículo', on: p => p.tem_fotos_veiculo },
+  { label: 'Comprovante de serviço', on: p => p.tem_nota_fiscal || tem(p, 'notas_fiscais') },
+  { label: 'Relatórios', on: p => p.tem_relatorios || tem(p, 'relatorios') },
+  { label: 'WhatsApp automático', on: p => tem(p, 'whatsapp') },
+]
+
+const fmtPreco = (preco: string) => {
+  const v = parseFloat(preco)
+  if (!isFinite(v)) return { inteiro: '0', centavos: '' }
+  const inteiro = Math.floor(v)
+  const cent = Math.round((v - inteiro) * 100)
+  return { inteiro: String(inteiro), centavos: cent > 0 ? String(cent).padStart(2, '0') : '' }
 }
 
 const PERGUNTAS = [
@@ -345,24 +363,33 @@ export default function Home() {
                 </div>
               ))
             ) : (
-              planos.map(plano => (
-                <div key={plano.id} className={`plan ${plano.destaque ? 'feat' : ''}`}>
-                  {plano.destaque && <span className="badge">MAIS USADO</span>}
-                  <div className="nm">{plano.nome}</div>
-                  <div className="price">
-                    <span className="c">R$</span>
-                    <span className="v">{parseFloat(plano.preco) === 0 ? '0' : parseFloat(plano.preco).toFixed(0)}</span>
-                    <span className="per">/mês</span>
+              planos.map(plano => {
+                const { inteiro, centavos } = fmtPreco(plano.preco)
+                return (
+                  <div key={plano.id} className={`plan ${plano.destaque ? 'feat' : ''}`}>
+                    {plano.destaque && <span className="badge">MAIS USADO</span>}
+                    <div className="nm">{plano.nome}</div>
+                    <div className="price">
+                      <span className="c">R$</span>
+                      <span className="v">{inteiro}</span>
+                      {centavos && <span className="cents">,{centavos}</span>}
+                      <span className="per">/mês</span>
+                    </div>
+                    <ul>
+                      <li><Check size={16} strokeWidth={2.6} /> {plano.max_usuarios === -1 ? 'Usuários ilimitados' : `Até ${plano.max_usuarios} usuários`}</li>
+                      {DESTAQUES.map(d => {
+                        const on = d.on(plano)
+                        return (
+                          <li key={d.label} className={on ? '' : 'off'}>
+                            {on ? <Check size={16} strokeWidth={2.6} /> : <X size={15} strokeWidth={2.6} />} {d.label}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                    <Link to="/cadastro" className={`btn ${plano.destaque ? 'btn-primary' : 'btn-ghost'}`}>Começar grátis</Link>
                   </div>
-                  <ul>
-                    <li><Check size={16} strokeWidth={2.6} /> {plano.max_usuarios === -1 ? 'Usuários ilimitados' : `Até ${plano.max_usuarios} usuários`}</li>
-                    {(plano.modulos_disponiveis || []).slice(0, 4).map(m => (
-                      <li key={m}><Check size={16} strokeWidth={2.6} /> {MODULO_LABEL[m] || m}</li>
-                    ))}
-                  </ul>
-                  <Link to="/cadastro" className={`btn ${plano.destaque ? 'btn-primary' : 'btn-ghost'}`}>Começar grátis</Link>
-                </div>
-              ))
+                )
+              })
             )}
           </div>
         </div>

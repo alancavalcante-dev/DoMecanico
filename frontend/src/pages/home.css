@@ -248,7 +248,8 @@
 .lp .vs .new{font-size:13.5px;font-weight:600}
 
 /* PLANS */
-.lp .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:34px;align-items:start}
+.lp .plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,310px));
+  justify-content:center;gap:18px;margin-top:34px;align-items:stretch}
 .lp .plan{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:var(--shadow);
   display:flex;flex-direction:column}
 .lp .plan.feat{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--shadow-lg);position:relative}
@@ -258,9 +259,12 @@
 .lp .plan .price{display:flex;align-items:flex-end;gap:3px;margin:14px 0 18px}
 .lp .plan .price .v{font-family:var(--disp);font-weight:900;font-size:40px;letter-spacing:-.03em}
 .lp .plan .price .c,.lp .plan .price .per{color:var(--ink-faint);font-size:14px;padding-bottom:7px}
+.lp .plan .price .cents{font-family:var(--disp);font-weight:800;font-size:20px;color:var(--ink);padding-bottom:6px;letter-spacing:-.02em}
 .lp .plan ul{list-style:none;padding:0;margin:0 0 22px;display:flex;flex-direction:column;gap:10px;flex:1}
 .lp .plan li{display:flex;gap:9px;font-size:14px;color:var(--ink-soft)}
 .lp .plan li svg{color:var(--done);flex:none;margin-top:3px}
+.lp .plan li.off{color:var(--ink-faint)}
+.lp .plan li.off svg{color:var(--ink-faint);opacity:.7}
 .lp .plan .btn{width:100%;justify-content:center}
 
 /* CTA + FOOTER */
@@ -296,7 +300,6 @@
   .lp .hero-grid,.lp .live-grid,.lp .proof{grid-template-columns:1fr;gap:34px}
   .lp .bento{grid-template-columns:repeat(2,1fr)}
   .lp .c-wide,.lp .c-nar,.lp .c-half{grid-column:span 2}
-  .lp .plans{grid-template-columns:1fr;max-width:400px;margin-left:auto;margin-right:auto}
   .lp .nav-links{display:none}.lp .nav-cta .enter{display:none}.lp .nav-toggle{display:inline-flex}
   .lp .foot-links{gap:26px}
   .lp .ba-band{padding:24px}.lp .cta{padding:36px 24px}
