@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { authAPI } from '../api'
+import { trackAssinaturaPaga } from '../utils/tracking'
 import { useAuth } from '../contexts/AuthContext'
 import { CreditCard, Check, X, AlertTriangle, RefreshCw, Loader2, Receipt, Copy, CheckCircle, ChevronDown, ChevronUp, LifeBuoy, Building2, MessageCircle } from 'lucide-react'
 
@@ -85,6 +86,22 @@ export default function Assinatura() {
   const [linkCopiado, setLinkCopiado] = useState<number | null>(null)
   const [cancelando, setCancelando] = useState<number | null>(null)
   const [modulosExpandidos, setModulosExpandidos] = useState<Record<string, boolean>>({})
+  // Trava: dispara a conversão de "assinatura paga" no máximo uma vez por sessão
+  // desta tela, não importa por qual caminho o pagamento seja detectado (polling
+  // do PIX ou botão "Já paguei"). Evita contar a mesma venda duas vezes.
+  const conversaoDisparada = useRef(false)
+  // data_fim no instante em que a cobrança PIX foi gerada. Só consideramos o
+  // pagamento "novo" quando o vencimento avança em relação a este valor — assim
+  // uma renovação feita antes de vencer (que já está "ativa") não conta como
+  // conversão até o PIX realmente cair.
+  const dataFimBaseline = useRef<string | null>(null)
+
+  const dispararConversaoAssinatura = (a: Assinatura | null) => {
+    if (conversaoDisparada.current) return
+    conversaoDisparada.current = true
+    const valor = Number(a?.plano?.preco)
+    trackAssinaturaPaga(isFinite(valor) ? valor : undefined)
+  }
 
   const carregarFaturas = () =>
     authAPI.minhasFaturas().then(({ data }) => setFaturas(data)).catch(() => {})
@@ -114,6 +131,7 @@ export default function Assinatura() {
         if (data.data_fim !== inicial && (data.ativa || data.status === 'ativa')) {
           setAssinatura(data)
           setPago(true)
+          dispararConversaoAssinatura(data)  // pagamento confirmado via polling do PIX
           clearInterval(iv)
           // Sincroniza o contexto (o guard de módulos lê user.assinatura.ativa),
           // senão o acesso continua travado mesmo com a assinatura já ativa.
@@ -169,6 +187,9 @@ export default function Assinatura() {
       const { data } = await authAPI.assinatura()
       setAssinatura(data)
       await refreshUser()
+      // Só conta como conversão se o vencimento avançou desde que o PIX foi gerado
+      // (pagamento realmente entrou), não apenas por já estar "ativa".
+      if (data.ativa && data.data_fim !== dataFimBaseline.current) dispararConversaoAssinatura(data)
       toast.success(data.ativa ? 'Pagamento confirmado! Assinatura ativa.' : 'Ainda não identificamos o pagamento. Tente em instantes.')
     } catch {
       toast.error('Não foi possível atualizar o status.')
@@ -177,6 +198,7 @@ export default function Assinatura() {
 
   const handleGerarLink = async () => {
     setLoadingLink(true)
+    dataFimBaseline.current = assinatura?.data_fim ?? null
     try {
       const { data } = await authAPI.gerarLinkPagamento({ plano_slug: planoSelecionado })
       if (data.link_pagamento || data.pix_copia_cola) {
