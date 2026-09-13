@@ -4,7 +4,7 @@ import {
   ClipboardList, Calendar, FileCheck, ShieldCheck, DollarSign,
   FileText, ClipboardCheck, BarChart3, CreditCard, Globe,
   ChevronRight, Search, Lightbulb, AlertCircle, CheckCircle2,
-  ArrowRight
+  ArrowRight, Stethoscope, UsersRound, MessageCircle, Store
 } from 'lucide-react'
 
 interface Section {
@@ -142,6 +142,7 @@ const sections: Section[] = [
             ['Ordens de Serviço', 'Gestão completa de OS (serviços, peças, PDF)'],
             ['Agendamentos', 'Calendário mensal de visitas'],
             ['Orçamentos', 'Orçamentos digitais com aprovação do cliente'],
+            ['Diagnósticos', 'Avaliação do veículo que vira orçamento num clique'],
             ['Estoque', 'Controle de peças com alertas de quantidade mínima'],
             ['Funcionários', 'Equipe com cargo e comissão configurável'],
             ['Checklist', 'Vistoria de entrada assinada digitalmente'],
@@ -149,6 +150,9 @@ const sections: Section[] = [
             ['Comissões', 'Cálculo automático ao concluir OS'],
             ['Comprovantes de Serviço', 'Comprovante detalhado em PDF, sem valor fiscal'],
             ['Relatórios', 'Faturamento, OS por período e estoque'],
+            ['Equipe', 'Usuários do sistema com permissão por módulo'],
+            ['WhatsApp', 'Avisos automáticos ao cliente pelo seu número'],
+            ['Mini-site', 'Página pública da oficina, achável no Google'],
           ].map(([mod, desc]) => (
             <div key={mod} className="flex gap-2 bg-slate-50 rounded-lg p-3">
               <CheckCircle2 size={14} className="text-blue-500 shrink-0 mt-0.5" />
@@ -297,6 +301,18 @@ const sections: Section[] = [
           Qualquer pessoa pode consultar o histórico de um veículo acessando o portal
           público em <strong>/acompanhar</strong> e informando a placa e o CPF do proprietário.
           O histórico exibe OS concluídas com data e serviços realizados.
+        </P>
+
+        <H2>Prontuário do veículo</H2>
+        <P>
+          Dentro do veículo, abra o <strong>Prontuário</strong> para ver a linha do tempo
+          completa do carro: toda OS, checklist e serviço já realizado, em ordem cronológica.
+        </P>
+
+        <H2>Relatório de saúde</H2>
+        <P>
+          Gere um <strong>Relatório de Saúde</strong> em PDF: um resumo do histórico do veículo
+          com sugestões das próximas revisões. Ótimo para entregar ao cliente e incentivar o retorno.
         </P>
 
         <Tip>
@@ -497,6 +513,61 @@ const sections: Section[] = [
           Um orçamento expirado (data de validade ultrapassada) ainda pode ser convertido,
           mas informe o cliente sobre possíveis variações de preço.
         </Alert>
+      </div>
+    ),
+  },
+
+  {
+    id: 'diagnosticos',
+    icon: Stethoscope,
+    label: 'Diagnósticos',
+    color: 'blue',
+    content: (
+      <div>
+        <P>
+          O diagnóstico é a avaliação do veículo: o mecânico lista os defeitos, serviços e
+          peças necessários e, com um clique, transforma tudo em um orçamento — sem redigitar nada.
+        </P>
+
+        <H2>Criando um diagnóstico</H2>
+        <Step n={1}>Abra <strong>Diagnósticos</strong> e clique em <strong>"Novo"</strong> — ou inicie direto pela tela do veículo (já vem preenchido).</Step>
+        <Step n={2}>Selecione o veículo avaliado.</Step>
+        <Step n={3}>Adicione cada item encontrado: descrição, tipo (serviço ou peça), quantidade e valor estimado.</Step>
+        <Step n={4}>Marque como <strong>verificado</strong> os itens que você já confirmou no carro.</Step>
+
+        <H2>Campos de cada item</H2>
+        <FieldTable rows={[
+          ['Descrição', 'O defeito, serviço ou peça encontrado', 'Sim'],
+          ['Tipo', 'Serviço ou Peça', 'Sim'],
+          ['Quantidade', 'Quantas unidades ou horas', 'Sim'],
+          ['Valor estimado', 'Estimativa por item — soma no total', 'Não'],
+          ['Verificado', 'Marca o que já foi conferido no veículo', 'Não'],
+        ]} />
+
+        <H2>Status</H2>
+        <div className="flex flex-col gap-1.5 my-3">
+          {[
+            ['Aberto', 'Em avaliação, itens sendo lançados', 'blue'],
+            ['Concluído', 'Avaliação pronta para virar orçamento', 'amber'],
+            ['Orçado', 'Já foi convertido em orçamento', 'green'],
+          ].map(([s, d, c]) => (
+            <div key={s} className="flex items-center gap-2.5">
+              <Tag color={c as any}>{s}</Tag>
+              <span className="text-sm text-slate-500">{d}</span>
+            </div>
+          ))}
+        </div>
+
+        <H2>Virando orçamento</H2>
+        <P>
+          Ao terminar a avaliação, clique em <strong>"Gerar orçamento"</strong>. O sistema cria um
+          orçamento com todos os itens já preenchidos, pronto para você enviar ao cliente aprovar.
+        </P>
+
+        <Tip>
+          Comece o diagnóstico direto da tela do Veículo: os dados do carro já vêm preenchidos
+          e a avaliação fica no histórico do veículo.
+        </Tip>
       </div>
     ),
   },
@@ -881,6 +952,147 @@ const sections: Section[] = [
           Envie sempre o link da OS por WhatsApp logo após abri-la. O cliente fica
           muito mais tranquilo acompanhando o andamento em tempo real.
         </Tip>
+      </div>
+    ),
+  },
+
+  {
+    id: 'mini-site',
+    icon: Store,
+    label: 'Mini-site da Oficina',
+    color: 'blue',
+    content: (
+      <div>
+        <P>
+          Sua oficina ganha uma página pública própria — um mini-site com serviços, contato e
+          horário — que pode ser encontrada no Google e compartilhada com clientes.
+        </P>
+
+        <H2>Ativando o mini-site</H2>
+        <Step n={1}>Abra <strong>Perfil Público</strong> no menu.</Step>
+        <Step n={2}>Ative a opção de <strong>perfil público</strong>.</Step>
+        <Step n={3}>Preencha a descrição, os serviços oferecidos (um por linha) e o horário de funcionamento.</Step>
+        <Step n={4}>Salve — o endereço é gerado a partir do nome da oficina, no formato <strong>/oficina/sua-oficina</strong>.</Step>
+
+        <H2>O que aparece para o público</H2>
+        <div className="flex flex-col gap-1.5 my-2">
+          {[
+            'Nome, logo e cores da oficina',
+            'Descrição e lista de serviços',
+            'Horário de funcionamento e contato',
+            'Botão para o cliente acompanhar a OS',
+          ].map(item => (
+            <div key={item} className="flex items-center gap-2 text-sm text-slate-600">
+              <CheckCircle2 size={13} className="text-green-500 shrink-0" />
+              {item}
+            </div>
+          ))}
+        </div>
+
+        <Tip>
+          Capriche na descrição e nos serviços — é o que o Google indexa e o que o cliente vê
+          antes de escolher sua oficina.
+        </Tip>
+      </div>
+    ),
+  },
+
+  {
+    id: 'equipe',
+    icon: UsersRound,
+    label: 'Equipe',
+    color: 'blue',
+    content: (
+      <div>
+        <P>
+          Aqui você cria os <strong>logins</strong> de quem vai usar o sistema e define exatamente
+          o que cada um enxerga. É diferente de <strong>Funcionários</strong> (que é o cadastro de
+          RH/comissão) — na Equipe você controla acesso e permissões.
+        </P>
+
+        <H2>Adicionando um membro</H2>
+        <Step n={1}>Clique em <strong>"Adicionar membro"</strong>.</Step>
+        <Step n={2}>Informe nome, e-mail e escolha um <strong>papel</strong>.</Step>
+        <Step n={3}>Marque/desmarque os <strong>módulos</strong> que ele pode acessar.</Step>
+        <Step n={4}>Salve — o sistema gera uma <strong>senha exibida uma única vez</strong>. Copie e repasse ao membro para o primeiro login.</Step>
+
+        <H2>Papéis e perfis prontos</H2>
+        <div className="flex flex-col gap-1.5 my-3">
+          {[
+            ['Administrador', 'Acesso total ao sistema', 'blue'],
+            ['Mecânico', 'OS, checklist, diagnósticos, agendamentos, veículos', 'amber'],
+            ['Atendente', 'Clientes, OS, agendamentos, orçamentos', 'green'],
+            ['Financeiro', 'Atalho que marca OS, comprovantes, comissões e relatórios', 'slate'],
+          ].map(([p, d, c]) => (
+            <div key={p} className="flex items-center gap-2.5">
+              <Tag color={c as any}>{p}</Tag>
+              <span className="text-sm text-slate-500">{d}</span>
+            </div>
+          ))}
+        </div>
+        <P>
+          Os perfis são só um ponto de partida: depois de aplicar, você ajusta os módulos
+          item a item para aquele membro.
+        </P>
+
+        <Alert>
+          As permissões do membro ficam sempre <strong>limitadas aos módulos do plano</strong> da
+          oficina. Se o plano não inclui um módulo, ninguém da equipe acessa — mesmo marcado.
+          O administrador tem acesso total automaticamente.
+        </Alert>
+      </div>
+    ),
+  },
+
+  {
+    id: 'whatsapp',
+    icon: MessageCircle,
+    label: 'WhatsApp',
+    color: 'blue',
+    content: (
+      <div>
+        <P>
+          Conecte o WhatsApp da oficina e o sistema avisa o cliente <strong>automaticamente</strong> —
+          quando a OS fica pronta, quando um orçamento é enviado e quando um agendamento é confirmado.
+          Usa o seu próprio número, sem custo por mensagem.
+        </P>
+
+        <H2>Conectando seu número</H2>
+        <Step n={1}>Abra <strong>WhatsApp</strong> no menu.</Step>
+        <Step n={2}>Clique em conectar e <strong>leia o QR Code</strong> pelo WhatsApp do celular da oficina (em "Aparelhos conectados").</Step>
+        <Step n={3}>Quando o status ficar <strong>Conectado</strong>, está tudo pronto.</Step>
+
+        <H2>Mensagens automáticas</H2>
+        <div className="flex flex-col gap-1.5 my-3">
+          {[
+            ['OS concluída', 'Avisa o cliente que o veículo está pronto'],
+            ['Orçamento enviado', 'Manda o link para o cliente aprovar ou recusar'],
+            ['Agendamento confirmado', 'Confirma data e horário do serviço'],
+          ].map(([t, d]) => (
+            <div key={t} className="flex gap-2 bg-slate-50 rounded-lg p-3">
+              <CheckCircle2 size={14} className="text-green-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-semibold text-slate-700">{t}</p>
+                <p className="text-xs text-slate-500">{d}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <H2>Personalizando as mensagens</H2>
+        <P>
+          Cada mensagem tem um template editável. Use as variáveis entre chaves — o sistema
+          troca pelos dados reais no envio: <code className="text-xs text-blue-700">{'{cliente_nome}'}</code>,{' '}
+          <code className="text-xs text-blue-700">{'{veiculo}'}</code>,{' '}
+          <code className="text-xs text-blue-700">{'{os_numero}'}</code>,{' '}
+          <code className="text-xs text-blue-700">{'{oficina_nome}'}</code>,{' '}
+          <code className="text-xs text-blue-700">{'{link}'}</code>, entre outras.
+        </P>
+
+        <Alert>
+          Se o WhatsApp desconectar (celular sem internet ou sessão encerrada), reconecte lendo o
+          QR novamente. As mensagens só saem com o status <strong>Conectado</strong>.
+        </Alert>
       </div>
     ),
   },
