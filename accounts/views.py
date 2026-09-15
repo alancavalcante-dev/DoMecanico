@@ -616,6 +616,7 @@ def gerar_link_pagamento(request):
     fatura_existente = Fatura.objects.filter(
         assinatura=assinatura,
         status='pendente',
+        plano=plano,
         criado_em__gte=inicio_mes,
     ).order_by('-criado_em').first()
 
@@ -629,6 +630,7 @@ def gerar_link_pagamento(request):
 
     fatura = Fatura.objects.create(
         assinatura=assinatura,
+        plano=plano,
         valor=plano.preco,
         status='pendente',
         vencimento=(timezone.now() + timedelta(days=3)).date(),

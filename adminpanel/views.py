@@ -954,6 +954,9 @@ class FaturaViewSet(viewsets.ModelViewSet):
 
         # Ativa e estende a vigência +30 dias (do fim atual se ainda futuro, senão de agora).
         assinatura = fatura.assinatura
+        # Fatura com plano definido troca o plano da assinatura ao ser paga.
+        if fatura.plano_id and assinatura.plano_id != fatura.plano_id:
+            assinatura.plano = fatura.plano
         agora = timezone.now()
         base = assinatura.data_fim if (assinatura.data_fim and assinatura.data_fim > agora) else agora
         assinatura.data_fim = base + timedelta(days=30)
@@ -1087,6 +1090,11 @@ class WebhookGatewayView(APIView):
             # Ativa e ESTENDE a vigência +30 dias (do fim atual se ainda futuro, senão de
             # agora). Sem estender a data_fim, ficaria 'ativa' porém vencida → bloqueada.
             assinatura = fatura.assinatura
+            # Se a fatura foi gerada para um plano específico, o pagamento troca o
+            # plano da assinatura (permite upgrade/downgrade pagando). As permissões
+            # de módulo seguem sozinhas (interseção dinâmica em core.permissions).
+            if fatura.plano_id and assinatura.plano_id != fatura.plano_id:
+                assinatura.plano = fatura.plano
             agora = timezone.now()
             base = assinatura.data_fim if (assinatura.data_fim and assinatura.data_fim > agora) else agora
             assinatura.data_fim = base + timedelta(days=30)
@@ -1095,7 +1103,7 @@ class WebhookGatewayView(APIView):
 
             LogAtividade.objects.create(
                 nivel='info', categoria='pagamento',
-                mensagem=f'Pagamento via webhook: Fatura {fatura.numero} - {assinatura.oficina.nome}',
+                mensagem=f'Pagamento via webhook: Fatura {fatura.numero} - {assinatura.oficina.nome} (plano {assinatura.plano.nome})',
             )
 
         elif status_gateway == 'cancelado':

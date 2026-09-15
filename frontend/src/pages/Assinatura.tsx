@@ -215,16 +215,12 @@ export default function Assinatura() {
     }
   }
 
-  const handleTrocarPlano = async (slug: string) => {
-    try {
-      await authAPI.trocarPlano({ plano_slug: slug })
-      await refreshUser()
-      const { data } = await authAPI.assinatura()
-      setAssinatura(data)
-      toast.success('Plano alterado com sucesso!')
-    } catch {
-      toast.error('Erro ao trocar plano.')
-    }
+  // Trocar de plano = pagar o plano escolhido. Ao confirmar o pagamento, o backend
+  // troca o plano da assinatura (e as permissões seguem sozinhas). Aqui só
+  // pré-seleciona o plano e abre a tela de pagamento.
+  const handleTrocarPlano = (slug: string) => {
+    setPlanoSelecionado(slug)
+    setShowPagar(true)
   }
 
   const fmt = (v: string) =>

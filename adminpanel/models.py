@@ -139,6 +139,9 @@ class Fatura(models.Model):
         ('cancelada', 'Cancelada'),
     ]
     assinatura = models.ForeignKey('accounts.Assinatura', on_delete=models.CASCADE, related_name='faturas', db_index=True)
+    # Plano que esta fatura contrata/renova. Ao ser paga, a assinatura passa a
+    # apontar para ele (permite trocar de plano pagando). Null = renova o plano atual.
+    plano = models.ForeignKey('accounts.Plano', on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
     numero = models.CharField(max_length=20, unique=True, blank=True)
     valor = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS, default='pendente', db_index=True)
