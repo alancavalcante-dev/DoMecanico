@@ -20,7 +20,7 @@ interface Plano {
 export default function Cadastro() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const planoParam = searchParams.get('plano') || 'starter'
+  const planoParam = searchParams.get('plano') || ''
 
   const [planos, setPlanos] = useState<Plano[]>([])
   const [planoSlug, setPlanoSlug] = useState(planoParam)
@@ -38,7 +38,14 @@ export default function Cadastro() {
   useEffect(() => {
     authAPI.planos().then(({ data }) => {
       setPlanos(data)
-      if (data.length === 1) setPlanoSlug(data[0].slug)
+      // Padrão: já vem marcado o plano MAIS CARO — a não ser que a URL traga um
+      // plano válido (?plano=basico) ou o usuário troque clicando no card.
+      const urlPlano = searchParams.get('plano')
+      const urlValido = !!urlPlano && data.some((p) => p.slug === urlPlano)
+      if (!urlValido && data.length) {
+        const maisCaro = [...data].sort((a, b) => parseFloat(b.preco) - parseFloat(a.preco))[0]
+        setPlanoSlug(maisCaro.slug)
+      }
     })
   }, [])
 
