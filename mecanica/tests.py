@@ -102,3 +102,36 @@ class PatioTests(TestCase):
         r = self.client.patch(f'/api/ordens/{self.os_a.id}/', {'mecanico': meu.id}, format='json')
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data['mecanico_nome'], 'Zé')
+
+
+class OSPublicaOficinaTests(TestCase):
+    """A página pública da OS mostra os dados da oficina; o perfil só se ele estiver ativo."""
+
+    def setUp(self):
+        self.oficina = _oficina(
+            'Oficina P', telefone='(81) 99999-0000', cep='50000-000', horario_funcionamento='Seg a Sex, 8h às 18h',
+            slug_publico='oficina-p', descricao_publica='Mecânica geral', servicos_oferecidos='Freios\nSuspensão\n',
+        )
+        self.ordem = _os(self.oficina)
+        self.client = APIClient()
+
+    def _get(self):
+        r = self.client.get(f'/api/os-publica/{self.ordem.token_publico}/')
+        self.assertEqual(r.status_code, 200)
+        return r.data
+
+    def test_dados_basicos_da_oficina(self):
+        d = self._get()
+        self.assertEqual(d['oficina_horario'], 'Seg a Sex, 8h às 18h')
+        self.assertEqual(d['oficina_cep'], '50000-000')
+        self.assertIn('status_alterado_em', d)
+
+    def test_perfil_oculto_quando_desligado(self):
+        self.assertIsNone(self._get()['oficina_perfil'])
+
+    def test_perfil_aparece_quando_ligado(self):
+        self.oficina.perfil_publico_ativo = True
+        self.oficina.save()
+        perfil = self._get()['oficina_perfil']
+        self.assertEqual(perfil['slug'], 'oficina-p')
+        self.assertEqual(perfil['servicos'], ['Freios', 'Suspensão'])

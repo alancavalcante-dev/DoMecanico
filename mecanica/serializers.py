@@ -321,6 +321,10 @@ class OSPublicaSerializer(serializers.ModelSerializer):
     oficina_estado = serializers.CharField(source='oficina.estado', read_only=True)
     oficina_cor_primaria = serializers.CharField(source='oficina.cor_primaria', read_only=True)
     oficina_logo_url = serializers.SerializerMethodField()
+    oficina_cep = serializers.CharField(source='oficina.cep', read_only=True)
+    oficina_horario = serializers.CharField(source='oficina.horario_funcionamento', read_only=True)
+    # Descrição, serviços e link do perfil só saem se a oficina ligou o perfil público.
+    oficina_perfil = serializers.SerializerMethodField()
     veiculo_marca = serializers.CharField(source='veiculo.marca', read_only=True)
     veiculo_modelo = serializers.CharField(source='veiculo.modelo', read_only=True)
     veiculo_ano = serializers.CharField(source='veiculo.ano', read_only=True)
@@ -342,8 +346,19 @@ class OSPublicaSerializer(serializers.ModelSerializer):
             'mecanico_nome', 'fotos_veiculo', 'servicos',
             'oficina_nome', 'oficina_telefone', 'oficina_endereco',
             'oficina_cidade', 'oficina_estado', 'oficina_cor_primaria', 'oficina_logo_url',
+            'oficina_cep', 'oficina_horario', 'oficina_perfil', 'status_alterado_em',
             'checklist', 'garantias', 'orcamento',
         ]
+
+    def get_oficina_perfil(self, obj):
+        of = obj.oficina
+        if not of.perfil_publico_ativo or not of.slug_publico:
+            return None
+        return {
+            'slug': of.slug_publico,
+            'descricao': of.descricao_publica,
+            'servicos': [l.strip() for l in (of.servicos_oferecidos or '').splitlines() if l.strip()],
+        }
 
     def get_oficina_logo_url(self, obj):
         if not obj.oficina.logo:
@@ -383,8 +398,8 @@ class OSPublicaSerializer(serializers.ModelSerializer):
         req = self.context.get('request')
         danos = [
             {
-                'regiao': d.regiao,
-                'tipo': d.tipo,
+                'regiao': d.get_regiao_display(),
+                'tipo': d.get_tipo_display() + (f': {d.descricao}' if d.descricao else ''),
                 'foto_url': req.build_absolute_uri(d.foto.url) if (req and d.foto) else None,
             }
             for d in c.danos.all()
