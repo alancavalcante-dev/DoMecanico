@@ -4,7 +4,8 @@ from rest_framework.test import APIClient
 
 from accounts.models import MembroOficina, Oficina, PermissaoMembro
 from mecanica.models import (
-    ChecklistEntrada, Cliente, Funcionario, ItemOrcamento, Orcamento, OrdemServico, ServicoOS, Veiculo,
+    ChecklistEntrada, Cliente, Funcionario, GarantiaDefault, ItemOrcamento, Orcamento, OrdemServico, ServicoOS,
+    Veiculo,
 )
 
 
@@ -179,3 +180,28 @@ class OrcamentoEChecklistPublicosTests(TestCase):
         self.assertEqual(d['oficina_nome'], 'Oficina Q')
         self.assertEqual(d['veiculo_modelo'], 'Uno')
         self.assertEqual(d['os']['token_publico'], self.ordem.token_publico)
+
+
+class PerfilPublicoOficinaTests(TestCase):
+    """Página pública da oficina: dados extras e a busca de OS por placa + CPF."""
+
+    def setUp(self):
+        self.oficina = _oficina('Oficina R', cep='50000-000', slug_publico='oficina-r', perfil_publico_ativo=True)
+        self.ordem = _os(self.oficina)
+        self.ordem.cliente.cpf_cnpj = '123.456.789-09'
+        self.ordem.cliente.save()
+        self.client = APIClient()
+
+    def test_garantia_so_quando_configurada(self):
+        d = self.client.get('/api/auth/perfil/oficina-r/').data
+        self.assertEqual(d['cep'], '50000-000')
+        self.assertIsNone(d['garantia_dias'])
+        GarantiaDefault.objects.create(oficina=self.oficina, prazo_dias=120)
+        self.assertEqual(self.client.get('/api/auth/perfil/oficina-r/').data['garantia_dias'], 120)
+
+    def test_busca_os_da_oficina(self):
+        r = self.client.get('/api/os-publica/oficina/oficina-r/', {'placa': 'abc-1d21', 'cpf': '12345678909'})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual([o['token_publico'] for o in r.data], [self.ordem.token_publico])
+        r = self.client.get('/api/os-publica/oficina/oficina-r/', {'placa': 'ABC1D21', 'cpf': '00000000000'})
+        self.assertEqual(r.data, [])

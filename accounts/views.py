@@ -1257,7 +1257,13 @@ def perfil_publico(request, slug):
     if oficina.logo:
         logo_url = request.build_absolute_uri(oficina.logo.url)
 
+    # Garantia padrão só se a oficina configurou uma (não inventa prazo).
+    from mecanica.models import GarantiaDefault
+    garantia = GarantiaDefault.objects.filter(oficina=oficina).values_list('prazo_dias', flat=True).first()
+
     return Response({
+        'cep': oficina.cep,
+        'garantia_dias': garantia or None,
         'nome': oficina.nome,
         'slug_publico': oficina.slug_publico,
         'telefone': oficina.telefone,

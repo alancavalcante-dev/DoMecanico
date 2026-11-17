@@ -1,0 +1,189 @@
+/* Página pública da oficina (/oficina/:slug). Usa a moldura e os tokens do Acompanhar
+   (acompanhar.css): cor da oficina em --of, texto sobre ela em --of-ink. */
+
+.lp .trk-btn.lg{padding:15px 22px;font-size:16px;border-radius:13px}
+.lp .trk-foot .invite{color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px}
+.lp .trk-foot .invite:hover{color:var(--ink)}
+
+/* ── Herói ── */
+.lp .pf-hero{background:var(--ink);color:#fff;position:relative;overflow:hidden}
+.lp .pf-hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(800px 460px at 12% -20%,color-mix(in srgb,var(--of) 42%,transparent),transparent 70%),
+             radial-gradient(600px 400px at 100% 110%,color-mix(in srgb,var(--of) 22%,transparent),transparent 70%)}
+.lp .pf-hero::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:44px 44px;-webkit-mask-image:linear-gradient(180deg,#000,transparent 85%);mask-image:linear-gradient(180deg,#000,transparent 85%)}
+.lp .pf-hero .trk-wrap{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:56px;
+  padding-top:64px;padding-bottom:72px;align-items:center}
+.lp .pf-hero .who{display:flex;align-items:center;gap:14px}
+.lp .pf-hero .who .trk-mark{box-shadow:0 0 0 4px rgba(255,255,255,.08)}
+.lp .pf-hero .eyebrow{color:var(--signal)}
+.lp .pf-hero .eyebrow{display:grid;gap:6px}
+.lp .pf-hero .eyebrow .loc{color:#C9CBD1}
+.lp .pf-hero h1{font-size:clamp(42px,6.4vw,84px);letter-spacing:-.045em;line-height:.96;margin-top:22px;color:#fff;max-width:14ch}
+.lp .pf-hero .lead{font-size:clamp(17px,1.6vw,19.5px);line-height:1.55;color:#C9CBD1;margin-top:20px;max-width:56ch}
+.lp .pf-hero .cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+.lp .pf-hero .seals{list-style:none;margin:36px 0 0;padding:24px 0 0;border-top:1px solid rgba(255,255,255,.1);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:18px}
+.lp .pf-hero .seals li{display:flex;gap:11px;align-items:flex-start;font-size:13.5px;color:#9EA1AA;line-height:1.4}
+.lp .pf-hero .seals svg{flex:none;color:var(--signal);margin-top:1px}
+.lp .pf-hero .seals b{display:block;color:#fff;font-family:var(--disp);font-size:15px;font-weight:700;letter-spacing:-.01em;margin-bottom:1px}
+.lp .pf-jump{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:22px;padding:0;border:0;background:none;
+  font:inherit;font-size:14.5px;color:#C9CBD1;cursor:pointer}
+.lp .pf-jump b{color:#fff;text-decoration:underline;text-decoration-color:var(--of);text-decoration-thickness:2px;text-underline-offset:4px}
+.lp .pf-jump:hover b{text-decoration-color:#fff}
+
+/* Cartão "Visite a oficina" */
+.lp .pf-visit{background:var(--surface);color:var(--ink);border-radius:24px;padding:26px;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+.lp .pf-visit dl{margin:14px 0 0;display:grid}
+.lp .pf-visit dl>div{display:grid;grid-template-columns:22px minmax(0,1fr);gap:14px;padding:14px 0;border-top:1px solid var(--line-soft)}
+.lp .pf-visit dl>div:first-child{border-top:0}
+.lp .pf-visit dt{color:var(--of-txt);padding-top:2px}
+.lp .pf-visit dd{margin:0;line-height:1.4}
+.lp .pf-visit dd b{display:block;font-weight:600;font-size:15.5px}
+.lp .pf-visit dd b a:hover{text-decoration:underline}
+.lp .pf-visit dd span{display:block;font-size:13px;color:var(--ink-faint);margin-top:2px}
+/* "Mapa" desenhado: ruas em grade com um pino na cor da oficina */
+.lp .pf-map{position:relative;display:block;height:132px;margin-top:8px;border-radius:16px;overflow:hidden;
+  background:
+    linear-gradient(28deg,transparent 46%,#fff 46%,#fff 54%,transparent 54%),
+    linear-gradient(-62deg,transparent 47%,#fff 47%,#fff 52%,transparent 52%),
+    repeating-linear-gradient(0deg,transparent 0 30px,rgba(255,255,255,.75) 30px 33px),
+    repeating-linear-gradient(90deg,transparent 0 38px,rgba(255,255,255,.75) 38px 41px),
+    #E7E3D9;
+  border:1px solid var(--line)}
+.lp .pf-map .pin{position:absolute;left:50%;top:44%;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50% 50% 50% 4px;
+  transform:rotate(-45deg);background:var(--of);color:var(--of-ink);display:grid;place-items:center;box-shadow:0 10px 24px rgba(0,0,0,.25)}
+.lp .pf-map .pin svg{transform:rotate(45deg)}
+.lp .pf-map .go{position:absolute;right:10px;bottom:10px;display:inline-flex;align-items:center;gap:6px;background:var(--surface);
+  border-radius:10px;padding:8px 12px;font-family:var(--disp);font-weight:700;font-size:13.5px;box-shadow:var(--shadow)}
+.lp .pf-map:hover .go{color:var(--of-txt)}
+
+/* ── Seções ── */
+.lp .pf-sec{padding-top:88px}
+.lp .pf-head{max-width:640px}
+.lp .pf-head h2{font-size:clamp(30px,3.6vw,44px);letter-spacing:-.035em;margin-top:12px}
+.lp .pf-head p{color:var(--ink-soft);font-size:17px;margin-top:10px}
+.lp .pf-head.inv h2{color:#fff}
+.lp .pf-head.inv .trk-label{color:var(--signal)}
+
+/* Serviços */
+.lp .pf-services{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:32px}
+.lp .pf-services button{font:inherit;color:inherit;text-align:left;cursor:pointer;display:grid;gap:14px;align-content:start;
+  background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;min-height:150px;
+  transition:transform .15s,border-color .15s,box-shadow .15s}
+.lp .pf-services button:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--of) 45%,var(--line));box-shadow:var(--shadow)}
+.lp .pf-services button:focus-visible{outline:3px solid var(--of);outline-offset:2px}
+.lp .pf-services .ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--of) 12%,var(--surface));color:var(--of-txt)}
+.lp .pf-services b{font-family:var(--disp);font-size:17px;letter-spacing:-.015em;line-height:1.2}
+.lp .pf-services .go{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:var(--ink-faint);margin-top:auto}
+.lp .pf-services button:hover .go{color:var(--of-txt)}
+
+/* Como funciona */
+.lp .pf-how{background:var(--ink);color:#fff;margin-top:96px;padding:80px 0}
+.lp .pf-how ol{list-style:none;margin:40px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  border-top:1px solid rgba(255,255,255,.12)}
+.lp .pf-how li{padding:24px 26px 0 0}
+.lp .pf-how li+li{padding-left:26px;border-left:1px solid rgba(255,255,255,.12)}
+.lp .pf-how .n{font-family:var(--mono);font-size:13px;color:var(--signal)}
+.lp .pf-how b{display:block;font-family:var(--disp);font-size:20px;letter-spacing:-.02em;margin-top:14px}
+.lp .pf-how p{font-size:14.5px;color:#9EA1AA;line-height:1.55;margin-top:8px}
+
+/* Agendar + acompanhar */
+.lp .pf-split{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:32px;align-items:start;padding-bottom:88px}
+.lp .pf-side{position:sticky;top:88px;display:grid;gap:16px}
+.lp .pf-card{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:32px;scroll-margin-top:88px}
+.lp .pf-book header h2{font-size:clamp(28px,3vw,36px);letter-spacing:-.035em;margin-top:10px}
+.lp .pf-book header p{color:var(--ink-soft);margin-top:8px}
+.lp .pf-book fieldset{border:0;margin:28px 0 0;padding:0;min-width:0}
+.lp .pf-book legend{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;font-family:var(--disp);font-weight:700;font-size:16px;padding:0;margin-bottom:12px}
+.lp .pf-book legend .n{width:24px;height:24px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;
+  font-family:var(--mono);font-size:12px;font-weight:600}
+.lp .pf-book .hint,.lp .pf-track .hint{font-weight:400;font-family:var(--sans);font-size:13px;color:var(--ink-faint)}
+
+.lp .pf-chips{display:flex;flex-wrap:wrap;gap:8px}
+.lp .pf-chips button,.lp .pf-days button,.lp .pf-hours button{font:inherit;cursor:pointer;border:1.5px solid var(--line);
+  background:var(--surface-2);color:var(--ink);border-radius:12px;transition:border-color .12s,background .12s}
+.lp .pf-chips button{padding:10px 14px;font-size:14.5px}
+.lp .pf-chips button:hover,.lp .pf-days button:hover,.lp .pf-hours button:not(:disabled):hover{border-color:#CFCBC2}
+.lp .pf-chips .on,.lp .pf-days .on,.lp .pf-hours .on{background:var(--of) !important;border-color:var(--of) !important;color:var(--of-ink) !important}
+.lp .pf-days{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.lp .pf-days button{flex:none;width:76px;padding:10px 0;display:grid;gap:2px;text-align:center}
+.lp .pf-days small{font-size:12px;color:inherit;opacity:.7;text-transform:capitalize}
+.lp .pf-days b{font-family:var(--mono);font-size:15px;font-weight:600}
+.lp .pf-hours{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}
+.lp .pf-hours button{padding:11px 0;font-family:var(--mono);font-size:14.5px;font-weight:600}
+.lp .pf-hours button:disabled{opacity:.35;cursor:not-allowed}
+.lp .pf-tip{font-size:13px;color:var(--ink-faint);margin-top:10px}
+.lp .pf-tip.center{text-align:center}
+
+.lp .pf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.lp .pf-grid label{display:grid;gap:7px;font-size:13.5px;font-weight:600;align-content:start}
+.lp .pf-grid .full{grid-column:1 / -1}
+.lp .pf-input{width:100%;font:inherit;font-weight:400;font-size:16px;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;
+  background:var(--surface-2);color:var(--ink);outline:0;resize:vertical}
+.lp .pf-input:focus{border-color:var(--of);background:var(--surface);box-shadow:0 0 0 4px color-mix(in srgb,var(--of) 16%,transparent)}
+.lp .trk-plate.sm .band{padding:4px 10px 3px;font-size:9px}
+.lp .trk-plate.sm input{font-size:24px;padding:7px 10px 8px}
+.lp .pf-split .trk-plate:focus-within{box-shadow:0 0 0 4px color-mix(in srgb,var(--of) 18%,transparent)}
+.lp .pf-send{margin-top:28px;padding:17px 20px;font-size:16px;white-space:normal}
+
+/* Pedido enviado */
+.lp .pf-ok{text-align:center;padding:44px 32px}
+.lp .pf-ok .big{width:64px;height:64px;border-radius:50%;background:#E1F3E6;color:#1C6E37;display:grid;place-items:center;margin:0 auto}
+.lp .pf-ok h2{font-size:32px;letter-spacing:-.03em;margin-top:18px}
+.lp .pf-ok>p{color:var(--ink-soft);margin:10px auto 0;max-width:46ch}
+.lp .pf-ok .resumo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:24px;text-align:left}
+.lp .pf-ok .resumo>div{background:var(--paper);border-radius:14px;padding:14px 16px;display:grid;gap:4px}
+.lp .pf-ok .resumo b{font-family:var(--disp);font-size:17px}
+.lp .pf-ok .acts{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:24px}
+
+/* Acompanhar o carro */
+.lp .pf-track{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:24px;scroll-margin-top:88px}
+.lp .pf-track .hd{display:flex;gap:14px;align-items:flex-start;margin-bottom:18px}
+.lp .pf-track .ic{width:44px;height:44px;border-radius:12px;flex:none;display:grid;place-items:center;
+  background:color-mix(in srgb,var(--of) 12%,var(--surface));color:var(--of-txt)}
+.lp .pf-track h3{font-size:19px;letter-spacing:-.02em}
+.lp .pf-track .hd p{font-size:14px;color:var(--ink-soft);margin-top:3px}
+.lp .pf-track label{display:block;font-size:13.5px;font-weight:600;margin-bottom:7px}
+.lp .pf-os{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:8px}
+.lp .pf-os a{display:grid;gap:4px;padding:14px 16px;border-radius:14px;background:var(--paper);border:1px solid transparent}
+.lp .pf-os a:hover{border-color:var(--line)}
+.lp .pf-os .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.lp .pf-os .top b{font-family:var(--disp);font-size:15.5px;text-transform:capitalize}
+.lp .pf-os .sub{font-family:var(--mono);font-size:12px;color:var(--ink-faint)}
+.lp .pf-os .go{display:inline-flex;align-items:center;gap:5px;font-size:13.5px;font-weight:600;color:var(--of-txt);margin-top:4px}
+
+@media (max-width:1000px){
+  .lp .pf-hero .trk-wrap{grid-template-columns:minmax(0,1fr);gap:36px}
+  .lp .pf-split{grid-template-columns:minmax(0,1fr)}
+  .lp .pf-side{position:static}
+  .lp .pf-how ol{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lp .pf-how li:nth-child(3){border-left:0;padding-left:0}
+  .lp .pf-how li:nth-child(n+3){border-top:1px solid rgba(255,255,255,.12);margin-top:24px}
+}
+@media (max-width:640px){
+  .lp .pf-hero .trk-wrap{padding-top:36px;padding-bottom:44px}
+  .lp .pf-hero h1{margin-top:18px}
+  .lp .pf-hero .cta .trk-btn{flex:1 1 100%}
+  .lp .pf-hero .seals{grid-template-columns:minmax(0,1fr);gap:14px}
+  .lp .pf-visit{padding:20px;border-radius:20px}
+  .lp .pf-sec{padding-top:56px}
+  .lp .pf-services{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:24px}
+  .lp .pf-services button{padding:16px;min-height:132px;gap:10px}
+  .lp .pf-services b{font-size:15.5px}
+  .lp .pf-how{margin-top:64px;padding:56px 0}
+  .lp .pf-how ol{grid-template-columns:minmax(0,1fr)}
+  .lp .pf-how li,.lp .pf-how li+li,.lp .pf-how li:nth-child(n+3){padding:20px 0 0;border-left:0;margin-top:0}
+  .lp .pf-how li+li{border-top:1px solid rgba(255,255,255,.12);margin-top:20px}
+  .lp .pf-card{padding:22px 18px;border-radius:20px}
+  .lp .pf-grid{grid-template-columns:minmax(0,1fr)}
+  .lp .pf-split{padding-bottom:110px}
+  .lp .pf-ok .resumo{grid-template-columns:minmax(0,1fr)}
+  .lp .trk-plate.sm input{font-size:24px !important}
+}
+@media (prefers-reduced-motion:reduce){
+  .lp .pf-services button{transition:none}
+  .lp .pf-services button:hover{transform:none}
+}

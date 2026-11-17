@@ -122,8 +122,12 @@ export function HeroCarro({ v, eyebrow, cliente, km, abaixo, lado }: {
 }
 
 /** Página inteira: barra da oficina, conteúdo, rodapé e a barra de ações no celular. */
-export function PaginaOficina({ of, wa, onVoltar, children }: {
+export function PaginaOficina({ of, wa, onVoltar, children, dock, convite }: {
   of: OficinaPublica; wa: string | null; onVoltar?: () => void; children: ReactNode
+  /** Botões da barra fixa no celular (padrão: WhatsApp, Ligar, Ir até lá). */
+  dock?: ReactNode
+  /** Convite discreto para donos de oficina no rodapé (página pública da oficina). */
+  convite?: boolean
 }) {
   const tel = linkTelefone(of.oficina_telefone)
   const mapa = linkMapa(of)
@@ -152,7 +156,10 @@ export function PaginaOficina({ of, wa, onVoltar, children }: {
 
       <footer className="trk-foot">
         <div className="trk-wrap">
-          <span>{of.oficina_nome}</span>
+          <span>
+            {of.oficina_nome}
+            {convite && <> · <Link className="invite" to="/">Tem uma oficina? Conheça o DoMecânico</Link></>}
+          </span>
           <Link className="by" to="/" aria-label="Página feita com DoMecânico">
             <span>Feito com</span>
             <img src="/logotipo.png" alt="DoMecânico" width={89} height={26} />
@@ -160,7 +167,7 @@ export function PaginaOficina({ of, wa, onVoltar, children }: {
         </div>
       </footer>
 
-      {(wa || tel || mapa) && (
+      {dock ? <div className="trk-dock">{dock}</div> : (wa || tel || mapa) && (
         <div className="trk-dock">
           {wa && <a className="trk-btn zap" href={wa} target="_blank" rel="noopener noreferrer"><WA size={17} /> WhatsApp</a>}
           {tel && <a className="trk-btn line" href={tel}><Phone size={16} /> Ligar</a>}
