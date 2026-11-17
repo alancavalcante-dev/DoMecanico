@@ -5,8 +5,14 @@ from django.db.models import F
 
 def preencher_status_alterado_em(apps, schema_editor):
     # OS antigas: melhor aproximação de "quando entrou no status atual" é a última atualização.
+    #
+    # IMPORTANTE: .using(alias) — com RLS ligado o deploy migra pela conexão
+    # "bypass", mas o RLSRouter mandaria este UPDATE para a "default" (outra
+    # conexão). Ela ficaria esperando o lock do ALTER TABLE que a própria
+    # migração segura na "bypass" → travamento eterno (não detectado como deadlock).
+    db = schema_editor.connection.alias
     OrdemServico = apps.get_model('mecanica', 'OrdemServico')
-    OrdemServico.objects.filter(status_alterado_em__isnull=True).update(status_alterado_em=F('atualizado_em'))
+    OrdemServico.objects.using(db).filter(status_alterado_em__isnull=True).update(status_alterado_em=F('atualizado_em'))
 
 
 class Migration(migrations.Migration):
