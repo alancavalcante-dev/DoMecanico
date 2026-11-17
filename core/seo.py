@@ -1,14 +1,18 @@
-"""SEO server-side (dynamic rendering) para robôs.
+"""SEO server-side (dynamic rendering) para robôs de PRÉVIA DE LINK.
 
 O frontend é uma SPA (React/Vite) que injeta título/description/OG/JSON-LD no
-navegador via JS. Robôs que NÃO executam JS — em especial os scrapers de link do
-WhatsApp/Facebook/LinkedIn/X e parte do Bing — só enxergam o index.html estático
-e, portanto, o card genérico do DoMecânico em vez do da oficina específica.
+navegador via JS. Os scrapers de prévia de link (WhatsApp, Facebook, LinkedIn,
+X, Telegram, Slack, Discord...) NÃO executam JS e só enxergariam o index.html
+estático — o card genérico do DoMecânico em vez do da oficina específica.
 
 Estes views entregam o HTML já com as meta tags corretas por rota. O nginx
-encaminha para cá apenas as requisições de robôs (por User-Agent); humanos
-continuam recebendo a SPA normal. É a técnica de "dynamic rendering" recomendada
-pelo Google — não altera a experiência do usuário nem o funcionamento do app.
+encaminha para cá apenas esses scrapers (por User-Agent); humanos continuam
+recebendo a SPA normal.
+
+Buscadores (Googlebot, Bingbot...) NÃO passam por aqui de propósito: eles
+executam JS e indexam a página completa da SPA, que tem muito mais conteúdo do
+que este HTML mínimo. (O Google não recomenda mais dynamic rendering para busca.)
+O que eles usam daqui é só o /sitemap.xml dinâmico.
 """
 import json
 
@@ -18,7 +22,7 @@ from django.utils import timezone
 from django.utils.html import escape
 
 BASE = getattr(settings, 'FRONTEND_URL', 'https://domecanico.net').rstrip('/')
-OG_IMAGE_PADRAO = f'{BASE}/logotipo.png'
+OG_IMAGE_PADRAO = f'{BASE}/og-image.png'  # 1200x630 (summary_large_image)
 
 # Descrições das páginas públicas estáticas (espelham ROUTE_DESC do frontend).
 DESC_PADRAO = ('Sistema de gestão para oficinas mecânicas: ordens de serviço, '
@@ -30,7 +34,7 @@ PAGINAS_ESTATICAS = {
         'descricao': DESC_PADRAO,
     },
     'cadastro': {
-        'titulo': 'Cadastro — DoMecânico',
+        'titulo': 'Cadastre sua oficina grátis — DoMecânico',
         'descricao': ('Crie a conta da sua oficina no DoMecânico e comece a gerenciar '
                       'ordens de serviço, orçamentos e estoque com teste grátis.'),
     },
@@ -57,11 +61,18 @@ def _pagina(titulo, descricao, canonical, *, robots='index, follow',
     d = escape(descricao)
     can = escape(canonical)
     img = escape(og_image or OG_IMAGE_PADRAO)
+    # Dimensões só são conhecidas para a imagem padrão (logos de oficina variam).
+    og_dim = ''
+    if (og_image or OG_IMAGE_PADRAO) == OG_IMAGE_PADRAO:
+        og_dim = ('\n<meta property="og:image:width" content="1200" />'
+                  '\n<meta property="og:image:height" content="630" />')
     ld_html = ''
     if jsonld:
-        # json.dumps já escapa aspas; ensure_ascii evita problemas de encoding.
+        # json.dumps escapa aspas; "</" vira "<\/" para um texto da oficina
+        # contendo "</script>" não conseguir fechar a tag e injetar HTML.
         ld_html = ('<script type="application/ld+json">'
-                   + json.dumps(jsonld, ensure_ascii=False) + '</script>')
+                   + json.dumps(jsonld, ensure_ascii=False).replace('</', '<\\/')
+                   + '</script>')
     return f"""<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -76,7 +87,7 @@ def _pagina(titulo, descricao, canonical, *, robots='index, follow',
 <meta property="og:title" content="{t}" />
 <meta property="og:description" content="{d}" />
 <meta property="og:url" content="{can}" />
-<meta property="og:image" content="{img}" />
+<meta property="og:image" content="{img}" />{og_dim}
 <meta property="og:locale" content="pt_BR" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="{t}" />
@@ -189,16 +200,17 @@ def prerender_oficina(request, slug):
 _PREFIXOS_NOINDEX = (
     'dashboard', 'clientes', 'veiculos', 'estoque', 'funcionarios', 'ordens',
     'catalogo', 'notas-fiscais', 'relatorios', 'assinatura', 'checklist',
-    'agendamentos', 'orcamentos', 'orcamento', 'garantias', 'comissoes', 'equipe',
-    'whatsapp', 'perfil', 'perfil-publico', 'meu-painel', 'suporte', 'ajuda',
-    'login', 'acompanhar', 'checklist-cliente', 'aceitar-convite',
-    'redefinir-senha', 'esqueci-senha', 'admin-panel',
+    'agendamentos', 'orcamentos', 'orcamento', 'diagnosticos', 'garantias',
+    'comissoes', 'equipe', 'whatsapp', 'perfil', 'perfil-publico', 'meu-painel',
+    'suporte', 'ajuda', 'login', 'acompanhar', 'checklist-cliente',
+    'aceitar-convite', 'redefinir-senha', 'esqueci-senha', 'admin-panel',
 )
 
 
 def prerender_catchall(request, path=''):
-    """Fallback para robôs em rotas públicas não específicas. Home e páginas
-    estáticas recebem meta próprias; rotas privadas recebem noindex."""
+    """Fallback para robôs. Home e páginas estáticas recebem meta próprias;
+    rotas privadas (que existem, mas exigem login/token) recebem o card genérico
+    com noindex; URLs que não existem recebem 404 + noindex (sem "soft 404")."""
     p = (path or '').strip('/')
     if p == '':
         return prerender_home(request)
@@ -209,12 +221,17 @@ def prerender_catchall(request, path=''):
         return HttpResponse(html)
 
     primeiro = p.split('/', 1)[0]
-    privada = primeiro in _PREFIXOS_NOINDEX
-    robots = 'noindex, follow' if privada else 'index, follow'
-    html = _pagina('DoMecânico — Gestão para Oficinas Mecânicas', DESC_PADRAO,
-                   f'{BASE}/{p}', robots=robots,
-                   corpo='<h1>DoMecânico</h1>')
-    return HttpResponse(html)
+    if primeiro in _PREFIXOS_NOINDEX:
+        html = _pagina('DoMecânico — Gestão para Oficinas Mecânicas', DESC_PADRAO,
+                       f'{BASE}/{p}', robots='noindex, follow',
+                       corpo='<h1>DoMecânico</h1>')
+        return HttpResponse(html)
+
+    html = _pagina('Página não encontrada — DoMecânico',
+                   'O endereço acessado não existe no DoMecânico.',
+                   f'{BASE}/{p}', robots='noindex, follow',
+                   corpo='<h1>Página não encontrada</h1>')
+    return HttpResponse(html, status=404)
 
 
 def sitemap_xml(request):

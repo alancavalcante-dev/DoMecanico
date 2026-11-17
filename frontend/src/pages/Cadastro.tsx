@@ -36,7 +36,7 @@ export default function Cadastro() {
   })
 
   useEffect(() => {
-    authAPI.planos().then(({ data }) => {
+    authAPI.planos().then(({ data }: { data: Plano[] }) => {
       setPlanos(data)
       // Padrão: já vem marcado o plano MAIS CARO — a não ser que a URL traga um
       // plano válido (?plano=basico) ou o usuário troque clicando no card.
@@ -84,7 +84,7 @@ export default function Cadastro() {
           <Link to="/login" className="inline-flex items-center gap-2 text-white font-bold text-xl">
             <img src="/logotipo.png" alt="DoMecânico" className="w-7 h-7 rounded-lg object-contain" /> DoMecânico
           </Link>
-          <h2 className="text-2xl font-bold text-white mt-4">Cadastre sua oficina</h2>
+          <h1 className="text-2xl font-bold text-white mt-4">Cadastre sua oficina</h1>
           <p className="text-gray-400 mt-1">14 dias grátis, sem cartão de crédito</p>
         </div>
 

@@ -429,7 +429,7 @@ export default function Home() {
               <p>Sistema de gestão para oficinas mecânicas. Simples, rápido e do jeito de quem está no dia a dia da oficina.</p>
             </div>
             <div className="foot-links">
-              <div className="foot-col"><h4>Produto</h4><a href="#recursos">Recursos</a><a href="#planos">Planos</a><Link to="/acompanhar">Acompanhar carro</Link></div>
+              <div className="foot-col"><h4>Produto</h4><a href="#recursos">Recursos</a><a href="#planos">Planos</a><Link to="/acompanhar">Acompanhar carro</Link><Link to="/contato">Contato</Link></div>
               <div className="foot-col"><h4>Legal</h4><Link to="/privacidade">Privacidade</Link><Link to="/termos">Termos</Link><Link to="/login">Entrar</Link></div>
             </div>
           </div>

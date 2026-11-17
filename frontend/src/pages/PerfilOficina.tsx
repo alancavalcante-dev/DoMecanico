@@ -196,6 +196,14 @@ export default function PerfilOficina() {
       .finally(() => setLoading(false))
   }, [slug])
 
+  // Perfil inexistente/desativado: não deixar o Google indexar a tela de erro
+  useEffect(() => {
+    if (!notFound) return
+    document.title = 'Oficina não encontrada — DoMecânico'
+    setMetaName('robots', 'noindex, follow')
+    document.head.querySelector('link[rel="canonical"]')?.remove()
+  }, [notFound])
+
   // SEO local: título, meta e JSON-LD AutoRepair a partir dos dados da oficina
   useEffect(() => {
     if (!perfil) return

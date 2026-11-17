@@ -27,6 +27,7 @@ const Privacidade       = lazy(() => import('./pages/Privacidade'))
 const Termos            = lazy(() => import('./pages/Termos'))
 const EsqueciSenha      = lazy(() => import('./pages/EsqueciSenha'))
 const RedefinirSenha    = lazy(() => import('./pages/RedefinirSenha'))
+const NaoEncontrada     = lazy(() => import('./pages/NaoEncontrada'))
 
 // ── Páginas da oficina ────────────────────────────────────────────────────────
 const Dashboard             = lazy(() => import('./pages/Dashboard'))
@@ -117,7 +118,11 @@ function AdminGuard() {
 const PAGE_TITLES: Record<string, string> = {
   '/':               'DoMecânico — Gestão para Oficinas Mecânicas',
   '/login':          'Login — DoMecânico',
-  '/cadastro':       'Cadastro — DoMecânico',
+  '/cadastro':       'Cadastre sua oficina grátis — DoMecânico',
+  '/contato':        'Contato — DoMecânico',
+  '/termos':         'Termos de Uso — DoMecânico',
+  '/privacidade':    'Política de Privacidade — DoMecânico',
+  '/esqueci-senha':  'Esqueci minha senha — DoMecânico',
   '/dashboard':      'Dashboard — DoMecânico',
   '/clientes':       'Clientes — DoMecânico',
   '/veiculos':       'Veículos — DoMecânico',
@@ -168,15 +173,15 @@ const ROUTE_DESC: Record<string, string> = {
 }
 const DESC_PADRAO = ROUTE_DESC['/']
 
-// Prefixos privados / com dados de cliente — não indexar.
-const ROTAS_NOINDEX = [
-  '/dashboard', '/clientes', '/veiculos', '/estoque', '/funcionarios', '/ordens',
-  '/catalogo', '/notas-fiscais', '/relatorios', '/assinatura', '/checklist',
-  '/agendamentos', '/orcamentos', '/diagnosticos', '/garantias', '/comissoes', '/equipe', '/whatsapp',
-  '/perfil', '/meu-painel', '/suporte', '/ajuda', '/login',
-  '/acompanhar', '/orcamento', '/checklist-cliente', '/aceitar-convite',
-  '/redefinir-senha', '/esqueci-senha', '/admin-panel',
-]
+// Lista BRANCA de rotas indexáveis (páginas públicas de marketing + perfis de
+// oficina). Todo o resto — área logada, páginas com token de cliente e URLs que
+// não existem — recebe noindex e fica sem canonical, evitando "soft 404" no Google.
+const ROTAS_INDEXAVEIS = ['/', '/cadastro', '/contato', '/termos', '/privacidade']
+const RE_PERFIL_OFICINA = /^\/oficina\/[^/]+$/
+
+function rotaIndexavel(path: string) {
+  return ROTAS_INDEXAVEIS.includes(path) || RE_PERFIL_OFICINA.test(path)
+}
 
 function upsertMeta(name: string, content: string) {
   let el = document.head.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null
@@ -193,33 +198,34 @@ function PageTitle() {
   const { pathname } = useLocation()
   const primeiraRota = useRef(true)
   useEffect(() => {
+    // "/cadastro/" e "/cadastro" são a mesma página (o router aceita os dois).
+    const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
     // Título
-    const exact = PAGE_TITLES[pathname]
+    const exact = PAGE_TITLES[path]
     if (exact) {
       document.title = exact
     } else {
-      const prefix = Object.keys(PAGE_TITLES).find(k => pathname.startsWith(k + '/'))
+      const prefix = Object.keys(PAGE_TITLES).find(k => path.startsWith(k + '/'))
       document.title = prefix ? PAGE_TITLES[prefix] : 'DoMecânico'
     }
     // Descrição
-    upsertMeta('description', ROUTE_DESC[pathname] || DESC_PADRAO)
-    // noindex em rotas privadas / com dados de cliente
-    const privada = ROTAS_NOINDEX.some(p => pathname === p || pathname.startsWith(p + '/'))
-    upsertMeta('robots', privada ? 'noindex, nofollow' : 'index, follow')
-    // Canonical só em páginas públicas indexáveis; remove nas privadas
-    if (privada) {
-      document.head.querySelector('link[rel="canonical"]')?.remove()
+    upsertMeta('description', ROUTE_DESC[path] || DESC_PADRAO)
+    // Só a lista branca é indexável; o resto (privadas, tokens, 404) leva noindex
+    const indexavel = rotaIndexavel(path)
+    upsertMeta('robots', indexavel ? 'index, follow' : 'noindex, nofollow')
+    if (indexavel) {
+      upsertCanonical(`https://domecanico.net${path}`)
     } else {
-      upsertCanonical(`https://domecanico.net${pathname === '/' ? '/' : pathname}`)
+      document.head.querySelector('link[rel="canonical"]')?.remove()
     }
 
     // Rastreamento de anúncios (Meta Pixel + Google) — SOMENTE nas páginas
     // públicas de marketing (onde o tráfego pago cai). Nunca na área logada,
     // pra não enviar caminhos com dados/IDs de cliente a terceiros.
-    if (!privada) {
+    if (indexavel) {
       initTracking()  // idempotente; dispara o 1º PageView de cada tracker
       if (primeiraRota.current) primeiraRota.current = false
-      else trackPageView(pathname)
+      else trackPageView(path)
     }
   }, [pathname])
   return null
@@ -320,6 +326,9 @@ function AppRoutes() {
           <Route path="sistema"           element={<AdminConfiguracaoSistema />} />
           <Route path="anuncios"          element={<AdminAnuncios />} />
         </Route>
+
+        {/* URL inexistente — página 404 (noindex) em vez de tela em branco */}
+        <Route path="*" element={<NaoEncontrada />} />
       </Routes>
       </div>
     </Suspense>
