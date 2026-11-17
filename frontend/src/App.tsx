@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
-import { lazy, Suspense, useEffect, useState, useRef } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { FlaskConical } from 'lucide-react'
 import { authAPI } from './api'
@@ -213,7 +213,6 @@ function upsertCanonical(href: string) {
 
 function PageTitle() {
   const { pathname } = useLocation()
-  const primeiraRota = useRef(true)
   useEffect(() => {
     // "/cadastro/" e "/cadastro" são a mesma página (o router aceita os dois).
     const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname
@@ -239,11 +238,10 @@ function PageTitle() {
     // Rastreamento de anúncios (Meta Pixel + Google) — SOMENTE nas páginas
     // públicas de marketing (onde o tráfego pago cai). Nunca na área logada,
     // pra não enviar caminhos com dados/IDs de cliente a terceiros.
-    if (indexavel) {
-      initTracking()  // idempotente; dispara o 1º PageView de cada tracker
-      if (primeiraRota.current) primeiraRota.current = false
-      else trackPageView(path)
-    }
+    // initTracking() devolve true quando acabou de carregar e já mandou o PageView;
+    // se já estava carregado (rota anterior, ou carregado só para a conversão de
+    // assinatura), o PageView desta rota sai manualmente.
+    if (indexavel && !initTracking()) trackPageView(path)
   }, [pathname])
   return null
 }
