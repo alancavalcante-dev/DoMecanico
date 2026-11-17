@@ -4,6 +4,9 @@ import { ArrowRight, ChevronDown } from 'lucide-react'
 
 // Blocos visuais reaproveitados pelas páginas públicas.
 
+/** A ação principal, com o mesmo texto em todo o site. */
+export const ACAO = 'Testar grátis por 14 dias'
+
 export function SectionHead({ eyebrow, title, lead, center, as = 'h2' }: {
   eyebrow?: string; title: ReactNode; lead?: ReactNode; center?: boolean; as?: 'h1' | 'h2'
 }) {
@@ -56,23 +59,6 @@ export function FAQList({ items, left }: { items: Pergunta[]; left?: boolean }) 
     <div className={`faq ${left ? 'left' : ''}`}>
       {items.map(item => <FAQItem key={item.p} q={item.p} a={item.r} />)}
     </div>
-  )
-}
-
-export function CTABand({ title = 'Tira a oficina do caderno hoje.', text, label = 'Criar minha conta grátis' }: {
-  title?: string; text?: string; label?: string
-}) {
-  return (
-    <section>
-      <div className="wrap">
-        <div className="cta">
-          <div className="grid-bg"></div>
-          <h2>{title}</h2>
-          <p>{text ?? '14 dias grátis, com tudo liberado. Sem cartão, sem instalar nada — abre no navegador do PC ou do celular.'}</p>
-          <Link className="btn" to="/cadastro">{label} <ArrowRight size={17} /></Link>
-        </div>
-      </div>
-    </section>
   )
 }
 

@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, X, Minus } from 'lucide-react'
+import { Check, Minus } from 'lucide-react'
 import type { Plano, StatusPlanos } from './planosData'
+import { Placa } from './brand'
+import { ACAO } from './ui'
 
 // Cards e comparativo de planos (Home e /planos). Dados em planosData.ts.
 
@@ -15,18 +17,32 @@ const tem = (p: Plano, m: string) => {
 // só soma o módulo se ele foi listado de propósito, não pela regra da lista vazia.
 const listado = (p: Plano, m: string) => (p.modulos_disponiveis || []).includes(m)
 
-// O que DIFERENCIA os planos nos cards (✓/✗ conforme a config do Admin).
-const DESTAQUES: { label: string; on: (p: Plano) => boolean }[] = [
+// Recursos que podem ou não estar no plano (conforme a config do Admin).
+const RECURSOS: { label: string; on: (p: Plano) => boolean }[] = [
   { label: 'Ordens de serviço e orçamentos', on: p => tem(p, 'ordens') },
-  { label: 'Diagnósticos', on: p => tem(p, 'diagnosticos') },
   { label: 'Checklist de entrada', on: p => tem(p, 'checklist') },
-  { label: 'Estoque e comissões', on: p => tem(p, 'estoque') },
+  { label: 'Link de acompanhamento', on: p => tem(p, 'ordens') },
+  { label: 'WhatsApp automático', on: p => tem(p, 'whatsapp') },
+  { label: 'Diagnósticos', on: p => tem(p, 'diagnosticos') },
   { label: 'Agendamentos', on: p => tem(p, 'agendamentos') },
-  { label: 'Fotos de veículo', on: p => p.tem_fotos_veiculo },
+  { label: 'Estoque e comissões', on: p => tem(p, 'estoque') },
+  { label: 'Fotos do veículo', on: p => p.tem_fotos_veiculo },
   { label: 'Comprovante de serviço', on: p => p.tem_nota_fiscal || listado(p, 'notas_fiscais') },
   { label: 'Relatórios', on: p => p.tem_relatorios || listado(p, 'relatorios') },
-  { label: 'WhatsApp automático', on: p => tem(p, 'whatsapp') },
 ]
+
+/** O que vem em todos os planos publicados (vai uma vez só, fora dos cards). */
+export const emTodoPlano = (planos: Plano[]) =>
+  planos.length ? RECURSOS.filter(r => planos.every(r.on)).map(r => r.label) : []
+
+/** Só o que este plano tem e algum outro não tem. */
+const extras = (p: Plano, planos: Plano[]) =>
+  RECURSOS.filter(r => r.on(p) && !planos.every(r.on)).map(r => r.label)
+
+export const precoMinimo = (planos: Plano[]) => {
+  const v = planos.map(p => parseFloat(p.preco)).filter(isFinite)
+  return v.length ? String(Math.floor(Math.min(...v))) : ''
+}
 
 const fmtPreco = (preco: string) => {
   const v = parseFloat(preco)
@@ -36,16 +52,16 @@ const fmtPreco = (preco: string) => {
   return { inteiro: String(inteiro), centavos: cent > 0 ? String(cent).padStart(2, '0') : '' }
 }
 
-const limite = (n: number | undefined, unidade: string) =>
-  n === undefined || n === null ? '—' : n === -1 ? 'Ilimitado' : `${n.toLocaleString('pt-BR')} ${unidade}`.trim()
+const limite = (n: number | undefined, unidade = '') =>
+  n === undefined || n === null ? '–' : n === -1 ? 'Ilimitado' : `${n.toLocaleString('pt-BR')} ${unidade}`.trim()
 
 function PlanosErro() {
   return (
     <div className="plans-msg">
       <b style={{ fontFamily: 'var(--disp)', fontSize: 18 }}>Não deu pra carregar os preços agora.</b>
-      <p>Você pode começar o teste grátis mesmo assim — são 14 dias com tudo liberado e você escolhe o plano depois.</p>
-      <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Link className="btn btn-primary" to="/cadastro">Começar grátis</Link>
+      <p>Você pode começar o teste mesmo assim: são 14 dias com tudo liberado e você escolhe o plano depois.</p>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <Link className="btn btn-primary" to="/cadastro">{ACAO}</Link>
         <Link className="btn btn-ghost" to="/contato">Falar com a gente</Link>
       </div>
     </div>
@@ -57,11 +73,11 @@ export function PlanCards({ planos, status, comDescricao }: { planos: Plano[]; s
   if (status === 'carregando') {
     return (
       <div className="plans" aria-busy="true">
-        {['Básico', 'Profissional', 'Completo'].map((n, i) => (
-          <div key={n} className={`plan ${i === 1 ? 'feat' : ''}`} style={{ opacity: .6 }}>
-            <div className="nm">&nbsp;</div>
-            <div className="price"><span className="c">R$</span><span className="v">—</span><span className="per">/mês</span></div>
-            <ul><li style={{ color: 'var(--ink-faint)' }}>Carregando…</li></ul>
+        {[0, 1].map(i => (
+          <div key={i} className="plan" style={{ opacity: .55, minHeight: 380 }}>
+            <Placa faixa="Plano" size="sm">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</Placa>
+            <div className="price"><span className="c">R$</span><span className="v">–</span><span className="per">/mês</span></div>
+            <p className="desc">Carregando…</p>
           </div>
         ))}
       </div>
@@ -71,10 +87,11 @@ export function PlanCards({ planos, status, comDescricao }: { planos: Plano[]; s
     <div className="plans">
       {planos.map(plano => {
         const { inteiro, centavos } = fmtPreco(plano.preco)
+        const mais = extras(plano, planos)
         return (
           <div key={plano.id} className={`plan ${plano.destaque ? 'feat' : ''}`}>
             {plano.destaque && <span className="badge">Recomendado</span>}
-            <div className="nm">{plano.nome}</div>
+            <Placa faixa="Plano">{plano.nome.toUpperCase()}</Placa>
             <div className="price">
               <span className="c">R$</span>
               <span className="v">{inteiro}</span>
@@ -82,18 +99,17 @@ export function PlanCards({ planos, status, comDescricao }: { planos: Plano[]; s
               <span className="per">/mês</span>
             </div>
             {comDescricao && plano.descricao && <p className="desc">{plano.descricao}</p>}
-            <ul>
-              <li><Check size={16} strokeWidth={2.6} /> {plano.max_usuarios === -1 ? 'Usuários ilimitados' : plano.max_usuarios === 1 ? '1 usuário' : `Até ${plano.max_usuarios} usuários`}</li>
-              {DESTAQUES.map(d => {
-                const on = d.on(plano)
-                return (
-                  <li key={d.label} className={on ? '' : 'off'}>
-                    {on ? <Check size={16} strokeWidth={2.6} /> : <X size={15} strokeWidth={2.6} />} {d.label}
-                  </li>
-                )
-              })}
+            <ul className="lim">
+              <li>Usuários <b>{limite(plano.max_usuarios)}</b></li>
+              <li>OS por mês <b>{limite(plano.max_os_mes)}</b></li>
+              <li>Clientes <b>{limite(plano.max_clientes)}</b></li>
+              <li>Peças no estoque <b>{limite(plano.max_pecas)}</b></li>
             </ul>
-            <Link to="/cadastro" className={`btn ${plano.destaque ? 'btn-primary' : 'btn-ghost'}`}>Começar grátis</Link>
+            {mais.length > 0
+              ? <p className="add"><b>Inclui também:</b> {mais.join(' · ')}</p>
+              : <p className="add">Tudo o que vem em todo plano.</p>}
+            <div className="gap" />
+            <Link to="/cadastro" className={`btn ${plano.destaque ? 'btn-primary' : 'btn-tonal'}`}>{ACAO}</Link>
           </div>
         )
       })}
@@ -110,10 +126,10 @@ const bool = (b: boolean) => (b ? SIM : NAO)
 
 const LINHAS: Linha[] = [
   { sep: 'Limites' },
-  { label: 'Usuários', val: p => <span className="mono">{limite(p.max_usuarios, '')}</span> },
-  { label: 'Clientes cadastrados', val: p => <span className="mono">{limite(p.max_clientes, '')}</span> },
-  { label: 'Ordens de serviço por mês', val: p => <span className="mono">{limite(p.max_os_mes, '')}</span> },
-  { label: 'Peças no estoque', val: p => <span className="mono">{limite(p.max_pecas, '')}</span> },
+  { label: 'Usuários', val: p => <span className="mono">{limite(p.max_usuarios)}</span> },
+  { label: 'Clientes cadastrados', val: p => <span className="mono">{limite(p.max_clientes)}</span> },
+  { label: 'Ordens de serviço por mês', val: p => <span className="mono">{limite(p.max_os_mes)}</span> },
+  { label: 'Peças no estoque', val: p => <span className="mono">{limite(p.max_pecas)}</span> },
   { sep: 'Atendimento' },
   { label: 'Ordens de serviço', val: p => bool(tem(p, 'ordens')) },
   { label: 'Orçamentos com aprovação pelo celular', val: p => bool(tem(p, 'orcamentos') || tem(p, 'ordens')) },

@@ -13,7 +13,7 @@ export default function LegalPage({ eyebrow, titulo, atualizacao, intro, secoes,
   ctaTitulo: string; ctaTexto: string; ctaExtra?: ReactNode
 }) {
   return (
-    <SiteLayout>
+    <SiteLayout fechamento={false}>
       <header className="page-hero">
         <div className="wrap legal">
           <span className="eyebrow">{eyebrow}</span>
