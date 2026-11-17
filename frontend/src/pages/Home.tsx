@@ -1,93 +1,59 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Wrench, Check, ArrowRight, ChevronDown, MapPin, FileText, Package,
-  ShieldCheck, Clock, Globe, ArrowLeftRight, Menu, X,
+  Check, ArrowRight, MapPin, FileText, Package, ShieldCheck, Clock, Globe, ArrowLeftRight,
+  Gift, Smartphone, Unlock, Lock, Stethoscope, Calendar, Percent, BadgeCheck, BarChart3,
 } from 'lucide-react'
-import { authAPI } from '../api'
-import './home.css'
+import SiteLayout from '../site/SiteLayout'
+import { SectionHead, MoreLink, FAQList, CTABand, WA, type Pergunta } from '../site/ui'
+import { PlanCards } from '../site/planos'
+import { usePlanos } from '../site/planosData'
+import { FilaMecanicoMock, QuadroPatioMock } from '../site/mocks'
 
-interface Plano {
-  id: number
-  slug: string
-  nome: string
-  preco: string
-  max_usuarios: number
-  max_clientes: number
-  tem_nota_fiscal: boolean
-  tem_relatorios: boolean
-  tem_fotos_veiculo: boolean
-  destaque: boolean
-  modulos_disponiveis: string[]
-}
-
-// Recursos-destaque exibidos nos cards de plano (✓/✗ conforme a config do Admin).
-// Mostra o que DIFERENCIA os planos, não a base que todos têm.
-const tem = (p: Plano, m: string) => (p.modulos_disponiveis || []).includes(m)
-const DESTAQUES: { label: string; on: (p: Plano) => boolean }[] = [
-  { label: 'Ordens de serviço e orçamentos', on: p => tem(p, 'ordens') },
-  { label: 'Diagnósticos', on: p => tem(p, 'diagnosticos') },
-  { label: 'Checklist de entrada', on: p => tem(p, 'checklist') },
-  { label: 'Estoque e comissões', on: p => tem(p, 'estoque') },
-  { label: 'Agendamentos', on: p => tem(p, 'agendamentos') },
-  { label: 'Fotos de veículo', on: p => p.tem_fotos_veiculo },
-  { label: 'Comprovante de serviço', on: p => p.tem_nota_fiscal || tem(p, 'notas_fiscais') },
-  { label: 'Relatórios', on: p => p.tem_relatorios || tem(p, 'relatorios') },
-  { label: 'WhatsApp automático', on: p => tem(p, 'whatsapp') },
-]
-
-const fmtPreco = (preco: string) => {
-  const v = parseFloat(preco)
-  if (!isFinite(v)) return { inteiro: '0', centavos: '' }
-  const inteiro = Math.floor(v)
-  const cent = Math.round((v - inteiro) * 100)
-  return { inteiro: String(inteiro), centavos: cent > 0 ? String(cent).padStart(2, '0') : '' }
-}
-
-const PERGUNTAS = [
+const PERGUNTAS: Pergunta[] = [
   { p: 'Preciso instalar algum programa?', r: 'Não. O DoMecânico é 100% online — abre no navegador do computador, tablet ou celular, sem instalar nada.' },
   { p: 'Posso testar antes de pagar?', r: 'Sim! São 14 dias grátis com tudo liberado, sem precisar de cartão de crédito.' },
-  { p: 'O WhatsApp automático usa meu número?', r: 'Sim, integra com o seu próprio número via Evolution API. Sem custo por mensagem.' },
+  { p: 'O WhatsApp automático usa meu número?', r: 'Sim, integra com o seu próprio número. Sem custo por mensagem.' },
+  { p: 'Meu mecânico consegue usar no celular?', r: 'Sim. O mecânico entra direto na fila de trabalho dele, com botões grandes, busca por placa e ditado por voz — e você escolhe se ele vê os valores ou não.' },
   { p: 'Posso cancelar quando quiser?', r: 'Sim, sem fidelidade. Cancela pelo painel a qualquer momento e seus dados ficam disponíveis por 30 dias.' },
   { p: 'Os dados da minha oficina ficam seguros?', r: 'Cada oficina tem os dados isolados, autenticação por token e backups. Sua oficina não enxerga a de ninguém.' },
 ]
 
-const WA = ({ size = 18 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2Zm5.6 14.2c-.24.67-1.4 1.28-1.92 1.32-.5.05-1.12.24-3.66-.77-3.09-1.23-5.05-4.38-5.2-4.58-.15-.2-1.24-1.65-1.24-3.15s.79-2.24 1.07-2.55c.28-.3.6-.38.8-.38h.58c.19 0 .44-.07.68.52.24.6.83 2.06.9 2.2.07.15.12.32.02.52-.1.2-.15.32-.3.5l-.44.5c-.15.15-.3.31-.13.6.17.3.76 1.25 1.63 2.02 1.12.99 2.06 1.3 2.36 1.45.3.15.47.13.64-.08.17-.2.73-.85.93-1.15.2-.3.4-.24.67-.15.27.1 1.72.81 2.02.96.3.15.5.22.57.34.07.12.07.7-.17 1.38Z"/></svg>
-)
+const FATOS = [
+  { icon: Gift,       t: '14 dias grátis',      d: 'Tudo liberado, sem cartão' },
+  { icon: Smartphone, t: 'Celular ou PC',       d: 'Abre no navegador, sem instalar' },
+  { icon: Unlock,     t: 'Sem fidelidade',      d: 'Cancela pelo painel' },
+  { icon: Lock,       t: 'Dados isolados',      d: 'Cada oficina só vê a sua' },
+]
 
-function FAQItem({ q, a }: { q: string; a: string }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className={`faq-item ${open ? 'open' : ''}`}>
-      <button className="faq-q" onClick={() => setOpen(o => !o)} aria-expanded={open}>
-        {q}<ChevronDown size={18} />
-      </button>
-      {open && <div className="faq-a">{a}</div>}
-    </div>
-  )
-}
+const RECURSOS = [
+  { id: 'estoque',       icon: Package,     t: 'Estoque',               d: 'Peça baixa sozinha na OS. Alerta quando chega no mínimo.', mini: ['Óleo 5W30 · 12', 'Filtro · 1 ⚠'] },
+  { id: 'checklist',     icon: ShieldCheck, t: 'Checklist de entrada',  d: 'Fotos e assinatura do estado do carro. Zero discussão depois.' },
+  { id: 'diagnosticos',  icon: Stethoscope, t: 'Diagnósticos',          d: 'Avaliação técnica do carro que vira orçamento num toque.' },
+  { id: 'agendamentos',  icon: Calendar,    t: 'Agendamentos',          d: 'Agenda da oficina, com horário marcado pelo próprio cliente.' },
+  { id: 'comissoes',     icon: Percent,     t: 'Comissões',             d: 'Registradas sozinhas ao concluir a OS. Pagas e pendentes.' },
+  { id: 'garantias',     icon: BadgeCheck,  t: 'Garantias',             d: 'Prazo por serviço, com o que está vigente ou vencido à vista.' },
+  { id: 'relatorios',    icon: BarChart3,   t: 'Relatórios',            d: 'Faturamento, ticket médio e produção por mecânico. Exporta pro Excel.' },
+  { id: 'prontuario',    icon: Clock,       t: 'Prontuário do veículo', d: 'Histórico de tudo que já passou no carro + próximas revisões.' },
+  { id: 'mini-site',     icon: Globe,       t: 'Mini-site da oficina',  d: 'Página pública com serviços e agendamento — achável no Google.' },
+]
 
 export default function Home() {
-  const [planos, setPlanos] = useState<Plano[]>([])
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [pi, setPi] = useState(0)
+  const { planos, status } = usePlanos()
+  // Linha do tempo do carro no celular: avança 1→2→3, segura o "pronto", reinicia.
+  // Com "reduzir movimento" ligado, já mostra tudo concluído e não anima.
+  const [reduzir] = useState(() => window.matchMedia('(prefers-reduced-motion:reduce)').matches)
+  const [pi, setPi] = useState(reduzir ? 2 : 0)
 
   const baRef = useRef<HTMLDivElement>(null)
   const gripRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
 
   useEffect(() => {
-    authAPI.planos().then(({ data }) => setPlanos(data)).catch(() => {})
-  }, [])
-
-  // Linha do tempo do carro no celular: avança 1→2→3, segura o "pronto", reinicia.
-  useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion:reduce)').matches
-    if (reduce) { setPi(2); return }
+    if (reduzir) return
     const id = setInterval(() => setPi(v => (v + 1) % 4), 1650)
     return () => clearInterval(id)
-  }, [])
+  }, [reduzir])
 
   const setX = (clientX: number) => {
     const el = baRef.current
@@ -101,41 +67,15 @@ export default function Home() {
     const el = baRef.current
     if (!el) return
     const cur = parseFloat(getComputedStyle(el).getPropertyValue('--x')) || 52
-    if (e.key === 'ArrowLeft') { el.style.setProperty('--x', Math.max(4, cur - 4) + '%'); e.preventDefault() }
-    if (e.key === 'ArrowRight') { el.style.setProperty('--x', Math.min(96, cur + 4) + '%'); e.preventDefault() }
+    const next = e.key === 'ArrowLeft' ? Math.max(4, cur - 4) : e.key === 'ArrowRight' ? Math.min(96, cur + 4) : null
+    if (next === null) return
+    el.style.setProperty('--x', next + '%')
+    gripRef.current?.setAttribute('aria-valuenow', String(Math.round(next)))
+    e.preventDefault()
   }
 
-  const NAV = [
-    { href: '#recursos', label: 'Recursos' },
-    { href: '#como', label: 'Como funciona' },
-    { href: '#planos', label: 'Planos' },
-  ]
-
   return (
-    <div className="lp">
-      {/* NAV */}
-      <nav>
-        <div className="wrap nav-in">
-          <a className="brand" href="#top"><Wrench size={22} strokeWidth={2.1} />Do<b>Mecânico</b></a>
-          <div className="nav-links">
-            {NAV.map(n => <a key={n.href} href={n.href}>{n.label}</a>)}
-            <Link to="/acompanhar">Acompanhar carro</Link>
-          </div>
-          <div className="nav-cta">
-            <Link className="enter" to="/login">Entrar</Link>
-            <Link className="btn btn-primary" to="/cadastro">Teste grátis</Link>
-            <button className="nav-toggle" onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
-              {menuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
-          </div>
-        </div>
-        <div className={`nav-mobile ${menuOpen ? 'open' : ''}`}>
-          {NAV.map(n => <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)}>{n.label}</a>)}
-          <Link to="/acompanhar" onClick={() => setMenuOpen(false)}>Acompanhar carro</Link>
-          <Link to="/login" onClick={() => setMenuOpen(false)}>Entrar</Link>
-        </div>
-      </nav>
-
+    <SiteLayout>
       {/* HERO */}
       <header className="hero" id="top">
         <div className="wrap hero-grid">
@@ -154,7 +94,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="shot">
+          <div className="shot" aria-hidden="true">
             <div className="browser">
               <div className="bar"><i></i><i></i><i></i><span className="url">app.domecanico.net/ordens</span></div>
               <div className="board">
@@ -179,15 +119,22 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <div className="wrap">
+          <div className="facts">
+            {FATOS.map(f => (
+              <div key={f.t} className="fact"><f.icon size={19} /><div><b>{f.t}</b><span>{f.d}</span></div></div>
+            ))}
+          </div>
+        </div>
       </header>
 
-      {/* BEFORE / AFTER */}
+      {/* CADERNO × SISTEMA */}
       <section id="acompanhar">
         <div className="wrap">
           <div className="ba-band">
             <span className="eyebrow">O anti-caderninho</span>
             <h2 className="sec-t">Do caderno pro sistema.</h2>
-            <p className="sec-lead">Arraste e compare: de um lado a OS que some, borra e ninguém acha. Do outro, a mesma oficina — organizada, com placa, km, valor e histórico.</p>
+            <p className="sec-lead">Arraste e compare: de um lado a OS que some, borra e ninguém acha. Do outro, a mesma oficina — organizada, com placa, valor e status de cada carro.</p>
             <div
               className="ba" ref={baRef}
               onPointerDown={e => { dragging.current = true; setX(e.clientX); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId) }}
@@ -195,11 +142,12 @@ export default function Home() {
               onPointerUp={() => { dragging.current = false }}
             >
               <div className="ba-layer ba-after">
-                <div className="board" style={{ gridTemplateColumns: '1fr' }}>
-                  <div className="os" style={{ margin: '0 0 8px' }}><div className="cli">João Silva — Honda Civic 2021</div><div className="veic"><span className="plate">ABC-1234</span><span>47.320 km</span></div><div className="foot"><span className="pill prog">Revisão de freios</span><span className="money">R$ 890,00</span></div></div>
-                  <div className="os" style={{ margin: '0 0 8px' }}><div className="cli">Maria Costa — Fiat Uno 2019</div><div className="veic"><span className="plate">MEL5J12</span><span>88.140 km</span></div><div className="foot"><span className="pill done">Troca de óleo</span><span className="money">R$ 240,00</span></div></div>
-                  <div className="os" style={{ margin: 0 }}><div className="cli">Pedro Souza — VW Gol 2017</div><div className="veic"><span className="plate">GDA-2017</span><span>121.500 km</span></div><div className="foot"><span className="pill wait">Orçamento</span><span className="money">R$ 320,00</span></div></div>
-                </div>
+                <div className="sys-hd"><b>Serviços — segunda</b><span className="search">Buscar placa ou cliente…</span></div>
+                <div className="sys-row"><div className="who"><b>João Silva</b><span>Honda Civic 2021</span></div><span className="plate plate-c">ABC-1234</span><span className="pill prog">Freios</span><span className="money">R$ 890,00</span></div>
+                <div className="sys-row"><div className="who"><b>Maria Costa</b><span>Fiat Uno 2019</span></div><span className="plate plate-c">MEL5J12</span><span className="pill done">Óleo · pronto</span><span className="money">R$ 240,00</span></div>
+                <div className="sys-row"><div className="who"><b>Pedro Souza</b><span>VW Gol 2017</span></div><span className="plate plate-c">GDA-2017</span><span className="pill wait">Orçamento</span><span className="money">R$ 320,00</span></div>
+                <div className="sys-row"><div className="who"><b>Ana Prado</b><span>Fiat Strada</span></div><span className="plate plate-c">RIO2A45</span><span className="pill wait">Agendado</span><span className="money">R$ 180,00</span></div>
+                <div className="sys-tot">Total do dia <b>R$ 1.630,00</b></div>
               </div>
               <div className="ba-layer ba-before">
                 <div className="pad">
@@ -226,7 +174,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* LIVE / PHONE */}
+      {/* CLIENTE ACOMPANHA */}
       <section id="como">
         <div className="wrap live-grid">
           <div>
@@ -239,7 +187,7 @@ export default function Home() {
               <div className="step"><span className="k">03</span><div><b>Avisa no WhatsApp, automático</b><p>Ao marcar "pronto", o cliente recebe a mensagem — sem você parar o serviço.</p></div></div>
             </div>
           </div>
-          <div className="phone phone-fl">
+          <div className="phone phone-fl" aria-hidden="true">
             <div className="phone-frame">
               <div className="phone-notch"></div>
               <div className="phone-scr">
@@ -286,10 +234,35 @@ export default function Home() {
         </div>
       </section>
 
+      {/* MODO OFICINA + QUADRO DO PÁTIO */}
+      <section id="patio">
+        <div className="wrap shop">
+          <div>
+            <SectionHead
+              eyebrow="Novo · Modo Oficina"
+              title={<>Feito pra quem está com a mão no motor.</>}
+              lead="O mecânico abre no celular e já cai na fila dele. O gerente vê o pátio inteiro numa tela — até na TV da oficina."
+            />
+            <ul className="checks">
+              <li><Check size={17} strokeWidth={2.6} /><span><b>Fila por mecânico</b> — atrasadas primeiro, busca por placa e botões grandes: Iniciar, Aguard. peça, Pronto.</span></li>
+              <li><Check size={17} strokeWidth={2.6} /><span><b>Ditado por voz</b> no diagnóstico e nas observações. Foto direto da câmera.</span></li>
+              <li><Check size={17} strokeWidth={2.6} /><span><b>Quadro do Pátio</b> por status ou por mecânico, com tempo parado e atraso em destaque.</span></li>
+              <li><Check size={17} strokeWidth={2.6} /><span><b>Entrada rápida</b>: placa → queixa → OS com checklist já preenchido.</span></li>
+              <li><Check size={17} strokeWidth={2.6} /><span>Você decide se o mecânico <b>vê ou não os valores</b>.</span></li>
+            </ul>
+            <MoreLink to="/funcionalidades#modo-oficina">Ver como funciona</MoreLink>
+          </div>
+          <div className="shop-mocks">
+            <FilaMecanicoMock />
+            <QuadroPatioMock />
+          </div>
+        </div>
+      </section>
+
       {/* RECURSOS (bento) */}
       <section id="recursos">
         <div className="wrap">
-          <div className="sec-head"><span className="eyebrow">Recursos</span><h2 className="sec-t">Tudo que a oficina usa no dia — junto.</h2></div>
+          <SectionHead eyebrow="Recursos" title="Tudo que a oficina usa no dia — junto." />
           <div className="bento">
             <div className="card c-wide">
               <div className="ic"><FileText size={20} /></div>
@@ -302,39 +275,28 @@ export default function Home() {
                 <div className="row tot"><span>Total aprovado</span><span>R$ 890,00</span></div>
               </div>
             </div>
-            <div className="card c-nar">
-              <div className="ic"><Package size={20} /></div>
-              <h3>Estoque</h3>
-              <p>Peça baixa sozinha na OS. Alerta quando chega no mínimo.</p>
-              <div className="mini"><span className="chip">Óleo 5W30 · 4</span><span className="chip">Filtro · 1 ⚠</span></div>
-            </div>
-            <div className="card c-nar">
-              <div className="ic"><ShieldCheck size={20} /></div>
-              <h3>Checklist de entrada</h3>
-              <p>Fotos e assinatura do estado do carro. Zero discussão depois.</p>
-            </div>
-            <div className="card c-nar">
-              <div className="ic"><Clock size={20} /></div>
-              <h3>Prontuário do veículo</h3>
-              <p>Histórico de tudo que já passou no carro + próximas revisões.</p>
-            </div>
-            <div className="card c-nar">
-              <div className="ic"><Globe size={20} /></div>
-              <h3>Mini-site da oficina</h3>
-              <p>Página pública com serviços e agendamento — achável no Google.</p>
-            </div>
+            {RECURSOS.map((r, i) => (
+              <div key={r.id} className={`card ${i >= RECURSOS.length - 2 ? 'c-half' : 'c-nar'}`}>
+                <div className="ic"><r.icon size={20} /></div>
+                <h3>{r.t}</h3>
+                <p>{r.d}</p>
+                {r.mini && <div className="mini">{r.mini.map(m => <span key={m} className="chip">{m}</span>)}</div>}
+              </div>
+            ))}
           </div>
+          <MoreLink to="/funcionalidades">Ver todas as funcionalidades</MoreLink>
         </div>
       </section>
 
       {/* PROVA / FUNDADOR */}
       <section>
         <div className="wrap">
-          <div className="sec-head"><span className="eyebrow">Sem enrolação</span><h2 className="sec-t">Por que confiar num sistema novo?</h2></div>
+          <SectionHead eyebrow="Sem enrolação" title="Por que confiar num sistema novo?" />
           <div className="proof" style={{ marginTop: 30 }}>
             <div className="founder">
               <p className="q">"Fiz o DoMecânico do lado de dentro da oficina, vendo OS sumir no caderno e cliente ligando três vezes pra saber do carro. Cada tela aqui resolve uma dor que eu vi de perto — não é um sistema genérico com cara de oficina."</p>
               <div className="sig"><div className="av">A</div><div><div className="nm">Alan Pereira Cavalcante</div><div className="rl">Criador do DoMecânico</div></div></div>
+              <MoreLink to="/sobre">Conheça a história</MoreLink>
             </div>
             <div>
               <p style={{ color: 'var(--ink-soft)', fontSize: 15, marginBottom: 14 }}>O que muda na prática:</p>
@@ -343,6 +305,7 @@ export default function Home() {
                 <div className="line"><span className="old">"Quanto ficou mesmo?"</span><span className="arw">→</span><span className="new">Valor somado sozinho</span></div>
                 <div className="line"><span className="old">Cliente liga 3x</span><span className="arw">→</span><span className="new">Acompanha pelo link</span></div>
                 <div className="line"><span className="old">"Esse risco já tinha?"</span><span className="arw">→</span><span className="new">Foto assinada na entrada</span></div>
+                <div className="line"><span className="old">"Cadê o carro do Zé?"</span><span className="arw">→</span><span className="new">Quadro do pátio na TV</span></div>
               </div>
             </div>
           </div>
@@ -352,90 +315,21 @@ export default function Home() {
       {/* PLANOS */}
       <section id="planos">
         <div className="wrap">
-          <div className="sec-head"><span className="eyebrow">Planos</span><h2 className="sec-t">Comece grátis. Escolha depois.</h2><p className="sec-lead">14 dias com tudo liberado, sem cartão. Cancela quando quiser.</p></div>
-          <div className="plans">
-            {planos.length === 0 ? (
-              ['Starter', 'Pro', 'Enterprise'].map((n, i) => (
-                <div key={n} className={`plan ${i === 1 ? 'feat' : ''}`}>
-                  <div className="nm">{n}</div>
-                  <div className="price"><span className="c">R$</span><span className="v">—</span><span className="per">/mês</span></div>
-                  <ul><li style={{ color: 'var(--ink-faint)' }}>Carregando…</li></ul>
-                </div>
-              ))
-            ) : (
-              planos.map(plano => {
-                const { inteiro, centavos } = fmtPreco(plano.preco)
-                return (
-                  <div key={plano.id} className={`plan ${plano.destaque ? 'feat' : ''}`}>
-                    {plano.destaque && <span className="badge">MAIS USADO</span>}
-                    <div className="nm">{plano.nome}</div>
-                    <div className="price">
-                      <span className="c">R$</span>
-                      <span className="v">{inteiro}</span>
-                      {centavos && <span className="cents">,{centavos}</span>}
-                      <span className="per">/mês</span>
-                    </div>
-                    <ul>
-                      <li><Check size={16} strokeWidth={2.6} /> {plano.max_usuarios === -1 ? 'Usuários ilimitados' : `Até ${plano.max_usuarios} usuários`}</li>
-                      {DESTAQUES.map(d => {
-                        const on = d.on(plano)
-                        return (
-                          <li key={d.label} className={on ? '' : 'off'}>
-                            {on ? <Check size={16} strokeWidth={2.6} /> : <X size={15} strokeWidth={2.6} />} {d.label}
-                          </li>
-                        )
-                      })}
-                    </ul>
-                    <Link to="/cadastro" className={`btn ${plano.destaque ? 'btn-primary' : 'btn-ghost'}`}>Começar grátis</Link>
-                  </div>
-                )
-              })
-            )}
-          </div>
+          <SectionHead eyebrow="Planos" title="Comece grátis. Escolha depois." lead="14 dias com tudo liberado, sem cartão. Cancela quando quiser." />
+          <PlanCards planos={planos} status={status} />
+          <div style={{ textAlign: 'center' }}><MoreLink to="/planos">Comparar todos os planos</MoreLink></div>
         </div>
       </section>
 
       {/* FAQ */}
       <section id="faq">
         <div className="wrap">
-          <div className="sec-head" style={{ textAlign: 'center', margin: '0 auto 8px' }}>
-            <span className="eyebrow">Perguntas frequentes</span>
-            <h2 className="sec-t">Ainda com dúvida?</h2>
-          </div>
-          <div className="faq">
-            {PERGUNTAS.map(item => <FAQItem key={item.p} q={item.p} a={item.r} />)}
-          </div>
+          <SectionHead eyebrow="Perguntas frequentes" title="Ainda com dúvida?" center />
+          <FAQList items={PERGUNTAS} />
         </div>
       </section>
 
-      {/* CTA */}
-      <section>
-        <div className="wrap">
-          <div className="cta">
-            <div className="grid-bg"></div>
-            <h2>Tira a oficina do caderno hoje.</h2>
-            <p>14 dias grátis, com tudo liberado. Sem cartão, sem instalar nada — abre no navegador do PC ou do celular.</p>
-            <Link className="btn" to="/cadastro">Criar minha conta grátis <ArrowRight size={17} /></Link>
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer>
-        <div className="wrap">
-          <div className="foot-grid">
-            <div style={{ maxWidth: 320 }}>
-              <a className="brand" href="#top"><Wrench size={22} strokeWidth={2.1} />Do<b>Mecânico</b></a>
-              <p>Sistema de gestão para oficinas mecânicas. Simples, rápido e do jeito de quem está no dia a dia da oficina.</p>
-            </div>
-            <div className="foot-links">
-              <div className="foot-col"><h4>Produto</h4><a href="#recursos">Recursos</a><a href="#planos">Planos</a><Link to="/acompanhar">Acompanhar carro</Link><Link to="/contato">Contato</Link></div>
-              <div className="foot-col"><h4>Legal</h4><Link to="/privacidade">Privacidade</Link><Link to="/termos">Termos</Link><Link to="/login">Entrar</Link></div>
-            </div>
-          </div>
-          <div className="foot-btm"><span>© {new Date().getFullYear()} DoMecânico. Todos os direitos reservados.</span><span className="mono">Alan Pereira Cavalcante</span></div>
-        </div>
-      </footer>
-    </div>
+      <CTABand />
+    </SiteLayout>
   )
 }

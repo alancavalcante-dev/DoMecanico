@@ -23,6 +23,9 @@ const OrcamentoPublico  = lazy(() => import('./pages/OrcamentoPublico'))
 const PerfilOficina     = lazy(() => import('./pages/PerfilOficina'))
 const AceitarConvite    = lazy(() => import('./pages/AceitarConvite'))
 const Contato           = lazy(() => import('./pages/Contato'))
+const Funcionalidades   = lazy(() => import('./pages/Funcionalidades'))
+const Planos            = lazy(() => import('./pages/Planos'))
+const Sobre             = lazy(() => import('./pages/Sobre'))
 const Privacidade       = lazy(() => import('./pages/Privacidade'))
 const Termos            = lazy(() => import('./pages/Termos'))
 const EsqueciSenha      = lazy(() => import('./pages/EsqueciSenha'))
@@ -76,7 +79,7 @@ const AdminAnuncios             = lazy(() => import('./pages/admin/AdminAnuncios
 function PageLoader() {
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
     </div>
   )
 }
@@ -127,6 +130,9 @@ const PAGE_TITLES: Record<string, string> = {
   '/login':          'Login — DoMecânico',
   '/cadastro':       'Cadastre sua oficina grátis — DoMecânico',
   '/contato':        'Contato — DoMecânico',
+  '/funcionalidades': 'Funcionalidades — DoMecânico',
+  '/planos':         'Planos e preços — DoMecânico',
+  '/sobre':          'Sobre o DoMecânico',
   '/termos':         'Termos de Uso — DoMecânico',
   '/privacidade':    'Política de Privacidade — DoMecânico',
   '/esqueci-senha':  'Esqueci minha senha — DoMecânico',
@@ -176,6 +182,9 @@ const ROUTE_DESC: Record<string, string> = {
   '/':            'Sistema de gestão para oficinas mecânicas: ordens de serviço, orçamentos, estoque, checklist digital e portal de acompanhamento para o cliente.',
   '/cadastro':    'Crie a conta da sua oficina no DoMecânico e comece a gerenciar ordens de serviço, orçamentos e estoque com teste grátis.',
   '/contato':     'Fale com a equipe do DoMecânico — tire dúvidas sobre o sistema de gestão para oficinas mecânicas.',
+  '/funcionalidades': 'Ordem de serviço, orçamento, checklist, Modo Oficina para o mecânico, Quadro do Pátio, estoque, comissões, garantias e relatórios — tudo que o DoMecânico faz pela sua oficina.',
+  '/planos':      'Planos e preços do DoMecânico: 14 dias grátis sem cartão, sem fidelidade. Compare os recursos de cada plano.',
+  '/sobre':       'Conheça a história do DoMecânico, sistema de gestão criado por quem viveu a oficina por dentro.',
   '/termos':      'Termos de uso do DoMecânico.',
   '/privacidade': 'Política de privacidade do DoMecânico.',
 }
@@ -184,7 +193,7 @@ const DESC_PADRAO = ROUTE_DESC['/']
 // Lista BRANCA de rotas indexáveis (páginas públicas de marketing + perfis de
 // oficina). Todo o resto — área logada, páginas com token de cliente e URLs que
 // não existem — recebe noindex e fica sem canonical, evitando "soft 404" no Google.
-const ROTAS_INDEXAVEIS = ['/', '/cadastro', '/contato', '/termos', '/privacidade']
+const ROTAS_INDEXAVEIS = ['/', '/funcionalidades', '/planos', '/sobre', '/cadastro', '/contato', '/termos', '/privacidade']
 const RE_PERFIL_OFICINA = /^\/oficina\/[^/]+$/
 
 function rotaIndexavel(path: string) {
@@ -285,6 +294,9 @@ function AppRoutes() {
         <Route path="/oficina/:slug"             element={<PerfilOficina />} />
         <Route path="/aceitar-convite/:token"    element={<AceitarConvite />} />
         <Route path="/contato"                   element={<Contato />} />
+        <Route path="/funcionalidades"           element={<Funcionalidades />} />
+        <Route path="/planos"                    element={<Planos />} />
+        <Route path="/sobre"                     element={<Sobre />} />
         <Route path="/privacidade"               element={<Privacidade />} />
         <Route path="/termos"                    element={<Termos />} />
         <Route path="/esqueci-senha"             element={<EsqueciSenha />} />

@@ -17,7 +17,7 @@ export default defineConfig({
         name: 'DoMecânico',
         short_name: 'DoMecânico',
         description: 'Sistema de gestão para oficinas mecânicas',
-        theme_color: '#7c3aed',
+        theme_color: '#2563eb',
         background_color: '#030712',
         display: 'standalone',
         orientation: 'portrait',

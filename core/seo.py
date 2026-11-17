@@ -38,6 +38,22 @@ PAGINAS_ESTATICAS = {
         'descricao': ('Crie a conta da sua oficina no DoMecânico e comece a gerenciar '
                       'ordens de serviço, orçamentos e estoque com teste grátis.'),
     },
+    'funcionalidades': {
+        'titulo': 'Funcionalidades — DoMecânico',
+        'descricao': ('Ordem de serviço, orçamento, checklist, Modo Oficina para o mecânico, '
+                      'Quadro do Pátio, estoque, comissões, garantias e relatórios — tudo que '
+                      'o DoMecânico faz pela sua oficina.'),
+    },
+    'planos': {
+        'titulo': 'Planos e preços — DoMecânico',
+        'descricao': ('Planos e preços do DoMecânico: 14 dias grátis sem cartão, sem '
+                      'fidelidade. Compare os recursos de cada plano.'),
+    },
+    'sobre': {
+        'titulo': 'Sobre o DoMecânico',
+        'descricao': ('Conheça a história do DoMecânico, sistema de gestão criado por quem '
+                      'viveu a oficina por dentro.'),
+    },
     'contato': {
         'titulo': 'Contato — DoMecânico',
         'descricao': ('Fale com a equipe do DoMecânico — tire dúvidas sobre o sistema '
@@ -241,7 +257,10 @@ def sitemap_xml(request):
     hoje = timezone.localdate().isoformat()
     urls = [
         (f'{BASE}/', hoje, 'weekly', '1.0'),
+        (f'{BASE}/funcionalidades', hoje, 'monthly', '0.9'),
+        (f'{BASE}/planos', hoje, 'monthly', '0.9'),
         (f'{BASE}/cadastro', hoje, 'monthly', '0.8'),
+        (f'{BASE}/sobre', hoje, 'monthly', '0.6'),
         (f'{BASE}/contato', hoje, 'monthly', '0.5'),
         (f'{BASE}/termos', hoje, 'yearly', '0.3'),
         (f'{BASE}/privacidade', hoje, 'yearly', '0.3'),

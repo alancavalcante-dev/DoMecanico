@@ -1,11 +1,9 @@
 import { Link } from 'react-router-dom'
-import { FileText, Mail } from 'lucide-react'
-import PublicNav from '../components/layout/PublicNav'
-import PublicFooter from '../components/layout/PublicFooter'
+import LegalPage, { type SecaoLegal } from '../site/LegalPage'
 
 const ULTIMA_ATUALIZACAO = '21 de maio de 2026'
 
-const SECOES = [
+const SECOES: SecaoLegal[] = [
   {
     titulo: '1. Aceitação dos termos',
     conteudo: `Ao criar uma conta no DoMecânico ou utilizar qualquer funcionalidade do sistema, você declara que leu, compreendeu e concorda com estes Termos de Uso. Se não concordar com algum ponto, não utilize o serviço.
@@ -120,78 +118,15 @@ Nossa responsabilidade total fica limitada ao valor pago pelo usuário nos últi
 
 export default function Termos() {
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <PublicNav />
-
-      <div className="pt-24 pb-20 px-6">
-        <div className="max-w-3xl mx-auto">
-
-          {/* Header */}
-          <div className="mb-12">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
-                <FileText className="w-5 h-5 text-blue-400" />
-              </div>
-              <span className="text-blue-400 text-sm font-medium tracking-wider uppercase">Legal</span>
-            </div>
-            <h1 className="text-4xl font-black mb-4">Termos de Uso</h1>
-            <p className="text-gray-500 text-sm">Última atualização: {ULTIMA_ATUALIZACAO}</p>
-            <p className="text-gray-400 mt-4 leading-relaxed">
-              Estes termos regulam o uso do sistema DoMecânico. Leia com atenção antes de criar sua conta.
-              Ao utilizar o serviço, você concorda integralmente com estas condições.
-            </p>
-          </div>
-
-          {/* Índice rápido */}
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mb-12">
-            <p className="text-sm font-semibold text-gray-300 mb-3">Navegação rápida</p>
-            <div className="grid grid-cols-2 gap-1">
-              {SECOES.map((s) => (
-                <a key={s.titulo}
-                  href={`#${s.titulo.replace(/\s+/g, '-').toLowerCase()}`}
-                  className="text-sm text-gray-500 hover:text-blue-400 transition-colors py-0.5">
-                  {s.titulo}
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Seções */}
-          <div className="space-y-10">
-            {SECOES.map((s) => (
-              <section key={s.titulo} id={s.titulo.replace(/\s+/g, '-').toLowerCase()}>
-                <h2 className="text-xl font-bold mb-4 text-white">{s.titulo}</h2>
-                <div className="text-gray-400 text-sm leading-relaxed whitespace-pre-line">
-                  {s.conteudo.split(/\*\*(.*?)\*\*/g).map((part, i) =>
-                    i % 2 === 1
-                      ? <strong key={i} className="text-gray-200 font-semibold">{part}</strong>
-                      : <span key={i}>{part}</span>
-                  )}
-                </div>
-              </section>
-            ))}
-          </div>
-
-          {/* CTA */}
-          <div className="mt-16 bg-blue-600/10 border border-blue-500/20 rounded-2xl p-8 text-center">
-            <Mail className="w-8 h-8 text-blue-400 mx-auto mb-3" />
-            <h3 className="font-bold text-lg mb-2">Dúvidas sobre os termos?</h3>
-            <p className="text-gray-400 text-sm mb-5">Nossa equipe está disponível para esclarecer qualquer ponto.</p>
-            <div className="flex items-center justify-center gap-4 flex-wrap">
-              <Link to="/contato"
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm transition-colors">
-                Falar com o suporte
-              </Link>
-              <Link to="/privacidade"
-                className="inline-flex items-center gap-2 border border-gray-700 hover:border-gray-600 text-gray-300 font-medium px-6 py-2.5 rounded-xl text-sm transition-colors">
-                Ver Política de Privacidade
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <PublicFooter />
-    </div>
+    <LegalPage
+      eyebrow="Legal"
+      titulo="Termos de Uso"
+      atualizacao={ULTIMA_ATUALIZACAO}
+      intro="Estes termos regulam o uso do sistema DoMecânico. Leia com atenção antes de criar sua conta. Ao utilizar o serviço, você concorda integralmente com estas condições."
+      secoes={SECOES}
+      ctaTitulo="Dúvidas sobre os termos?"
+      ctaTexto="Nossa equipe está disponível para esclarecer qualquer ponto."
+      ctaExtra={<Link className="btn btn-ghost" to="/privacidade">Ver Política de Privacidade</Link>}
+    />
   )
 }
