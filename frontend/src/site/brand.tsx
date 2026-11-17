@@ -1,35 +1,11 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Pause, Play } from 'lucide-react'
 
-// Identidade "Macacão azul, chapéu laranja": marca, ícone, placa, selo,
-// odômetro e letreiro. Tudo em SVG/CSS, sem depender de imagem.
+// Marca do site: o logotipo original (imagem), a placa, o selo, o odômetro e o letreiro.
 
-const Chev = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 20 10" aria-hidden="true"><path d="M2 9 L10 2 L18 9" /></svg>
-)
-
-/** "DoMecânico" com o circunflexo laranja (o chapéu). */
-export function Wordmark({ inv, className = '' }: { inv?: boolean; className?: string }) {
-  return (
-    <span className={`wm ${inv ? 'inv' : ''} ${className}`} role="img" aria-label="DoMecânico">
-      <span className="do" aria-hidden="true">Do</span>
-      <span aria-hidden="true">Mec</span>
-      <span className="a" aria-hidden="true">a<Chev className="chev" /></span>
-      <span aria-hidden="true">nico</span>
-    </span>
-  )
-}
-
-/** Ícone do app: "D" com o chapéu laranja no quadrado azul. Desenhado em path (não depende de fonte). */
-export function BrandIcon({ size = 40, className = '' }: { size?: number; className?: string }) {
-  return (
-    <svg className={className} width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
-      <rect width="100" height="100" rx="24" fill="#1F4BC4" />
-      <path fillRule="evenodd" fill="#fff"
-        d="M29 38 H50 C66 38 75 47.5 75 61 C75 74.5 66 84 50 84 H29 Z M42 49 V73 H49 C57 73 61.5 68.5 61.5 61 C61.5 53.5 57 49 49 49 Z" />
-      <path d="M36 28 L51 16 L66 28" fill="none" stroke="#E8820C" strokeWidth="8" strokeLinecap="square" />
-    </svg>
-  )
+/** O logotipo original do DoMecânico (engrenagem com chave + nome em degradê azul). */
+export function Logo({ className = 'logo' }: { className?: string }) {
+  return <img className={className} src="/logotipo.png" alt="DoMecânico" width={137} height={40} />
 }
 
 /** A placa: faixa azul em cima, o dado em mono embaixo. */
@@ -42,24 +18,60 @@ export function Placa({ faixa = 'BR', children, size }: { faixa?: string; childr
   )
 }
 
-/** Selo "Feito por mecânico" (placa redonda de serviço). */
-export function Selo({ size = 160, tone = 'azul', className = '' }: { size?: number; tone?: 'azul' | 'graxa'; className?: string }) {
+// Cores tiradas do logotipo: a engrenagem (azul escuro) e as pontas do degradê do nome.
+const LOGO_ESCURO = '#0E4BA6'
+const LOGO_MEIO = '#2A68E4'
+const LOGO_CLARO = '#5ABAE6'
+
+// Engrenagem do logo, centrada em (0,0): 8 dentes, com furo no meio.
+const r2 = (n: number) => Math.round(n * 100) / 100
+const ponto = (r: number, graus: number) => {
+  const a = (graus * Math.PI) / 180
+  return `${r2(r * Math.cos(a))} ${r2(r * Math.sin(a))}`
+}
+const ENGRENAGEM = (() => {
+  const dentes = 8, ponta = 30, base = 24.5, furo = 17, passo = 360 / dentes
+  let d = ''
+  for (let i = 0; i < dentes; i++) {
+    const c = -90 + i * passo
+    d += `${i ? 'L' : 'M'}${ponto(base, c - 13)} L${ponto(ponta, c - 8)} L${ponto(ponta, c + 8)} L${ponto(base, c + 13)} `
+      + `A${base} ${base} 0 0 1 ${ponto(base, c + passo - 13)} `
+  }
+  return d + `Z M0 ${-furo} A${furo} ${furo} 0 1 0 0 ${furo} A${furo} ${furo} 0 1 0 0 ${-furo} Z`
+})()
+
+/** Selo "Feito por mecânico": aro no degradê azul do logo e a engrenagem com a chave no miolo. */
+export function Selo({ size = 160, className = '' }: { size?: number; className?: string }) {
   const id = useId().replace(/:/g, '')
-  const fora = tone === 'azul' ? '#1F4BC4' : '#17181C'
-  const dentro = tone === 'azul' ? '#17181C' : '#1F4BC4'
-  const pesponto = tone === 'azul' ? '#fff' : '#E8820C'
   return (
     <svg className={`selo ${className}`} width={size} height={size} viewBox="0 0 200 200" role="img" aria-label="Selo: feito por mecânico">
-      <defs><path id={`arc${id}`} d="M100,100 m-72,0 a72,72 0 1,1 144,0 a72,72 0 1,1 -144,0" /></defs>
-      <circle cx="100" cy="100" r="97" fill={fora} />
-      <circle cx="100" cy="100" r="89" fill="none" stroke={pesponto} strokeWidth="2.5" strokeDasharray="4 4" opacity=".7" />
-      <circle cx="100" cy="100" r="54" fill={dentro} />
+      <defs>
+        <linearGradient id={`aro${id}`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={LOGO_ESCURO} />
+          <stop offset="1" stopColor={LOGO_MEIO} />
+        </linearGradient>
+        <path id={`arc${id}`} d="M100,100 m-72,0 a72,72 0 1,1 144,0 a72,72 0 1,1 -144,0" />
+      </defs>
+      <circle cx="100" cy="100" r="97" fill={`url(#aro${id})`} />
+      <circle cx="100" cy="100" r="89" fill="none" stroke="#fff" strokeWidth="2.5" strokeDasharray="4 4" opacity=".55" />
       <text fontFamily="Archivo, sans-serif" fontWeight="800" fontSize="15" fill="#fff" style={{ fontStretch: '125%' }}>
         <textPath href={`#arc${id}`} textLength="446" lengthAdjust="spacing">FEITO POR MECÂNICO · DOMECÂNICO · </textPath>
       </text>
-      <path fillRule="evenodd" fill="#fff" transform="translate(57 50) scale(.86)"
-        d="M29 38 H50 C66 38 75 47.5 75 61 C75 74.5 66 84 50 84 H29 Z M42 49 V73 H49 C57 73 61.5 68.5 61.5 61 C61.5 53.5 57 49 49 49 Z" />
-      <path d="M88 79 L101 68 L114 79" fill="none" stroke="#E8820C" strokeWidth="7" strokeLinecap="square" />
+      <circle cx="100" cy="100" r="59" fill="#fff" stroke={LOGO_CLARO} strokeWidth="3.5" />
+      <g transform="translate(100 91) scale(1.1)">
+        <path d={ENGRENAGEM} fill={LOGO_ESCURO} fillRule="evenodd" stroke={LOGO_ESCURO} strokeWidth="1.6" strokeLinejoin="round" />
+        {/* folga branca em volta da chave, como no logo, onde o cabo cruza a engrenagem */}
+        <g fill="#fff" stroke="#fff" strokeWidth="6">
+          <circle cx="0" cy="-1" r="13.5" />
+          <rect x="-6.5" y="4" width="13" height="42" rx="6.5" />
+        </g>
+        <g fill={LOGO_ESCURO}>
+          <circle cx="0" cy="-1" r="13.5" />
+          <rect x="-6.5" y="4" width="13" height="42" rx="6.5" />
+        </g>
+        <path d="M-4.6 -16 V-7 A4.6 4.6 0 0 0 4.6 -7 V-16 Z" fill="#fff" />
+        <circle cx="0" cy="39" r="2.8" fill="#fff" />
+      </g>
     </svg>
   )
 }

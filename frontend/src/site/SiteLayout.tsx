@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { Menu, X, Mail, ArrowRight } from 'lucide-react'
-import { Wordmark, Selo } from './brand'
+import { Logo, Selo } from './brand'
 import { ACAO } from './ui'
 import './site.css'
 
@@ -46,7 +46,7 @@ export default function SiteLayout({ children, fechamento = FECHAMENTO_PADRAO }:
     <div className="lp">
       <nav>
         <div className="wrap nav-in">
-          <Link className="brand" to="/" aria-label="DoMecânico, início"><Wordmark /></Link>
+          <Link className="brand" to="/" aria-label="DoMecânico, início"><Logo /></Link>
           <div className="nav-links">
             {NAV.map(n => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}
           </div>
@@ -83,7 +83,7 @@ export default function SiteLayout({ children, fechamento = FECHAMENTO_PADRAO }:
             <div className="foot-brand">
               <Selo size={96} />
               <div>
-                <Link to="/" aria-label="DoMecânico, início"><Wordmark inv /></Link>
+                <Link className="logo-plaque" to="/" aria-label="DoMecânico, início"><Logo /></Link>
                 <p>Sistema de gestão para oficina mecânica, feito do lado de dentro da oficina.</p>
                 <a className="mail" href="mailto:contato@domecanico.net"><Mail size={15} /> contato@domecanico.net</a>
               </div>

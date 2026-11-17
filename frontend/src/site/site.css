@@ -50,13 +50,10 @@
 .lp :focus-visible{outline:2.5px solid var(--accent);outline-offset:3px;border-radius:6px}
 
 /* ── MARCA ─────────────────────────────────────────────────────────────── */
-.lp .wm{font-family:var(--disp);font-stretch:118%;font-weight:800;letter-spacing:-.035em;line-height:1;
-  white-space:nowrap;display:inline-block;color:var(--ink)}
-.lp .wm .do{color:var(--accent);font-weight:600}
-.lp .wm .a{position:relative;display:inline-block}
-.lp .wm .chev{position:absolute;left:50%;bottom:.66em;width:.6em;height:.3em;transform:translateX(-50%);overflow:visible}
-.lp .wm .chev path{stroke:var(--signal);stroke-width:2.6;fill:none;stroke-linecap:square}
-.lp .wm.inv{color:#fff}.lp .wm.inv .do{color:var(--accent-on-ink)}
+/* O logotipo original (imagem). No fundo escuro ele vai numa plaquinha clara, com as cores intactas. */
+.lp .logo{display:block;height:40px;width:auto}
+.lp .logo-plaque{display:inline-flex;background:#fff;border-radius:12px;padding:8px 14px}
+.lp .logo-plaque .logo{height:34px}
 
 /* A placa (grande) e a plaquinha dos mocks */
 .lp .placa{display:inline-flex;flex-direction:column;background:#fff;border:2px solid var(--ink);border-radius:7px;
@@ -82,7 +79,6 @@
   backdrop-filter:blur(12px);border-bottom:1px solid var(--line-soft)}
 .lp .nav-in{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:24px;height:68px}
 .lp .brand{display:flex;align-items:center;flex:none;justify-self:start}
-.lp .brand .wm{font-size:23px}
 .lp .nav-links{display:flex;gap:26px}
 .lp .nav-links a{font-size:14.5px;color:var(--ink-soft);font-weight:500;white-space:nowrap;padding:6px 0}
 .lp .nav-links a:hover,.lp .nav-links a.active{color:var(--ink)}
@@ -460,7 +456,6 @@
 .lp .foot-grid{display:grid;grid-template-columns:1fr auto;gap:40px;padding:56px 0 40px;align-items:start}
 .lp .foot-brand{display:flex;gap:22px;align-items:flex-start}
 .lp .foot-brand .selo{flex:none}
-.lp .foot-brand .wm{font-size:24px}
 .lp .foot-brand p{color:var(--on-ink);font-size:14.5px;max-width:34ch;margin-top:12px}
 .lp .foot-brand .mail{display:inline-flex;align-items:center;gap:7px;margin-top:12px;color:#fff;font-size:14.5px;padding:4px 0}
 .lp .foot-links{display:flex;gap:56px}
@@ -622,7 +617,7 @@
   .lp{--sec:72px;--head-gap:28px;--lead:17px}
   .lp .wrap{padding:0 16px}
   .lp .nav-in{height:60px}
-  .lp .brand .wm{font-size:20px}
+  .lp .brand .logo{height:32px}
   .lp .nav-cta{gap:4px}
   .lp .nav-cta .btn{padding:10px 14px;font-size:14px}
   .lp .nav-mobile{padding:4px 16px 16px}
