@@ -32,41 +32,41 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <img src="/logotipo.png" alt="DoMecânico" className="w-40 h-40 rounded-2xl object-contain mx-auto mb-4" />
-          <p className="text-gray-400">Entre na sua conta</p>
+          <Link to="/" className="inline-block"><img src="/logotipo.png" alt="DoMecânico" className="h-12 w-auto mx-auto mb-5" /></Link>
+          <h1 className="text-2xl font-bold text-slate-900">Entre na sua conta</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-8 shadow-xl border border-gray-800">
+        <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">E-mail</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">E-mail</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="sua@oficina.com"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Senha</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Senha</label>
               <input
                 type="password"
                 required
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-blue-500"
+                className="w-full bg-white border border-slate-300 text-slate-900 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="••••••••"
               />
             </div>
           </div>
 
           <div className="flex justify-end mt-2">
-            <Link to="/esqueci-senha" className="text-sm text-gray-500 hover:text-blue-400 transition-colors">
+            <Link to="/esqueci-senha" className="text-sm text-slate-500 hover:text-blue-700 transition-colors">
               Esqueceu a senha?
             </Link>
           </div>
@@ -79,9 +79,9 @@ export default function Login() {
             {loading ? 'Entrando...' : 'Entrar'}
           </button>
 
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <p className="text-center text-slate-500 text-sm mt-6">
             Não tem conta?{' '}
-            <Link to="/cadastro" className="text-blue-400 hover:text-blue-300">
+            <Link to="/cadastro" className="font-medium text-blue-600 hover:text-blue-700">
               Cadastre sua oficina
             </Link>
           </p>

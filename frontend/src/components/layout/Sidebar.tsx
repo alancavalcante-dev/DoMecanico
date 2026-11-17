@@ -275,7 +275,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           >
             <X size={16} />
           </button>
-          <img src="/logotipo.png" alt="DoMecânico" className="w-full max-w-[160px] rounded-xl object-contain" />
+          {/* plaquinha clara: o logotipo azul some no fundo escuro */}
+          <div className="bg-white rounded-xl px-3 py-2">
+            <img src="/logotipo.png" alt="DoMecânico" className="h-8 w-auto object-contain" />
+          </div>
           <p className="text-sm font-bold text-white truncate w-full text-center tracking-wide">
             {user?.oficina?.nome || 'Sistema de Gestão'}
           </p>
@@ -284,7 +287,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         {/* Trial banner */}
         {trial && (
           <NavLink to="/assinatura" onClick={onClose}
-            className="mx-3 mt-3 flex items-center gap-2 bg-yellow-900/50 border border-yellow-700 rounded-lg px-3 py-2 text-yellow-300 text-xs hover:bg-yellow-900 transition">
+            className="mx-3 mt-3 flex items-center gap-2 bg-orange-500/15 border border-orange-500/40 rounded-lg px-3 py-2 text-orange-300 text-xs hover:bg-orange-500/25 transition">
             <AlertTriangle size={14} className="shrink-0" />
             Trial: {diasTrial} dia{diasTrial !== 1 ? 's' : ''} restante{diasTrial !== 1 ? 's' : ''}
           </NavLink>

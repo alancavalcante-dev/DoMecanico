@@ -155,7 +155,7 @@ export default function AdminDashboard() {
               <YAxis yAxisId="left" tick={{ fill: '#6b7280', fontSize: 12 }} />
               <YAxis yAxisId="right" orientation="right" tick={{ fill: '#6b7280', fontSize: 12 }} />
               <Tooltip contentStyle={{ background: '#111827', border: '1px solid #374151', borderRadius: 8, color: '#fff' }} />
-              <Bar yAxisId="left" dataKey="novas_oficinas" name="Novas Oficinas" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+              <Bar yAxisId="left" dataKey="novas_oficinas" name="Novas Oficinas" fill="#1F4BC4" radius={[4, 4, 0, 0]} />
               <Bar yAxisId="right" dataKey="receita" name="Receita (R$)" fill="#10b981" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>

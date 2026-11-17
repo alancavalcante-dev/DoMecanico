@@ -16,9 +16,9 @@ import { statusBadge } from '../components/ui/Badge'
 import toast from 'react-hot-toast'
 
 const STATUS_CORES: Record<string, string> = {
-  aberta: '#3b82f6',
+  aberta: '#1F4BC4',
   em_andamento: '#f59e0b',
-  aguardando_peca: '#f97316',
+  aguardando_peca: '#E8820C',
   concluida: '#22c55e',
   cancelada: '#ef4444',
 }
@@ -60,7 +60,7 @@ function StatCard({ title, value, icon, color, sub }: CardProps) {
       <div className={`p-2.5 sm:p-3 rounded-lg shrink-0 ${color}`}>{icon}</div>
       <div className="flex-1 min-w-0">
         <p className="text-xs sm:text-sm text-slate-500 truncate">{title}</p>
-        <p className="text-lg sm:text-2xl font-bold text-slate-800 mt-0.5 break-words leading-tight">{value}</p>
+        <p className="font-display [font-stretch:88%] tabular-nums text-base sm:text-2xl font-bold text-slate-800 mt-0.5 leading-tight">{value}</p>
         {sub && <div className="mt-1">{sub}</div>}
       </div>
     </div>
@@ -274,11 +274,11 @@ export default function Dashboard() {
           <h2 className="text-base font-semibold text-slate-700 mb-4">Faturamento Mensal (últimos 6 meses)</h2>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={faturamento_mensal}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#EEEBE4" />
               <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
               <Tooltip formatter={(v) => fmt(Number(v))} />
-              <Bar dataKey="faturamento" name="Faturamento" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="faturamento" name="Faturamento" fill="#1F4BC4" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -295,7 +295,7 @@ export default function Dashboard() {
                 <Pie data={pieData} cx="50%" cy="50%" outerRadius={75} dataKey="value"
                   label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
                   {pieData.map((entry) => (
-                    <Cell key={entry.key} fill={STATUS_CORES[entry.key] || '#94a3b8'} />
+                    <Cell key={entry.key} fill={STATUS_CORES[entry.key] || '#9C9FA6'} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -330,9 +330,9 @@ export default function Dashboard() {
                 <tbody className="divide-y divide-slate-50">
                   {ultimas_ordens.map(os => (
                     <tr key={os.id} className="hover:bg-slate-50/50">
-                      <td className="px-4 py-3 font-mono font-medium text-blue-700">{os.numero}</td>
+                      <td className="px-4 py-3 font-mono font-medium text-blue-700 whitespace-nowrap">{os.numero}</td>
                       <td className="px-4 py-3 text-slate-700">{os.cliente_nome}</td>
-                      <td className="px-4 py-3 font-mono">{os.veiculo_placa}</td>
+                      <td className="px-4 py-3 font-mono whitespace-nowrap">{os.veiculo_placa}</td>
                       <td className="px-4 py-3">{statusBadge(os.status)}</td>
                       <td className="px-4 py-3 text-slate-700">{os.total_geral ? fmt(parseFloat(os.total_geral)) : '-'}</td>
                       <td className="px-4 py-3 text-slate-500">{fmtData(os.data_entrada)}</td>

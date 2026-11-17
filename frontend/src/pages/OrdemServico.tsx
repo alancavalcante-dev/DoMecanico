@@ -454,9 +454,9 @@ export default function OrdensServico() {
             <tbody className="divide-y divide-slate-50">
               {ordens.map(os => (
                 <tr key={os.id} className="hover:bg-slate-50/50">
-                  <td className="px-5 py-3 font-mono font-bold text-blue-700">{os.numero}</td>
+                  <td className="px-5 py-3 font-mono font-bold text-blue-700 whitespace-nowrap">{os.numero}</td>
                   <td className="px-5 py-3 text-slate-700">{os.cliente_nome}</td>
-                  <td className="px-5 py-3 font-mono">{os.veiculo_placa}</td>
+                  <td className="px-5 py-3 font-mono whitespace-nowrap">{os.veiculo_placa}</td>
                   <td className="px-5 py-3 text-slate-500">{os.mecanico_nome || '-'}</td>
                   <td className="px-5 py-3">{statusBadge(os.status)}</td>
                   {verValores && <td className="px-5 py-3 text-right font-medium">{fmt(os.total_geral)}</td>}

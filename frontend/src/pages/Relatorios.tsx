@@ -48,9 +48,9 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 const STATUS_CORES: Record<string, string> = {
-  aberta: '#3b82f6',
+  aberta: '#1F4BC4',
   em_andamento: '#f59e0b',
-  aguardando_peca: '#f97316',
+  aguardando_peca: '#E8820C',
   concluida: '#22c55e',
   cancelada: '#ef4444',
 }
@@ -214,11 +214,11 @@ function AbaFaturamento() {
             <h3 className="text-sm font-semibold text-slate-700 mb-4">Faturamento mensal (histórico)</h3>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={faturamentoMensal}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEEBE4" />
                 <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v) => fmt(Number(v))} />
-                <Bar dataKey="faturamento" name="Faturamento" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="faturamento" name="Faturamento" fill="#1F4BC4" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -228,7 +228,7 @@ function AbaFaturamento() {
               <h3 className="text-sm font-semibold text-slate-700 mb-4">OS concluídas por mês</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <LineChart data={faturamentoMensal}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#EEEBE4" />
                   <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
@@ -247,7 +247,7 @@ function AbaFaturamento() {
                   <ResponsiveContainer width="100%" height={200}>
                     <PieChart>
                       <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} dataKey="value" label={({ name, value }) => `${name}: ${value}`} labelLine={false}>
-                        {pieData.map(e => <Cell key={e.key} fill={STATUS_CORES[e.key] || '#94a3b8'} />)}
+                        {pieData.map(e => <Cell key={e.key} fill={STATUS_CORES[e.key] || '#9C9FA6'} />)}
                       </Pie>
                       <Tooltip />
                     </PieChart>
@@ -429,7 +429,7 @@ function AbaMecanico() {
               <h3 className="text-sm font-semibold text-slate-700 mb-4">Comissões por mecânico no período</h3>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#EEEBE4" />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
                   <Tooltip formatter={(v) => fmt(Number(v))} />
@@ -687,12 +687,12 @@ function AbaOS() {
               <h3 className="text-sm font-semibold text-slate-700 mb-4">Distribuição por status</h3>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={porStatus} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#EEEBE4" horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 11 }} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
                   <Tooltip />
                   <Bar dataKey="value" name="Quantidade">
-                    {porStatus.map(e => <Cell key={e.key} fill={STATUS_CORES[e.key] || '#94a3b8'} />)}
+                    {porStatus.map(e => <Cell key={e.key} fill={STATUS_CORES[e.key] || '#9C9FA6'} />)}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -725,7 +725,7 @@ function AbaOS() {
                         <td className="px-4 py-2.5 font-mono font-bold text-blue-700">{o.numero}</td>
                         <td className="px-4 py-2.5">
                           <span className="text-xs font-medium px-2 py-0.5 rounded-full"
-                            style={{ background: (STATUS_CORES[o.status] || '#94a3b8') + '20', color: STATUS_CORES[o.status] || '#94a3b8' }}>
+                            style={{ background: (STATUS_CORES[o.status] || '#9C9FA6') + '20', color: STATUS_CORES[o.status] || '#9C9FA6' }}>
                             {STATUS_LABELS[o.status] || o.status}
                           </span>
                         </td>

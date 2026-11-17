@@ -1,14 +1,95 @@
 @import "tailwindcss";
 
+/* Paleta do site público aplicada ao app logado.
+   As escalas do Tailwind são redefinidas aqui, então as telas não precisam trocar classe:
+   - slate/gray  → neutros "papel e graxa" (fundo #F5F4F0, linhas #E5E2DA, texto #17181C)
+   - blue/violet → azul macacão (#1F4BC4 / #173A9C); o violeta era a marca antiga
+   - orange      → sinal (#E8820C), só para alerta e atenção
+   Verde, vermelho, âmbar e roxo continuam como cores de status. */
+@theme {
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Archivo", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --color-slate-50: #FBFAF7;
+  --color-slate-100: #F5F4F0;
+  --color-slate-200: #E5E2DA;
+  --color-slate-300: #D2CEC4;
+  --color-slate-400: #9C9FA6;
+  --color-slate-500: #6F737B;
+  --color-slate-600: #54585F;
+  --color-slate-700: #3D4047;
+  --color-slate-800: #24262C;
+  --color-slate-900: #17181C;
+  --color-slate-950: #0F1013;
+
+  --color-gray-50: #FBFAF7;
+  --color-gray-100: #F5F4F0;
+  --color-gray-200: #E5E2DA;
+  --color-gray-300: #D2CEC4;
+  --color-gray-400: #9C9FA6;
+  --color-gray-500: #6F737B;
+  --color-gray-600: #54585F;
+  --color-gray-700: #3D4047;
+  --color-gray-800: #24262C;
+  --color-gray-900: #17181C;
+  --color-gray-950: #0F1013;
+
+  --color-blue-50: #F1F4FD;
+  --color-blue-100: #E6ECFA;
+  --color-blue-200: #C9D5F4;
+  --color-blue-300: #9DB4F2;
+  --color-blue-400: #6A8BE6;
+  --color-blue-500: #2F5AD3;
+  --color-blue-600: #1F4BC4;
+  --color-blue-700: #173A9C;
+  --color-blue-800: #133180;
+  --color-blue-900: #11296A;
+  --color-blue-950: #0B1B47;
+
+  --color-violet-50: #F1F4FD;
+  --color-violet-100: #E6ECFA;
+  --color-violet-200: #C9D5F4;
+  --color-violet-300: #9DB4F2;
+  --color-violet-400: #6A8BE6;
+  --color-violet-500: #2F5AD3;
+  --color-violet-600: #1F4BC4;
+  --color-violet-700: #173A9C;
+  --color-violet-800: #133180;
+  --color-violet-900: #11296A;
+  --color-violet-950: #0B1B47;
+
+  --color-orange-50: #FDF6EC;
+  --color-orange-100: #FBEFD9;
+  --color-orange-200: #F7DCB0;
+  --color-orange-300: #F2C07A;
+  --color-orange-400: #EEA044;
+  --color-orange-500: #E8820C;
+  --color-orange-600: #C96F08;
+  --color-orange-700: #9A5A08;
+  --color-orange-800: #7A4708;
+  --color-orange-900: #5E3708;
+  --color-orange-950: #3D2405;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  background-color: #f1f5f9;
-  color: #1e293b;
+  font-family: var(--font-sans);
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-900);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Títulos na Archivo, como no site. */
+@layer base {
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
 }
 
 #root {
