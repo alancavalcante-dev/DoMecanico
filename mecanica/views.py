@@ -30,9 +30,10 @@ from .models import (
     ChecklistEntrada, DanoChecklist,
     Agendamento, Orcamento, ItemOrcamento,
     GarantiaServico, GarantiaDefault, ComissaoMecanico, AlertaEstoque, LogAuditoria,
-    ServicoCatalogo, Diagnostico, ItemDiagnostico,
+    ServicoCatalogo, Diagnostico, ItemDiagnostico, FotoOS,
 )
 from .serializers import (
+    FotoOSSerializer, OrdemServicoPatioSerializer, oculta_valores_para,
     ClienteSerializer, ClienteListSerializer,
     VeiculoSerializer, VeiculoListSerializer, FotoVeiculoSerializer,
     FuncionarioSerializer, PecaSerializer, MovimentacaoEstoqueSerializer,
@@ -529,7 +530,15 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         oficina = get_oficina(self.request)
         ultimo = OrdemServico.objects.filter(oficina=oficina).order_by('-id').first()
         numero = f'OS{str((ultimo.id if ultimo else 0) + 1).zfill(6)}'
-        serializer.save(oficina=oficina, numero=numero)
+        serializer.save(oficina=oficina, numero=numero, status_alterado_em=timezone.now())
+
+    def perform_update(self, serializer):
+        # Status alterado por PUT/PATCH também conta para o "tempo no status" do pátio.
+        novo = serializer.validated_data.get('status')
+        if novo and novo != serializer.instance.status:
+            serializer.save(status_alterado_em=timezone.now())
+        else:
+            serializer.save()
 
     def perform_destroy(self, instance):
         _log(self.request, 'deletado', 'OrdemServico',
@@ -545,7 +554,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             'quantidade': request.data.get('quantidade', 1),
             'preco_unitario': request.data.get('preco_unitario', 0),
         }
-        serializer = ServicoOSSerializer(data=data)
+        serializer = ServicoOSSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -556,11 +565,17 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
         ordem = self.get_object()
         peca_id = request.data.get('peca') or None
         from decimal import Decimal, InvalidOperation
+        preco_informado = request.data.get('preco_unitario')
         try:
             quantidade = Decimal(str(request.data.get('quantidade', 1)))
-            preco_unitario = Decimal(str(request.data.get('preco_unitario', 0)))
+            preco_unitario = Decimal(str(preco_informado or 0))
         except InvalidOperation:
             return Response({'erro': 'Quantidade inválida.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Sem preço informado (ex.: mecânico que não vê valores), peça do estoque usa o preço de venda.
+        if peca_id and preco_informado in (None, ''):
+            preco_estoque = Peca.objects.filter(id=peca_id, oficina=ordem.oficina).values_list('preco_venda', flat=True).first()
+            if preco_estoque is not None:
+                preco_unitario = preco_estoque
 
         data = {
             'ordem': ordem.id,
@@ -569,7 +584,7 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             'quantidade': quantidade,
             'preco_unitario': preco_unitario,
         }
-        serializer = PecaOSSerializer(data=data)
+        serializer = PecaOSSerializer(data=data, context={'request': request})
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -605,6 +620,8 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             return Response({'erro': 'Status inválido.'}, status=status.HTTP_400_BAD_REQUEST)
         old_status = ordem.status
         ordem.status = novo_status
+        if novo_status != old_status:
+            ordem.status_alterado_em = timezone.now()
         if novo_status == 'concluida' and not ordem.data_conclusao:
             ordem.data_conclusao = timezone.now()
         ordem.save()
@@ -632,14 +649,84 @@ class OrdemServicoViewSet(viewsets.ModelViewSet):
             disparar_async(notificar_os_concluida_email, ordem)
             disparar_async(
                 enviar_push_oficina, ordem.oficina, 'OS Concluída',
-                f'OS #{ordem.numero} — {ordem.cliente.nome} concluída.', f'/ordens/{ordem.id}',
+                f'OS #{ordem.numero} — {ordem.cliente.nome} concluída.', f'/ordens?id={ordem.id}',
             )
-        return Response(OrdemServicoSerializer(ordem).data)
+        return Response(OrdemServicoSerializer(ordem, context={'request': request}).data)
 
     @action(detail=True, methods=['get'], url_path='gerar-pdf')
     def gerar_pdf(self, request, pk=None):
         ordem = self.get_object()
+        if oculta_valores_para(request):
+            return Response({'erro': 'Seu perfil não tem acesso aos valores da OS.'}, status=status.HTTP_403_FORBIDDEN)
         return _gerar_pdf_os(ordem)
+
+    # ── Modo Oficina / Quadro do Pátio ───────────────────────────────────────
+    @action(detail=False, methods=['get'], url_path='patio')
+    def patio(self, request):
+        """OS ativas + concluídas hoje, sem paginação, para o Quadro do Pátio."""
+        oficina = get_oficina(request)
+        hoje = timezone.localdate()
+        qs = OrdemServico.objects.filter(oficina=oficina).filter(
+            Q(status__in=['aberta', 'em_andamento', 'aguardando_peca']) |
+            Q(status='concluida', data_conclusao__date=hoje)
+        ).select_related('cliente', 'veiculo', 'mecanico').order_by('data_entrada')[:300]
+        return Response(OrdemServicoPatioSerializer(qs, many=True).data)
+
+    @action(detail=False, methods=['get'], url_path='mecanicos')
+    def mecanicos(self, request):
+        """Funcionários ativos (id/nome) para atribuir na OS — não exige o módulo Funcionários."""
+        oficina = get_oficina(request)
+        funcs = Funcionario.objects.filter(oficina=oficina, ativo=True).order_by('nome').values('id', 'nome', 'cargo')
+        return Response(list(funcs))
+
+    @action(detail=False, methods=['get'], url_path='pecas-disponiveis')
+    def pecas_disponiveis(self, request):
+        """Peças do estoque para lançar na OS — não exige o módulo Estoque.
+        Preço de venda só vai para quem pode ver valores."""
+        oficina = get_oficina(request)
+        campos = ['id', 'codigo', 'nome', 'marca', 'unidade', 'quantidade', 'localizacao']
+        if not oculta_valores_para(request):
+            campos.append('preco_venda')
+        pecas = list(Peca.objects.filter(oficina=oficina).order_by('nome').values(*campos))
+        for p in pecas:  # Decimal → string, igual aos demais serializers
+            p['quantidade'] = str(p['quantidade'])
+            if 'preco_venda' in p:
+                p['preco_venda'] = str(p['preco_venda'])
+        return Response(pecas)
+
+    @action(detail=True, methods=['get', 'post'], url_path='fotos')
+    def fotos(self, request, pk=None):
+        ordem = self.get_object()
+        if request.method == 'GET':
+            return Response(FotoOSSerializer(ordem.fotos.all(), many=True, context={'request': request}).data)
+        foto = request.FILES.get('foto')
+        if not foto:
+            return Response({'erro': 'Nenhuma foto enviada.'}, status=status.HTTP_400_BAD_REQUEST)
+        if foto.size > 10 * 1024 * 1024:
+            return Response({'erro': 'Arquivo muito grande. Limite: 10 MB.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not _validar_imagem(foto):
+            return Response({'erro': 'Arquivo inválido. Envie uma imagem JPEG, PNG, WebP ou GIF.'}, status=status.HTTP_400_BAD_REQUEST)
+        if ordem.fotos.count() >= 30:
+            return Response({'erro': 'Limite de 30 fotos por OS.'}, status=status.HTTP_400_BAD_REQUEST)
+        foto = _comprimir_imagem(foto, max_dim=1280, quality=60)
+        u = request.user
+        obj = FotoOS.objects.create(
+            oficina=ordem.oficina, ordem=ordem, foto=foto,
+            legenda=str(request.data.get('legenda', ''))[:200],
+            enviado_por=(f'{u.first_name} {u.last_name}'.strip() or u.username)[:150],
+        )
+        return Response(FotoOSSerializer(obj, context={'request': request}).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['delete'], url_path='fotos/(?P<foto_id>[^/.]+)')
+    def deletar_foto(self, request, pk=None, foto_id=None):
+        ordem = self.get_object()
+        try:
+            foto = FotoOS.objects.get(id=foto_id, ordem=ordem, oficina=ordem.oficina)
+        except (FotoOS.DoesNotExist, ValueError):
+            return Response({'erro': 'Foto não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        foto.foto.delete(save=False)
+        foto.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ServicoOSViewSet(viewsets.ModelViewSet):
@@ -1023,16 +1110,21 @@ def meu_painel_mecanico(request):
     comissao_pendente = sum(float(c.valor) for c in comissoes if not c.pago)
     comissao_paga = sum(float(c.valor) for c in comissoes if c.pago)
 
+    resumo = {
+        'os_abertas': os_abertas.count(),
+        'os_concluidas_mes': os_mes.count(),
+        'faturamento_gerado_mes': fat_gerado,
+        'comissao_pendente': comissao_pendente,
+        'comissao_paga': comissao_paga,
+    }
+    if oculta_valores_para(request):
+        resumo.pop('faturamento_gerado_mes')  # comissão é do próprio mecânico: continua visível
+
     return Response({
         'funcionario': {'id': func.id, 'nome': func.nome, 'cargo': func.cargo},
-        'resumo': {
-            'os_abertas': os_abertas.count(),
-            'os_concluidas_mes': os_mes.count(),
-            'faturamento_gerado_mes': fat_gerado,
-            'comissao_pendente': comissao_pendente,
-            'comissao_paga': comissao_paga,
-        },
-        'os_abertas': OrdemServicoListSerializer(os_abertas[:20], many=True).data,
+        'resumo': resumo,
+        # Campos de trabalho (placa, modelo, queixa, previsão) para a fila do mecânico.
+        'os_abertas': OrdemServicoPatioSerializer(os_abertas.select_related('mecanico')[:50], many=True).data,
         'comissoes_recentes': ComissaoMecanicoSerializer(comissoes, many=True).data,
     })
 

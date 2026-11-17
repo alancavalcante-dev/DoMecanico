@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'react'
-import { ordensAPI, clientesAPI, veiculosAPI, funcionariosAPI, servicosOSAPI, pecasOSAPI, pecasAPI, garantiasAPI, catalogoAPI } from '../api'
-import type { OrdemServico, Cliente, Veiculo, Funcionario, ServicoOS, PecaOS, Peca, ServicoCatalogo } from '../types'
+import { useSearchParams } from 'react-router-dom'
+import { useAuth, podeVerValores } from '../contexts/AuthContext'
+import OSMecanico from '../components/oficina/OSMecanico'
+import EntradaRapida from '../components/oficina/EntradaRapida'
+import AtribuirMecanico from '../components/oficina/AtribuirMecanico'
+import FotosOS from '../components/oficina/FotosOS'
+import { ordensAPI, clientesAPI, veiculosAPI, servicosOSAPI, pecasOSAPI, garantiasAPI, catalogoAPI } from '../api'
+import type { OrdemServico, Cliente, Veiculo, MecanicoResumo, ServicoOS, PecaOS, PecaDisponivel, ServicoCatalogo } from '../types'
 import PageHeader from '../components/ui/PageHeader'
 import CurrencyInput from '../components/ui/CurrencyInput'
 import Modal from '../components/ui/Modal'
 import { statusBadge } from '../components/ui/Badge'
-import { Plus, Search, Eye, Trash2, Printer, X, PlusCircle, Link2, Pencil, Check, ShieldCheck, ShieldPlus, LayoutGrid, List } from 'lucide-react'
+import { Plus, Zap, Search, Eye, Trash2, Printer, X, PlusCircle, Link2, Pencil, Check, ShieldCheck, ShieldPlus, LayoutGrid, List } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { abrirPdf } from '../utils/pdf'
 
@@ -78,9 +84,15 @@ function fmt(v: string | number | undefined) {
 }
 
 export default function OrdensServico() {
+  const { user } = useAuth()
+  const ehMecanico = user?.papel === 'mecanico'
+  const verValores = podeVerValores(user)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [osMecanicoId, setOsMecanicoId] = useState<number | null>(null)
+  const [entradaRapida, setEntradaRapida] = useState(false)
   const [ordens, setOrdens] = useState<OrdemServico[]>([])
-  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
-  const [pecasEstoque, setPecasEstoque] = useState<Peca[]>([])
+  const [funcionarios, setFuncionarios] = useState<MecanicoResumo[]>([])
+  const [pecasEstoque, setPecasEstoque] = useState<PecaDisponivel[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFiltro, setStatusFiltro] = useState('')
@@ -103,24 +115,38 @@ export default function OrdensServico() {
   const carregar = async (s = search, st = statusFiltro) => {
     setLoading(true)
     try {
-      const [oRes, cRes, fRes, pRes, catRes] = await Promise.all([
+      // allSettled: um perfil sem algum módulo auxiliar (ex.: clientes) não pode derrubar a lista de OS.
+      // Mecânicos e peças vêm de endpoints do próprio módulo OS (não exigem Funcionários/Estoque).
+      const [oRes, cRes, fRes, pRes, catRes] = await Promise.allSettled([
         ordensAPI.listar({ search: s || undefined, status: st || undefined }),
         clientesAPI.listar({ page_size: 999 }),
-        funcionariosAPI.listar({ ativo: 'true', page_size: 999 }),
-        pecasAPI.listar({ page_size: 999 }),
+        ordensAPI.mecanicos(),
+        ordensAPI.pecasDisponiveis(),
         catalogoAPI.listar({ ativo: 'true', page_size: 999 }),
       ])
-      setOrdens(oRes.data.results ?? oRes.data)
-      setClientes(cRes.data.results ?? cRes.data)
-      setFuncionarios(fRes.data.results ?? fRes.data)
-      setPecasEstoque(pRes.data.results ?? pRes.data)
-      setCatalogo(catRes.data.results ?? catRes.data)
+      const dados = (r: PromiseSettledResult<any>) => r.status === 'fulfilled' ? (r.value.data.results ?? r.value.data) : []
+      if (oRes.status === 'rejected') toast.error('Erro ao carregar as OS.')
+      setOrdens(dados(oRes))
+      setClientes(dados(cRes))
+      setFuncionarios(dados(fRes))
+      setPecasEstoque(dados(pRes))
+      setCatalogo(dados(catRes))
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => { carregar() }, [])
+
+  // Deep link: /ordens?id=123 (Meu Painel, push, links antigos) abre o detalhe da OS.
+  useEffect(() => {
+    const id = Number(searchParams.get('id'))
+    if (!id) return
+    abrirDetalhe({ id }).catch(() => toast.error('OS não encontrada.'))
+    searchParams.delete('id')
+    setSearchParams(searchParams, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const onClienteChange = async (clienteId: string) => {
     setNovaOSForm(p => ({ ...p, cliente: clienteId, veiculo: '' }))
@@ -155,7 +181,8 @@ export default function OrdensServico() {
     }
   }
 
-  const abrirDetalhe = async (os: OrdemServico) => {
+  const abrirDetalhe = async (os: { id: number }) => {
+    if (ehMecanico) { setOsMecanicoId(os.id); return }
     const r = await ordensAPI.buscar(os.id)
     setDetalheOS(r.data)
     const rv = await veiculosAPI.listar({ cliente: String(r.data.cliente) })
@@ -299,9 +326,14 @@ export default function OrdensServico() {
         title="Ordens de Serviço"
         subtitle={`${ordens.length} OS`}
         action={
-          <button onClick={() => setNovaOSModal(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            <Plus size={16} /> Nova OS
-          </button>
+          <div className="flex gap-2">
+            <button onClick={() => setEntradaRapida(true)} className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Zap size={16} /> Entrada rápida
+            </button>
+            <button onClick={() => setNovaOSModal(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <Plus size={16} /> Nova OS
+            </button>
+          </div>
         }
       />
 
@@ -368,13 +400,20 @@ export default function OrdensServico() {
                           className="bg-white rounded-lg border border-slate-100 shadow-sm p-3 cursor-pointer hover:border-blue-300 hover:shadow-md transition-all">
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-mono font-bold text-blue-700 text-sm">{os.numero}</span>
-                            <span className="text-xs font-semibold text-slate-700">{fmt(os.total_geral)}</span>
+                            {verValores && <span className="text-xs font-semibold text-slate-700">{fmt(os.total_geral)}</span>}
                           </div>
                           <p className="text-sm text-slate-700 font-medium truncate">{os.cliente_nome}</p>
                           <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400">
                             <span className="font-mono">{os.veiculo_placa}</span>
-                            {os.mecanico_nome && <><span>·</span><span className="truncate">{os.mecanico_nome}</span></>}
+                            {ehMecanico && os.mecanico_nome && <><span>·</span><span className="truncate">{os.mecanico_nome}</span></>}
                           </div>
+                          {!ehMecanico && (
+                            <div className="mt-2">
+                              <AtribuirMecanico osId={os.id} mecanicoId={os.mecanico} mecanicoNome={os.mecanico_nome}
+                                mecanicos={funcionarios}
+                                onAtribuido={(id, nome) => setOrdens(prev => prev.map(o => o.id === os.id ? { ...o, mecanico: id, mecanico_nome: nome ?? undefined } : o))} />
+                            </div>
+                          )}
                           <select value={os.status}
                             onClick={e => e.stopPropagation()}
                             onChange={e => { e.stopPropagation(); atualizarStatus(os, e.target.value) }}
@@ -407,7 +446,7 @@ export default function OrdensServico() {
                 <th className="px-5 py-3 text-left">Placa</th>
                 <th className="px-5 py-3 text-left">Mecânico</th>
                 <th className="px-5 py-3 text-left">Status</th>
-                <th className="px-5 py-3 text-right">Total</th>
+                {verValores && <th className="px-5 py-3 text-right">Total</th>}
                 <th className="px-5 py-3 text-left">Data</th>
                 <th className="px-5 py-3 text-right">Ações</th>
               </tr>
@@ -420,14 +459,16 @@ export default function OrdensServico() {
                   <td className="px-5 py-3 font-mono">{os.veiculo_placa}</td>
                   <td className="px-5 py-3 text-slate-500">{os.mecanico_nome || '-'}</td>
                   <td className="px-5 py-3">{statusBadge(os.status)}</td>
-                  <td className="px-5 py-3 text-right font-medium">{fmt(os.total_geral)}</td>
+                  {verValores && <td className="px-5 py-3 text-right font-medium">{fmt(os.total_geral)}</td>}
                   <td className="px-5 py-3 text-slate-500 text-xs">{new Date(os.data_entrada).toLocaleString('pt-BR')}</td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-1">
                       <button onClick={() => abrirDetalhe(os)} title="Detalhes" className="p-1.5 rounded hover:bg-blue-50 text-blue-600"><Eye size={15} /></button>
                       <button onClick={() => copiarLink(os)} title="Copiar link do cliente" className="p-1.5 rounded hover:bg-teal-50 text-teal-600"><Link2 size={15} /></button>
-                      <button onClick={() => gerarPDF(os)} title="PDF" className="p-1.5 rounded hover:bg-purple-50 text-purple-600"><Printer size={15} /></button>
-                      <button onClick={() => deletar(os)} className="p-1.5 rounded hover:bg-red-50 text-red-500"><Trash2 size={15} /></button>
+                      {!ehMecanico && <>
+                        <button onClick={() => gerarPDF(os)} title="PDF" aria-label="Gerar PDF" className="p-1.5 rounded hover:bg-purple-50 text-purple-600"><Printer size={15} /></button>
+                        <button onClick={() => deletar(os)} title="Excluir" aria-label="Excluir OS" className="p-1.5 rounded hover:bg-red-50 text-red-500"><Trash2 size={15} /></button>
+                      </>}
                     </div>
                   </td>
                 </tr>
@@ -503,7 +544,7 @@ export default function OrdensServico() {
       </Modal>
 
       {/* Modal Detalhe OS */}
-      <Modal open={!!detalheOS} onClose={() => setDetalheOS(null)} title={`OS ${detalheOS?.numero}`} size="xl">
+      <Modal open={!!detalheOS && !ehMecanico} onClose={() => setDetalheOS(null)} title={`OS ${detalheOS?.numero}`} size="xl">
         {detalheOS && (
           <div className="space-y-5">
             {/* Info */}
@@ -660,6 +701,13 @@ export default function OrdensServico() {
               </form>
             </div>
 
+            {/* Fotos */}
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 mb-2">Fotos do serviço{detalheOS.fotos?.length ? ` (${detalheOS.fotos.length})` : ''}</h3>
+              <FotosOS ordemId={detalheOS.id} fotos={detalheOS.fotos ?? []}
+                onChange={fotos => setDetalheOS(prev => prev ? { ...prev, fotos } : prev)} />
+            </div>
+
             {/* Totais */}
             <div className="border-t pt-3 space-y-1 text-sm">
               <div className="flex justify-between text-slate-600">
@@ -680,6 +728,14 @@ export default function OrdensServico() {
           </div>
         )}
       </Modal>
+
+      {osMecanicoId != null && (
+        <OSMecanico osId={osMecanicoId} onClose={() => { setOsMecanicoId(null); carregar() }} />
+      )}
+
+      {entradaRapida && (
+        <EntradaRapida onClose={() => setEntradaRapida(false)} onCriada={() => carregar()} />
+      )}
     </div>
   )
 }

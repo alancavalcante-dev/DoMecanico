@@ -131,7 +131,52 @@ export interface OrdemServico {
   total_servicos?: string
   total_pecas?: string
   total_geral?: string
+  fotos?: FotoOS[]
+  status_alterado_em?: string | null
   criado_em: string
+}
+
+export interface FotoOS {
+  id: number
+  ordem: number
+  foto: string
+  legenda: string
+  enviado_por: string
+  criado_em: string
+}
+
+/** OS no formato leve do Quadro do Pátio / fila do mecânico. */
+export interface OSPatio {
+  id: number
+  numero: string
+  cliente_nome: string
+  veiculo_placa: string
+  veiculo_modelo: string
+  mecanico: number | null
+  mecanico_nome: string | null
+  status: OrdemServico['status']
+  problema_relatado: string
+  data_entrada: string
+  data_previsao: string | null
+  data_conclusao: string | null
+  status_alterado_em: string | null
+}
+
+export interface MecanicoResumo {
+  id: number
+  nome: string
+  cargo: string
+}
+
+export interface PecaDisponivel {
+  id: number
+  codigo: string
+  nome: string
+  marca: string
+  unidade: string
+  quantidade: string
+  localizacao: string
+  preco_venda?: string
 }
 
 export interface ServicoCatalogo {

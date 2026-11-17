@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, rotaInicial } from '../contexts/AuthContext'
 
 
 export default function Login() {
@@ -19,7 +19,7 @@ export default function Login() {
       if (result.codigo === 'assinatura_inativa') {
         navigate(result.redirecionamento || '/assinatura')
       } else {
-        navigate('/dashboard')
+        navigate(rotaInicial(result.papel))
       }
     } catch (err: unknown) {
       const msg =

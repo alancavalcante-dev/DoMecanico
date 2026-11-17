@@ -172,6 +172,7 @@ class OrdemServico(models.Model):
     data_entrada = models.DateTimeField(auto_now_add=True)
     data_previsao = models.DateField(null=True, blank=True)
     data_conclusao = models.DateTimeField(null=True, blank=True)
+    status_alterado_em = models.DateTimeField(null=True, blank=True)
     desconto = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     token_publico = models.CharField(max_length=64, unique=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
@@ -223,6 +224,24 @@ class PecaOS(models.Model):
     @property
     def total(self):
         return self.quantidade * self.preco_unitario
+
+
+class FotoOS(models.Model):
+    """Fotos tiradas durante o serviço (antes/depois, peça trocada, avaria encontrada)."""
+    oficina = models.ForeignKey('accounts.Oficina', on_delete=models.CASCADE, related_name='fotos_os', db_index=True)
+    ordem = models.ForeignKey(OrdemServico, on_delete=models.CASCADE, related_name='fotos')
+    foto = models.ImageField(upload_to='ordens/')
+    legenda = models.CharField(max_length=200, blank=True)
+    enviado_por = models.CharField(max_length=150, blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['criado_em']
+        verbose_name = 'Foto da OS'
+        verbose_name_plural = 'Fotos da OS'
+
+    def __str__(self):
+        return f'Foto OS {self.ordem.numero}'
 
 
 class NotaFiscal(models.Model):

@@ -186,6 +186,19 @@ export const ordensAPI = {
     api.post(`/ordens/${id}/adicionar-peca/`, data),
   gerarPDF: (id: number) =>
     api.get(`/ordens/${id}/gerar-pdf/`, { responseType: 'blob' }),
+  patch: (id: number, data: object) => api.patch(`/ordens/${id}/`, data),
+  // Modo Oficina / Quadro do Pátio
+  patio: () => api.get('/ordens/patio/'),
+  mecanicos: () => api.get('/ordens/mecanicos/'),
+  pecasDisponiveis: () => api.get('/ordens/pecas-disponiveis/'),
+  fotos: (id: number) => api.get(`/ordens/${id}/fotos/`),
+  enviarFoto: (id: number, foto: File, legenda = '') => {
+    const fd = new FormData()
+    fd.append('foto', foto)
+    if (legenda) fd.append('legenda', legenda)
+    return api.post(`/ordens/${id}/fotos/`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+  },
+  deletarFoto: (id: number, fotoId: number) => api.delete(`/ordens/${id}/fotos/${fotoId}/`),
 }
 
 export const servicosOSAPI = {

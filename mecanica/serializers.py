@@ -6,8 +6,34 @@ from .models import (
     ChecklistEntrada, DanoChecklist,
     Agendamento, Orcamento, ItemOrcamento,
     GarantiaServico, GarantiaDefault, ComissaoMecanico, AlertaEstoque,
-    ServicoCatalogo, Diagnostico, ItemDiagnostico,
+    ServicoCatalogo, Diagnostico, ItemDiagnostico, FotoOS,
 )
+
+
+def oculta_valores_para(request) -> bool:
+    """True quando quem pede é mecânico e a oficina desligou 'mecânico vê valores'."""
+    try:
+        membro = request.user.membro
+    except Exception:
+        return False  # anônimo (portais públicos), staff etc.: não mexe
+    return membro.papel == 'mecanico' and not membro.oficina.mecanico_ve_valores
+
+
+class OcultaValoresMixin:
+    """Remove da resposta os campos listados em CAMPOS_VALOR quando
+    oculta_valores_para(request). Serializers aninhados herdam o context do pai."""
+    CAMPOS_VALOR: tuple = ()
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        if request is not None and self.CAMPOS_VALOR:
+            if '_oculta_valores' not in self.context:
+                self.context['_oculta_valores'] = oculta_valores_para(request)
+            if self.context['_oculta_valores']:
+                for campo in self.CAMPOS_VALOR:
+                    data.pop(campo, None)
+        return data
 
 
 class FotoVeiculoSerializer(serializers.ModelSerializer):
@@ -93,7 +119,8 @@ class MovimentacaoEstoqueSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ServicoOSSerializer(serializers.ModelSerializer):
+class ServicoOSSerializer(OcultaValoresMixin, serializers.ModelSerializer):
+    CAMPOS_VALOR = ('preco_unitario', 'total')
     total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     garantia = serializers.SerializerMethodField()
 
@@ -109,7 +136,8 @@ class ServicoOSSerializer(serializers.ModelSerializer):
             return None
 
 
-class PecaOSSerializer(serializers.ModelSerializer):
+class PecaOSSerializer(OcultaValoresMixin, serializers.ModelSerializer):
+    CAMPOS_VALOR = ('preco_unitario', 'total')
     total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     peca_nome = serializers.CharField(source='peca.nome', read_only=True)
 
@@ -118,9 +146,18 @@ class PecaOSSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class OrdemServicoSerializer(serializers.ModelSerializer):
+class FotoOSSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FotoOS
+        fields = ['id', 'ordem', 'foto', 'legenda', 'enviado_por', 'criado_em']
+        read_only_fields = fields
+
+
+class OrdemServicoSerializer(OcultaValoresMixin, serializers.ModelSerializer):
+    CAMPOS_VALOR = ('total_servicos', 'total_pecas', 'total_geral', 'desconto')
     servicos = ServicoOSSerializer(many=True, read_only=True)
     pecas_usadas = PecaOSSerializer(many=True, read_only=True)
+    fotos = FotoOSSerializer(many=True, read_only=True)
     total_servicos = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     total_pecas = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     total_geral = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
@@ -133,13 +170,36 @@ class OrdemServicoSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrdemServico
         fields = '__all__'
-        read_only_fields = ['oficina', 'numero']
+        read_only_fields = ['oficina', 'numero', 'status_alterado_em']
+
+    def _da_mesma_oficina(self, obj, rotulo):
+        """Impede vincular cliente/veículo/mecânico de OUTRA oficina (PKs são globais)."""
+        if obj is None:
+            return obj
+        request = self.context.get('request')
+        try:
+            oficina_id = request.user.membro.oficina_id
+        except Exception:
+            return obj
+        if obj.oficina_id != oficina_id:
+            raise serializers.ValidationError(f'{rotulo} não encontrado.')
+        return obj
+
+    def validate_cliente(self, value):
+        return self._da_mesma_oficina(value, 'Cliente')
+
+    def validate_veiculo(self, value):
+        return self._da_mesma_oficina(value, 'Veículo')
+
+    def validate_mecanico(self, value):
+        return self._da_mesma_oficina(value, 'Mecânico')
 
     def get_veiculo_modelo(self, obj):
         return f'{obj.veiculo.marca} {obj.veiculo.modelo}'
 
 
-class OrdemServicoListSerializer(serializers.ModelSerializer):
+class OrdemServicoListSerializer(OcultaValoresMixin, serializers.ModelSerializer):
+    CAMPOS_VALOR = ('total_geral',)
     cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
     veiculo_placa = serializers.CharField(source='veiculo.placa', read_only=True)
     mecanico_nome = serializers.CharField(source='mecanico.nome', read_only=True)
@@ -150,7 +210,24 @@ class OrdemServicoListSerializer(serializers.ModelSerializer):
         model = OrdemServico
         fields = ['id', 'numero', 'token_publico', 'cliente', 'cliente_nome', 'veiculo', 'veiculo_placa',
                   'mecanico', 'mecanico_nome', 'status', 'status_display', 'data_entrada',
-                  'data_previsao', 'total_geral']
+                  'data_previsao', 'total_geral', 'status_alterado_em']
+
+
+class OrdemServicoPatioSerializer(serializers.ModelSerializer):
+    """Campos leves para o Quadro do Pátio (sem valores)."""
+    cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
+    veiculo_placa = serializers.CharField(source='veiculo.placa', read_only=True)
+    veiculo_modelo = serializers.SerializerMethodField()
+    mecanico_nome = serializers.CharField(source='mecanico.nome', read_only=True)
+
+    class Meta:
+        model = OrdemServico
+        fields = ['id', 'numero', 'cliente_nome', 'veiculo_placa', 'veiculo_modelo',
+                  'mecanico', 'mecanico_nome', 'status', 'problema_relatado',
+                  'data_entrada', 'data_previsao', 'data_conclusao', 'status_alterado_em']
+
+    def get_veiculo_modelo(self, obj):
+        return f'{obj.veiculo.marca} {obj.veiculo.modelo}'.strip()
 
 
 class NotaFiscalSerializer(serializers.ModelSerializer):

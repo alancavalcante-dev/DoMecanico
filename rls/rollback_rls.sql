@@ -12,7 +12,7 @@ BEGIN
     'mecanica_cliente','mecanica_veiculo','mecanica_funcionario','mecanica_peca',
     'mecanica_ordemservico','mecanica_checklistentrada','mecanica_agendamento',
     'mecanica_orcamento','mecanica_servicocatalogo','mecanica_logauditoria',
-    'mecanica_garantiadefault',
+    'mecanica_garantiadefault','mecanica_fotoos',
     'mecanica_fotoveiculo','mecanica_movimentacaoestoque','mecanica_servicoos',
     'mecanica_pecaos','mecanica_notafiscal','mecanica_danochecklist',
     'mecanica_itemorcamento','mecanica_comissaomecanico','mecanica_alertaestoque',

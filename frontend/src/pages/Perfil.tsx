@@ -378,6 +378,47 @@ export default function Perfil() {
           </div>
         </form>
       </div>
+
+      <ConfigMecanico />
+    </div>
+  )
+}
+
+/** Preferência do Modo Oficina: mecânico vê ou não os valores (preços/totais) das OS. */
+function ConfigMecanico() {
+  const { user, refreshUser } = useAuth()
+  const ligado = (user?.oficina as any)?.mecanico_ve_valores ?? true
+  const [salvando, setSalvando] = useState(false)
+
+  const alternar = async () => {
+    setSalvando(true)
+    try {
+      await authAPI.atualizarOficina({ mecanico_ve_valores: !ligado })
+      await refreshUser()
+      toast.success(!ligado ? 'Mecânicos voltam a ver os valores.' : 'Valores ocultos para mecânicos.')
+    } catch {
+      toast.error('Erro ao salvar a preferência.')
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+      <div className="flex items-start gap-4">
+        <div className="flex-1">
+          <h2 className="text-base font-semibold text-slate-800">Mecânicos podem ver valores das OS</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Quando desligado, usuários com papel <b>mecânico</b> não veem preços, totais nem descontos nas ordens de serviço
+            (a comissão deles continua visível no Meu Painel). Administradores e atendentes veem tudo normalmente.
+          </p>
+        </div>
+        <button type="button" role="switch" aria-checked={ligado} aria-label="Mecânicos podem ver valores das OS"
+          onClick={alternar} disabled={salvando}
+          className={`relative shrink-0 w-14 h-8 rounded-full transition-colors disabled:opacity-60 ${ligado ? 'bg-blue-600' : 'bg-slate-300'}`}>
+          <span className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${ligado ? 'translate-x-6' : ''}`} />
+        </button>
+      </div>
     </div>
   )
 }

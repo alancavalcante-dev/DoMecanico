@@ -8,6 +8,7 @@ interface Oficina {
   email: string
   cidade: string
   estado: string
+  mecanico_ve_valores?: boolean
 }
 
 interface User {
@@ -33,7 +34,7 @@ interface AuthContextType {
   user: User | null
   loading: boolean
   temAcesso: (modulo: string) => boolean
-  login: (email: string, senha: string) => Promise<{ codigo?: string; redirecionamento?: string }>
+  login: (email: string, senha: string) => Promise<{ codigo?: string; redirecionamento?: string; papel?: string }>
   loginDireto: (userData: User) => void
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
@@ -59,11 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser().finally(() => setLoading(false))
   }, [])
 
-  const login = async (email: string, senha: string): Promise<{ codigo?: string; redirecionamento?: string }> => {
+  const login = async (email: string, senha: string): Promise<{ codigo?: string; redirecionamento?: string; papel?: string }> => {
     const { data } = await authAPI.login({ email, senha })
     setUser(data.user)
     import('../hooks/usePushNotifications').then(m => m.subscribeToPush()).catch(() => {})
-    return { codigo: data.codigo, redirecionamento: data.redirecionamento }
+    return { codigo: data.codigo, redirecionamento: data.redirecionamento, papel: data.user?.papel }
   }
 
   const loginDireto = (userData: User) => {
@@ -85,6 +86,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
+}
+
+/** Mecânico só vê preços/totais da OS se a oficina permitir; os demais papéis sempre veem. */
+export function podeVerValores(user: User | null): boolean {
+  if (!user) return false
+  if (user.papel !== 'mecanico') return true
+  return user.oficina?.mecanico_ve_valores ?? true
+}
+
+/** Página inicial de cada papel depois do login. */
+export function rotaInicial(papel?: string): string {
+  return papel === 'mecanico' ? '/meu-painel' : '/dashboard'
 }
 
 export function useAuth() {

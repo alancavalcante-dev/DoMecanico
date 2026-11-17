@@ -37,7 +37,7 @@ BEGIN
     'mecanica_cliente','mecanica_veiculo','mecanica_funcionario','mecanica_peca',
     'mecanica_ordemservico','mecanica_checklistentrada','mecanica_agendamento',
     'mecanica_orcamento','mecanica_servicocatalogo','mecanica_logauditoria',
-    'mecanica_garantiadefault','mecanica_diagnostico'
+    'mecanica_garantiadefault','mecanica_diagnostico','mecanica_fotoos'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('ALTER TABLE %I FORCE  ROW LEVEL SECURITY', t);

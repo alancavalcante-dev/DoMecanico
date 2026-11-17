@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { checklistAPI, clientesAPI, veiculosAPI } from '../api'
 import type { Cliente, Veiculo } from '../types'
 import PageHeader from '../components/ui/PageHeader'
@@ -285,6 +286,19 @@ export default function ChecklistPage() {
   }
 
   useEffect(() => { carregar() }, [])
+
+  // Vindo da Entrada rápida: /checklist?cliente=1&veiculo=2&ordem=3&km=45000 abre o "Novo" já preenchido.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    const cliente = searchParams.get('cliente')
+    const veiculo = searchParams.get('veiculo')
+    if (!cliente || !veiculo) return
+    setForm(f => ({ ...f, cliente, veiculo, ordem: searchParams.get('ordem') || '', quilometragem: searchParams.get('km') || '' }))
+    veiculosAPI.listar({ cliente }).then(r => setVeiculosCliente(r.data.results ?? r.data)).catch(() => {})
+    setModalNovo(true)
+    setSearchParams({}, { replace: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const onClienteChange = async (clienteId: string) => {
     setForm(f => ({ ...f, cliente: clienteId, veiculo: '' }))

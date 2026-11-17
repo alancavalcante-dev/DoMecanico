@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useState, useRef } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { FlaskConical } from 'lucide-react'
@@ -50,6 +50,7 @@ const Comissoes             = lazy(() => import('./pages/Comissoes'))
 const Ajuda                 = lazy(() => import('./pages/Ajuda'))
 const Suporte               = lazy(() => import('./pages/Suporte'))
 const MeuPainel             = lazy(() => import('./pages/MeuPainel'))
+const QuadroPatio           = lazy(() => import('./pages/QuadroPatio'))
 const Equipe                = lazy(() => import('./pages/Equipe'))
 const ConfiguracaoWhatsApp  = lazy(() => import('./pages/ConfiguracaoWhatsApp'))
 const Perfil                = lazy(() => import('./pages/Perfil'))
@@ -101,6 +102,12 @@ function DashboardGuard() {
   return temAcesso('dashboard') ? <Dashboard /> : <BemVindo />
 }
 
+// Links antigos (/ordens/123, ex.: push) → /ordens?id=123, que abre o detalhe da OS.
+function RedirecionaOS() {
+  const { id } = useParams()
+  return <Navigate to={`/ordens?id=${id}`} replace />
+}
+
 function AdminOnlyGuard({ children }: { children: React.ReactNode }) {
   const { user } = useAuth()
   if (user?.papel !== 'admin') return <Navigate to="/dashboard" replace />
@@ -142,6 +149,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/ajuda':          'Ajuda — DoMecânico',
   '/suporte':        'Suporte — DoMecânico',
   '/meu-painel':     'Meu Painel — DoMecânico',
+  '/patio':          'Quadro do Pátio — DoMecânico',
   '/equipe':         'Equipe — DoMecânico',
   '/whatsapp':       'WhatsApp — DoMecânico',
   '/perfil':         'Perfil da Loja — DoMecânico',
@@ -290,6 +298,7 @@ function AppRoutes() {
           <Route path="/estoque"        element={<Estoque />} />
           <Route path="/funcionarios"   element={<Funcionarios />} />
           <Route path="/ordens"         element={<OrdensServico />} />
+          <Route path="/ordens/:id"     element={<RedirecionaOS />} />
           <Route path="/catalogo"       element={<Catalogo />} />
           <Route path="/notas-fiscais"  element={<NotasFiscais />} />
           <Route path="/relatorios"     element={<Relatorios />} />
@@ -303,6 +312,7 @@ function AppRoutes() {
           <Route path="/ajuda"          element={<Ajuda />} />
           <Route path="/suporte"        element={<Suporte />} />
           <Route path="/meu-painel"     element={<MeuPainel />} />
+          <Route path="/patio"          element={<QuadroPatio />} />
           <Route path="/equipe"         element={<AdminOnlyGuard><Equipe /></AdminOnlyGuard>} />
           <Route path="/whatsapp"       element={<AdminOnlyGuard><ConfiguracaoWhatsApp /></AdminOnlyGuard>} />
           <Route path="/perfil"         element={<AdminOnlyGuard><Perfil /></AdminOnlyGuard>} />

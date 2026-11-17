@@ -55,6 +55,10 @@ class Oficina(models.Model):
     servicos_oferecidos = models.TextField(blank=True, help_text='Um serviço por linha')
     horario_funcionamento = models.CharField(max_length=200, blank=True)
     perfil_publico_ativo = models.BooleanField(default=False)
+    mecanico_ve_valores = models.BooleanField(
+        default=True,
+        help_text='Se desligado, usuários com papel mecânico não veem preços/totais das OS.',
+    )
 
     def save(self, *args, **kwargs):
         if not self.slug_publico and self.nome:
