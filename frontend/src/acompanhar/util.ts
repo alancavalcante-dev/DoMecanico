@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { OSPublica } from './tipos'
+import type { OficinaPublica } from './tipos'
 
 // ── Datas e dinheiro ──────────────────────────────────────────────────────────
 
@@ -96,23 +96,22 @@ export function linkTelefone(tel: string) {
   return d.length >= 8 ? `tel:${d.length === 10 || d.length === 11 ? `+55${d}` : d}` : null
 }
 
-/** Só celular (DDD + 9 dígitos) vira WhatsApp. A mensagem leva só a OS e a placa. */
-export function linkWhatsApp(tel: string, os: Pick<OSPublica, 'numero' | 'veiculo_placa'>) {
+/** Só celular (DDD + 9 dígitos) vira WhatsApp. A mensagem diz só do que se trata (OS, orçamento) e a placa. */
+export function linkWhatsApp(tel: string, assunto: string) {
   let d = digitos(tel)
   if (d.length === 13 && d.startsWith('55')) d = d.slice(2)
   if (d.length !== 11 || d[2] !== '9') return null
-  const msg = `Olá! Quero falar sobre a OS ${os.numero} (placa ${os.veiculo_placa}).`
-  return `https://wa.me/55${d}?text=${encodeURIComponent(msg)}`
+  return `https://wa.me/55${d}?text=${encodeURIComponent(`Olá! Quero falar sobre ${assunto}.`)}`
 }
 
-export function linkMapa(os: Pick<OSPublica, 'oficina_endereco' | 'oficina_cidade' | 'oficina_estado' | 'oficina_cep' | 'oficina_nome'>) {
+export function linkMapa(os: Pick<OficinaPublica, 'oficina_endereco' | 'oficina_cidade' | 'oficina_estado' | 'oficina_cep' | 'oficina_nome'>) {
   if (!os.oficina_endereco && !os.oficina_cidade) return null
   const q = [os.oficina_nome, os.oficina_endereco, os.oficina_cidade && `${os.oficina_cidade}${os.oficina_estado ? ` - ${os.oficina_estado}` : ''}`, os.oficina_cep]
     .filter(Boolean).join(', ')
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
 }
 
-export function cidadeUF(os: Pick<OSPublica, 'oficina_cidade' | 'oficina_estado'>) {
+export function cidadeUF(os: Pick<OficinaPublica, 'oficina_cidade' | 'oficina_estado'>) {
   return [os.oficina_cidade, os.oficina_estado].filter(Boolean).join(' / ')
 }
 
@@ -139,3 +138,6 @@ export const ROTULO_STATUS: Record<string, string> = {
 const NIVEIS_COMBUSTIVEL = ['Vazio', '1/4', '1/2', '3/4', 'Cheio']
 /** 0 a 4 tracinhos do marcador de combustível (-1 se o valor for desconhecido). */
 export const nivelCombustivel = (v: string) => NIVEIS_COMBUSTIVEL.indexOf(v)
+
+/** Rola a página até a seção com esse id. */
+export const rolar = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })

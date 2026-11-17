@@ -274,81 +274,33 @@ class ChecklistEntradaSerializer(serializers.ModelSerializer):
         return f'{obj.veiculo.placa} — {obj.veiculo.marca} {obj.veiculo.modelo} {obj.veiculo.ano or ""}'.strip()
 
 
-class ChecklistPublicoSerializer(serializers.ModelSerializer):
-    """Usado na rota pública (sem auth) — só expõe o necessário para o cliente assinar."""
-    danos = DanoChecklistSerializer(many=True, read_only=True)
-    cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
-    veiculo_info = serializers.SerializerMethodField()
-    nivel_combustivel_display = serializers.CharField(source='get_nivel_combustivel_display', read_only=True)
-    oficina_nome = serializers.CharField(source='oficina.nome', read_only=True)
+# ── Dados públicos da oficina e do carro (páginas do cliente) ──────────────────
 
-    class Meta:
-        model = ChecklistEntrada
-        fields = [
-            'id', 'token_publico', 'status', 'cliente_nome', 'veiculo_info',
-            'quilometragem', 'nivel_combustivel', 'nivel_combustivel_display',
-            'observacoes_gerais', 'danos', 'oficina_nome', 'criado_em', 'assinatura', 'data_assinatura',
-        ]
-
-    def get_veiculo_info(self, obj):
-        return f'{obj.veiculo.placa} — {obj.veiculo.marca} {obj.veiculo.modelo} {obj.veiculo.ano or ""}'.strip()
+OFICINA_PUBLICA_FIELDS = [
+    'oficina_nome', 'oficina_telefone', 'oficina_endereco', 'oficina_cidade', 'oficina_estado',
+    'oficina_cep', 'oficina_horario', 'oficina_cor_primaria', 'oficina_logo_url', 'oficina_perfil',
+]
+VEICULO_PUBLICO_FIELDS = ['veiculo_placa', 'veiculo_marca', 'veiculo_modelo', 'veiculo_ano', 'veiculo_cor']
 
 
-# ── Portal público de acompanhamento de OS ─────────────────────────────────────
-
-class FotoVeiculoPublicoSerializer(serializers.ModelSerializer):
-    foto_url = serializers.SerializerMethodField()
-
-    class Meta:
-        model = FotoVeiculo
-        fields = ['id', 'foto_url', 'descricao', 'criado_em']
-
-    def get_foto_url(self, obj):
-        request = self.context.get('request')
-        return request.build_absolute_uri(obj.foto.url) if request else obj.foto.url
-
-
-class OSPublicaSerializer(serializers.ModelSerializer):
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-    cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
-    veiculo_info = serializers.SerializerMethodField()
-    veiculo_placa = serializers.CharField(source='veiculo.placa', read_only=True)
-    fotos_veiculo = serializers.SerializerMethodField()
+class OficinaPublicaMixin(serializers.Serializer):
+    """Campos da oficina e do carro usados nas páginas públicas (OS, orçamento, checklist)."""
     oficina_nome = serializers.CharField(source='oficina.nome', read_only=True)
     oficina_telefone = serializers.CharField(source='oficina.telefone', read_only=True)
     oficina_endereco = serializers.CharField(source='oficina.endereco', read_only=True)
     oficina_cidade = serializers.CharField(source='oficina.cidade', read_only=True)
     oficina_estado = serializers.CharField(source='oficina.estado', read_only=True)
-    oficina_cor_primaria = serializers.CharField(source='oficina.cor_primaria', read_only=True)
-    oficina_logo_url = serializers.SerializerMethodField()
     oficina_cep = serializers.CharField(source='oficina.cep', read_only=True)
     oficina_horario = serializers.CharField(source='oficina.horario_funcionamento', read_only=True)
+    oficina_cor_primaria = serializers.CharField(source='oficina.cor_primaria', read_only=True)
+    oficina_logo_url = serializers.SerializerMethodField()
     # Descrição, serviços e link do perfil só saem se a oficina ligou o perfil público.
     oficina_perfil = serializers.SerializerMethodField()
+    veiculo_placa = serializers.CharField(source='veiculo.placa', read_only=True)
     veiculo_marca = serializers.CharField(source='veiculo.marca', read_only=True)
     veiculo_modelo = serializers.CharField(source='veiculo.modelo', read_only=True)
     veiculo_ano = serializers.CharField(source='veiculo.ano', read_only=True)
     veiculo_cor = serializers.CharField(source='veiculo.cor', read_only=True)
-    servicos = serializers.SerializerMethodField()
-    mecanico_nome = serializers.CharField(source='mecanico.nome', read_only=True)
-    checklist = serializers.SerializerMethodField()
-    garantias = serializers.SerializerMethodField()
-    orcamento = serializers.SerializerMethodField()
-
-    class Meta:
-        model = OrdemServico
-        fields = [
-            'id', 'numero', 'token_publico', 'status', 'status_display',
-            'cliente_nome', 'veiculo_info', 'veiculo_placa',
-            'veiculo_marca', 'veiculo_modelo', 'veiculo_ano', 'veiculo_cor',
-            'problema_relatado', 'diagnostico', 'observacoes',
-            'quilometragem_entrada', 'data_entrada', 'data_previsao', 'data_conclusao',
-            'mecanico_nome', 'fotos_veiculo', 'servicos',
-            'oficina_nome', 'oficina_telefone', 'oficina_endereco',
-            'oficina_cidade', 'oficina_estado', 'oficina_cor_primaria', 'oficina_logo_url',
-            'oficina_cep', 'oficina_horario', 'oficina_perfil', 'status_alterado_em',
-            'checklist', 'garantias', 'orcamento',
-        ]
 
     def get_oficina_perfil(self, obj):
         of = obj.oficina
@@ -367,6 +319,72 @@ class OSPublicaSerializer(serializers.ModelSerializer):
         if req:
             return req.build_absolute_uri(obj.oficina.logo.url)
         return obj.oficina.logo.url
+
+    @staticmethod
+    def _os_da(obj):
+        """Token e número da OS ligada, para o cliente pular para o acompanhamento."""
+        os_ = getattr(obj, 'ordem', None)
+        return {'token_publico': os_.token_publico, 'numero': os_.numero} if os_ and os_.token_publico else None
+
+
+class ChecklistPublicoSerializer(OficinaPublicaMixin, serializers.ModelSerializer):
+    """Usado na rota pública (sem auth) — só expõe o necessário para o cliente assinar."""
+    danos = DanoChecklistSerializer(many=True, read_only=True)
+    cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
+    veiculo_info = serializers.SerializerMethodField()
+    nivel_combustivel_display = serializers.CharField(source='get_nivel_combustivel_display', read_only=True)
+    os = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChecklistEntrada
+        fields = [
+            'id', 'token_publico', 'status', 'cliente_nome', 'veiculo_info',
+            'quilometragem', 'nivel_combustivel', 'nivel_combustivel_display',
+            'observacoes_gerais', 'danos', 'criado_em', 'assinatura', 'data_assinatura', 'os',
+        ] + OFICINA_PUBLICA_FIELDS + VEICULO_PUBLICO_FIELDS
+
+    def get_veiculo_info(self, obj):
+        return f'{obj.veiculo.placa} — {obj.veiculo.marca} {obj.veiculo.modelo} {obj.veiculo.ano or ""}'.strip()
+
+    def get_os(self, obj):
+        return self._os_da(obj)
+
+
+# ── Portal público de acompanhamento de OS ─────────────────────────────────────
+
+class FotoVeiculoPublicoSerializer(serializers.ModelSerializer):
+    foto_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FotoVeiculo
+        fields = ['id', 'foto_url', 'descricao', 'criado_em']
+
+    def get_foto_url(self, obj):
+        request = self.context.get('request')
+        return request.build_absolute_uri(obj.foto.url) if request else obj.foto.url
+
+
+class OSPublicaSerializer(OficinaPublicaMixin, serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
+    veiculo_info = serializers.SerializerMethodField()
+    fotos_veiculo = serializers.SerializerMethodField()
+    servicos = serializers.SerializerMethodField()
+    mecanico_nome = serializers.CharField(source='mecanico.nome', read_only=True)
+    checklist = serializers.SerializerMethodField()
+    garantias = serializers.SerializerMethodField()
+    orcamento = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrdemServico
+        fields = [
+            'id', 'numero', 'token_publico', 'status', 'status_display',
+            'cliente_nome', 'veiculo_info',
+            'problema_relatado', 'diagnostico', 'observacoes',
+            'quilometragem_entrada', 'data_entrada', 'data_previsao', 'data_conclusao',
+            'mecanico_nome', 'fotos_veiculo', 'servicos', 'status_alterado_em',
+            'checklist', 'garantias', 'orcamento',
+        ] + OFICINA_PUBLICA_FIELDS + VEICULO_PUBLICO_FIELDS
 
     def get_veiculo_info(self, obj):
         v = obj.veiculo
@@ -508,16 +526,15 @@ class OrcamentoSerializer(serializers.ModelSerializer):
         read_only_fields = ['oficina', 'numero', 'token_publico']
 
 
-class OrcamentoPublicoSerializer(serializers.ModelSerializer):
+class OrcamentoPublicoSerializer(OficinaPublicaMixin, serializers.ModelSerializer):
     itens = ItemOrcamentoSerializer(many=True, read_only=True)
     total_geral = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     total_servicos = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     total_pecas = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     cliente_nome = serializers.CharField(source='cliente.nome', read_only=True)
     veiculo_info = serializers.SerializerMethodField()
-    oficina_nome = serializers.CharField(source='oficina.nome', read_only=True)
-    oficina_telefone = serializers.CharField(source='oficina.telefone', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    os = serializers.SerializerMethodField()
 
     class Meta:
         model = Orcamento
@@ -525,12 +542,15 @@ class OrcamentoPublicoSerializer(serializers.ModelSerializer):
             'id', 'numero', 'token_publico', 'status', 'status_display',
             'cliente_nome', 'veiculo_info', 'problema_relatado', 'observacoes',
             'itens', 'total_servicos', 'total_pecas', 'desconto', 'total_geral',
-            'validade', 'oficina_nome', 'oficina_telefone', 'criado_em',
-        ]
+            'validade', 'criado_em', 'os',
+        ] + OFICINA_PUBLICA_FIELDS + VEICULO_PUBLICO_FIELDS
 
     def get_veiculo_info(self, obj):
         v = obj.veiculo
         return f'{v.marca} {v.modelo} {v.ano or ""} — {v.placa}'.strip()
+
+    def get_os(self, obj):
+        return self._os_da(obj)
 
 
 # ── Garantia ───────────────────────────────────────────────────────────────────

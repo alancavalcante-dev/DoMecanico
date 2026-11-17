@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import axios from 'axios'
+import { Link } from 'react-router-dom'
 import {
-  Check, CheckCircle, ClipboardCheck, FileText, PenLine, RotateCcw, ShieldCheck, Wrench, X,
+  ArrowRight, Check, CheckCircle, ClipboardCheck, FileText, PenLine, RotateCcw, ShieldCheck, Wrench, X,
 } from 'lucide-react'
-import type { ChecklistPublico, Dano, Garantia, OrcamentoPublico, Servico } from './tipos'
-import { diasAte, fmtData, fmtDiaHora, fmtMoeda, nivelCombustivel } from './util'
+import type { ChecklistPublico, Dano, Garantia, LinkOS, OrcamentoPublico, Servico } from './tipos'
+import { diasAte, fmtData, fmtDiaHora, fmtMoeda, nivelCombustivel, rotuloOS } from './util'
 
 // Seções da página da OS: orçamento, checklist, serviços feitos e garantias.
 
@@ -27,7 +28,12 @@ const ORC_PILL: Record<string, { cls: string; txt: string }> = {
   expirado:  { cls: 'aberta',          txt: 'Expirado' },
 }
 
-export function SecaoOrcamento({ orc, onRespondido }: { orc: OrcamentoPublico; onRespondido: (s: 'aprovado' | 'rejeitado') => void }) {
+export function SecaoOrcamento({ orc, onRespondido, os }: {
+  orc: OrcamentoPublico
+  onRespondido: (s: 'aprovado' | 'rejeitado', os: LinkOS | null) => void
+  /** OS aberta a partir do orçamento (página avulsa do orçamento). */
+  os?: LinkOS | null
+}) {
   const [confirmar, setConfirmar] = useState<'aprovado' | 'rejeitado' | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [erro, setErro] = useState('')
@@ -41,9 +47,9 @@ export function SecaoOrcamento({ orc, onRespondido }: { orc: OrcamentoPublico; o
   const responder = async (resposta: 'aprovado' | 'rejeitado') => {
     setEnviando(true); setErro('')
     try {
-      await axios.post(`/api/orcamento-publico/${orc.token_publico}/responder/`, { resposta })
+      const r = await axios.post(`/api/orcamento-publico/${orc.token_publico}/responder/`, { resposta })
       setRespondeuAgora(true)
-      onRespondido(resposta)
+      onRespondido(resposta, r.data?.os ?? null)
     } catch {
       setErro('Não deu para registrar sua resposta. Confira a internet e tente de novo.')
     } finally {
@@ -105,6 +111,12 @@ export function SecaoOrcamento({ orc, onRespondido }: { orc: OrcamentoPublico; o
       {respondeuAgora && orc.status === 'aprovado' && (
         <div className="trk-done ok" role="status"><CheckCircle size={19} /> Orçamento aprovado. A oficina já foi avisada.</div>
       )}
+      {orc.status === 'aprovado' && os && (
+        <Link className="trk-next" to={`/acompanhar/${os.token_publico}`}>
+          <span><small>O serviço já tem uma ordem aberta</small>Acompanhar a {rotuloOS(os.numero)}</span>
+          <ArrowRight size={19} />
+        </Link>
+      )}
       {respondeuAgora && orc.status === 'rejeitado' && (
         <div className="trk-done no" role="status">Orçamento recusado. Se mudar de ideia, fale com a oficina.</div>
       )}
@@ -118,6 +130,21 @@ function Assinatura({ onSalvar, salvando }: { onSalvar: (d: string) => void; sal
   const ref = useRef<HTMLCanvasElement>(null)
   const desenhando = useRef(false)
   const [temTraco, setTemTraco] = useState(false)
+
+  // A área de desenho acompanha o tamanho real na tela (e a densidade do celular),
+  // para o traço não sair esticado nem borrado.
+  useEffect(() => {
+    const c = ref.current!
+    const ajustar = () => {
+      const r = c.getBoundingClientRect(), dpr = window.devicePixelRatio || 1
+      const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr)
+      if (w && h && (c.width !== w || c.height !== h)) { c.width = w; c.height = h; setTemTraco(false) }
+    }
+    ajustar()
+    const ro = new ResizeObserver(ajustar)
+    ro.observe(c)
+    return () => ro.disconnect()
+  }, [])
 
   const pos = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const c = ref.current!, r = c.getBoundingClientRect()
@@ -133,7 +160,8 @@ function Assinatura({ onSalvar, salvando }: { onSalvar: (d: string) => void; sal
     if (!desenhando.current) return
     const ctx = ref.current!.getContext('2d')!, p = pos(e)
     ctx.lineTo(p.x, p.y)
-    ctx.strokeStyle = '#17181C'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+    const c = ref.current!
+    ctx.strokeStyle = '#17181C'; ctx.lineWidth = 2.6 * (c.width / c.getBoundingClientRect().width); ctx.lineCap = 'round'; ctx.lineJoin = 'round'
     ctx.stroke()
     setTemTraco(true)
   }
@@ -147,7 +175,7 @@ function Assinatura({ onSalvar, salvando }: { onSalvar: (d: string) => void; sal
   return (
     <>
       <div className="trk-pad">
-        <canvas ref={ref} width={700} height={220} aria-label="Área para assinar com o dedo ou o mouse"
+        <canvas ref={ref} aria-label="Área para assinar com o dedo ou o mouse"
           onPointerDown={iniciar} onPointerMove={mover} onPointerUp={parar} onPointerCancel={parar} onPointerLeave={parar} />
         {!temTraco && <div className="ph"><PenLine size={15} /> Assine aqui com o dedo</div>}
       </div>

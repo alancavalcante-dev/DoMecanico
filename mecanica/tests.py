@@ -3,7 +3,9 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from accounts.models import MembroOficina, Oficina, PermissaoMembro
-from mecanica.models import Cliente, Funcionario, OrdemServico, ServicoOS, Veiculo
+from mecanica.models import (
+    ChecklistEntrada, Cliente, Funcionario, ItemOrcamento, Orcamento, OrdemServico, ServicoOS, Veiculo,
+)
 
 
 def _oficina(nome, **kw):
@@ -135,3 +137,45 @@ class OSPublicaOficinaTests(TestCase):
         perfil = self._get()['oficina_perfil']
         self.assertEqual(perfil['slug'], 'oficina-p')
         self.assertEqual(perfil['servicos'], ['Freios', 'Suspensão'])
+
+
+class OrcamentoEChecklistPublicosTests(TestCase):
+    """Orçamento e checklist públicos trazem a oficina, o carro e o link da OS ligada."""
+
+    def setUp(self):
+        self.oficina = _oficina('Oficina Q', telefone='(81) 99999-0000', horario_funcionamento='Seg a Sex')
+        self.ordem = _os(self.oficina)
+        self.client = APIClient()
+
+    def _orcamento(self, **kw):
+        orc = Orcamento.objects.create(
+            oficina=self.oficina, cliente=self.ordem.cliente, veiculo=self.ordem.veiculo, numero='ORC-1', **kw,
+        )
+        ItemOrcamento.objects.create(orcamento=orc, tipo='servico', descricao='Revisão', quantidade=1, preco_unitario=200)
+        return orc
+
+    def test_orcamento_traz_oficina_e_carro(self):
+        d = self.client.get(f'/api/orcamento-publico/{self._orcamento().token_publico}/').data
+        self.assertEqual(d['oficina_horario'], 'Seg a Sex')
+        self.assertEqual(d['veiculo_placa'], self.ordem.veiculo.placa)
+        self.assertIsNone(d['oficina_perfil'])
+        self.assertIsNone(d['os'])
+
+    def test_aprovar_devolve_a_os_criada(self):
+        orc = self._orcamento()
+        r = self.client.post(f'/api/orcamento-publico/{orc.token_publico}/responder/', {'resposta': 'aprovado'}, format='json')
+        self.assertEqual(r.status_code, 200)
+        orc.refresh_from_db()
+        self.assertEqual(r.data['os']['token_publico'], orc.ordem.token_publico)
+        # Depois de aprovado, a página do orçamento já aponta para a OS.
+        d = self.client.get(f'/api/orcamento-publico/{orc.token_publico}/').data
+        self.assertEqual(d['os']['numero'], orc.ordem.numero)
+
+    def test_checklist_traz_oficina_e_os(self):
+        ck = ChecklistEntrada.objects.create(
+            oficina=self.oficina, ordem=self.ordem, cliente=self.ordem.cliente, veiculo=self.ordem.veiculo, quilometragem=1000,
+        )
+        d = self.client.get(f'/api/checklist-publico/{ck.token_publico}/').data
+        self.assertEqual(d['oficina_nome'], 'Oficina Q')
+        self.assertEqual(d['veiculo_modelo'], 'Uno')
+        self.assertEqual(d['os']['token_publico'], self.ordem.token_publico)

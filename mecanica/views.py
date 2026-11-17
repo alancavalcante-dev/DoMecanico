@@ -2331,6 +2331,7 @@ def orcamento_responder(request, token):
         return Response({'erro': 'Resposta inválida.'}, status=400)
     orc.status = resposta
     orc.save()
+    os_obj = None
     if resposta == 'aprovado':
         try:
             os_obj = _converter_orcamento_em_os(orc)
@@ -2344,7 +2345,9 @@ def orcamento_responder(request, token):
             + (f' OS {os_obj.numero} criada.' if os_obj else ''),
             '/ordens',
         )
-    return Response({'status': orc.status})
+    # Com a OS criada, a página do orçamento já leva o cliente ao acompanhamento.
+    os_info = {'token_publico': os_obj.token_publico, 'numero': os_obj.numero} if os_obj and os_obj.token_publico else None
+    return Response({'status': orc.status, 'os': os_info})
 
 
 # ── Garantia ───────────────────────────────────────────────────────────────────

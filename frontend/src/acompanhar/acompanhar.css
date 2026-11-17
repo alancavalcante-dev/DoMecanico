@@ -282,7 +282,7 @@
 .lp .trk-sign .ask{background:var(--signal-tint);border-radius:16px;padding:18px}
 .lp .trk-sign .ask>p{font-size:15px;font-weight:600;color:#5E3708;margin-bottom:14px;line-height:1.45}
 .lp .trk-pad{position:relative;background:#fff;border:2px dashed #D8C3A0;border-radius:14px;overflow:hidden}
-.lp .trk-pad canvas{display:block;width:100%;touch-action:none;cursor:crosshair}
+.lp .trk-pad canvas{display:block;width:100%;height:200px;touch-action:none;cursor:crosshair}
 .lp .trk-pad .ph{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;pointer-events:none;color:#B5AE9F;font-size:14px}
 .lp .trk-pad .ph::after{content:"";position:absolute;left:24px;right:24px;bottom:30%;border-bottom:1.5px solid #E5DCC9}
 .lp .trk-pad-acts{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;margin-top:12px}
@@ -351,6 +351,7 @@
 .lp .trk-state{min-height:70vh;display:grid;place-items:center;text-align:center;padding:40px 20px}
 .lp .trk-state h1{font-size:30px;margin-top:18px}
 .lp .trk-state p{color:var(--ink-soft);margin-top:8px}
+.lp .trk-state svg{display:block;margin:0 auto}
 .lp .trk-skel{width:min(560px,100%);display:grid;gap:14px}
 .lp .trk-skel i{display:block;height:18px;border-radius:8px;background:linear-gradient(90deg,#ECE9E2,#F7F5F0,#ECE9E2);background-size:200% 100%;animation:trk-shimmer 1.3s linear infinite}
 @keyframes trk-shimmer{to{background-position:-200% 0}}
@@ -406,4 +407,55 @@
   .lp .trk-status .pulse::after,.lp .trk-skel i{animation:none}
   .lp .trk-vcard,.lp .trk-btn{transition:none}
   .lp .trk-vcard:hover,.lp .trk-btn:hover{transform:none}
+}
+
+/* ── Orçamento e checklist avulsos ─────────────────────────────────────────── */
+/* Total grande no cartão do herói */
+.lp .trk-total{margin-top:22px;padding:18px 20px;border-radius:16px;background:var(--paper);display:grid;gap:4px}
+.lp .trk-total b{font-family:var(--disp);font-stretch:88%;font-weight:800;font-size:clamp(34px,4vw,44px);letter-spacing:-.03em;
+  line-height:1.05;font-variant-numeric:tabular-nums;color:var(--ink)}
+.lp .trk-total .off{font-size:13px;color:#1C6E37;font-weight:500}
+.lp .trk-valid{font-family:var(--mono);font-size:12.5px;color:var(--ink-soft);margin-top:12px}
+.lp .trk-valid.quase{color:var(--signal-text);font-weight:600}
+.lp .trk-cta{width:100%;justify-content:center;margin-top:16px}
+.lp .trk-cta + .trk-cta{margin-top:8px}
+
+/* Km / tanque / marcas no cartão do checklist */
+.lp .trk-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:22px}
+.lp .trk-facts>div{background:var(--paper);border-radius:14px;padding:12px 14px;display:grid;gap:4px;min-width:0}
+.lp .trk-facts b{font-family:var(--disp);font-stretch:88%;font-size:22px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lp .trk-facts .warn b{color:var(--signal-text)}
+
+/* "Depois que você aprovar" */
+.lp .trk-flow{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;counter-reset:p}
+.lp .trk-flow li{position:relative;background:var(--paper);border-radius:16px;padding:18px 18px 18px;display:grid;gap:6px;align-content:start}
+.lp .trk-flow li>svg{color:var(--of-txt)}
+.lp .trk-flow .n{position:absolute;top:14px;right:16px;font-family:var(--mono);font-size:12px;color:var(--ink-faint)}
+.lp .trk-flow b{font-family:var(--disp);font-size:16px;letter-spacing:-.01em;margin-top:6px}
+.lp .trk-flow li>span:last-child{font-size:14px;color:var(--ink-soft);line-height:1.45}
+
+/* Aprovado: seguir para a OS */
+.lp .trk-next{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:16px 18px;
+  border-radius:14px;background:var(--of);color:var(--of-ink);font-weight:600;font-size:16px}
+.lp .trk-next small{display:block;font-weight:400;font-size:12.5px;opacity:.8;margin-bottom:2px}
+.lp .trk-next:hover{filter:brightness(1.06)}
+
+/* "Por que assinar?" */
+.lp .trk-why{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  padding:16px 18px;font-size:14px;color:var(--ink-soft);line-height:1.5}
+.lp .trk-why svg{flex:none;color:#1C6E37;margin-top:1px}
+.lp .trk-why b{display:block;color:var(--ink);font-family:var(--disp);font-size:15px;margin-bottom:2px}
+
+@media (max-width:640px){
+  .lp .trk-flow{grid-template-columns:minmax(0,1fr)}
+  .lp .trk-flow li{grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:2px;padding:14px 16px}
+  .lp .trk-flow li>svg{grid-row:span 2;margin-top:2px}
+  .lp .trk-flow b{margin-top:0}
+  .lp .trk-facts b{font-size:19px}
+  .lp .trk-facts>div{padding:10px 12px}
+}
+@media (max-width:640px){
+  .lp .trk-pad canvas{height:180px}
+  .lp .trk-sign .ask{padding:14px}
 }
