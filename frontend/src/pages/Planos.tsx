@@ -16,12 +16,11 @@ export default function Planos() {
     <SiteLayout>
       <PageHero
         center
-        eyebrow="Planos"
         title="Um preço que cabe na oficina."
         lead="Comece com 14 dias grátis e tudo liberado. Sem cartão, sem fidelidade — escolha o plano quando já souber o que usa."
       />
 
-      <section style={{ paddingTop: 16 }}>
+      <section className="tight-top">
         <div className="wrap">
           <PlanCards planos={planos} status={status} comDescricao />
         </div>
@@ -30,7 +29,7 @@ export default function Planos() {
       {status === 'ok' && (
         <section id="comparar">
           <div className="wrap">
-            <SectionHead eyebrow="Comparativo" title="Plano por plano, recurso por recurso." center />
+            <SectionHead title="Plano por plano, recurso por recurso." center />
             <ComparativoPlanos planos={planos} />
           </div>
         </section>
@@ -38,7 +37,7 @@ export default function Planos() {
 
       <section id="faq">
         <div className="wrap">
-          <SectionHead eyebrow="Cobrança" title="Perguntas sobre pagamento" center />
+          <SectionHead title="Perguntas sobre pagamento" center />
           <FAQList items={FAQ_COBRANCA} />
         </div>
       </section>

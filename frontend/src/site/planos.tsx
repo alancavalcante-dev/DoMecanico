@@ -5,7 +5,15 @@ import type { Plano, StatusPlanos } from './planosData'
 
 // Cards e comparativo de planos (Home e /planos). Dados em planosData.ts.
 
-const tem = (p: Plano, m: string) => (p.modulos_disponiveis || []).includes(m)
+// Lista vazia = plano sem restrição de módulo (mesma regra do backend em
+// accounts/views.py, que só intersecta quando modulos_disponiveis tem itens).
+const tem = (p: Plano, m: string) => {
+  const mods = p.modulos_disponiveis || []
+  return mods.length === 0 || mods.includes(m)
+}
+// Para o que tem flag própria no Admin (relatórios, comprovante), a flag manda:
+// só soma o módulo se ele foi listado de propósito, não pela regra da lista vazia.
+const listado = (p: Plano, m: string) => (p.modulos_disponiveis || []).includes(m)
 
 // O que DIFERENCIA os planos nos cards (✓/✗ conforme a config do Admin).
 const DESTAQUES: { label: string; on: (p: Plano) => boolean }[] = [
@@ -15,8 +23,8 @@ const DESTAQUES: { label: string; on: (p: Plano) => boolean }[] = [
   { label: 'Estoque e comissões', on: p => tem(p, 'estoque') },
   { label: 'Agendamentos', on: p => tem(p, 'agendamentos') },
   { label: 'Fotos de veículo', on: p => p.tem_fotos_veiculo },
-  { label: 'Comprovante de serviço', on: p => p.tem_nota_fiscal || tem(p, 'notas_fiscais') },
-  { label: 'Relatórios', on: p => p.tem_relatorios || tem(p, 'relatorios') },
+  { label: 'Comprovante de serviço', on: p => p.tem_nota_fiscal || listado(p, 'notas_fiscais') },
+  { label: 'Relatórios', on: p => p.tem_relatorios || listado(p, 'relatorios') },
   { label: 'WhatsApp automático', on: p => tem(p, 'whatsapp') },
 ]
 
@@ -65,7 +73,7 @@ export function PlanCards({ planos, status, comDescricao }: { planos: Plano[]; s
         const { inteiro, centavos } = fmtPreco(plano.preco)
         return (
           <div key={plano.id} className={`plan ${plano.destaque ? 'feat' : ''}`}>
-            {plano.destaque && <span className="badge">MAIS USADO</span>}
+            {plano.destaque && <span className="badge">Recomendado</span>}
             <div className="nm">{plano.nome}</div>
             <div className="price">
               <span className="c">R$</span>
@@ -121,15 +129,15 @@ const LINHAS: Linha[] = [
   { label: 'Estoque de peças', val: p => bool(tem(p, 'estoque')) },
   { label: 'Comissões de mecânico', val: p => bool(tem(p, 'comissoes')) },
   { label: 'Garantias de serviço', val: p => bool(tem(p, 'garantias')) },
-  { label: 'Comprovantes de serviço', val: p => bool(p.tem_nota_fiscal || tem(p, 'notas_fiscais')) },
-  { label: 'Relatórios e exportação', val: p => bool(p.tem_relatorios || tem(p, 'relatorios')) },
+  { label: 'Comprovantes de serviço', val: p => bool(p.tem_nota_fiscal || listado(p, 'notas_fiscais')) },
+  { label: 'Relatórios e exportação', val: p => bool(p.tem_relatorios || listado(p, 'relatorios')) },
 ]
 
 export function ComparativoPlanos({ planos }: { planos: Plano[] }) {
   if (!planos.length) return null
   return (
-    <div className="cmp-wrap">
-      <table className="cmp">
+    <div className="cmp-wrap" style={{ maxWidth: 360 + planos.length * 180 }}>
+      <table className="cmp" style={{ minWidth: 150 + planos.length * 90 }}>
         <thead>
           <tr>
             <th scope="col">Recurso</th>

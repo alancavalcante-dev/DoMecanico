@@ -27,7 +27,6 @@ const CANAIS = [
   { icon: Mail, titulo: 'E-mail', desc: 'Dúvidas, problemas e sugestões', link: { href: `mailto:${EMAIL}`, label: EMAIL } },
   { icon: WA,   titulo: 'WhatsApp', desc: 'Mande seu número por e-mail e a gente chama você no WhatsApp',
     link: { href: `mailto:${EMAIL}?subject=${encodeURIComponent('Quero atendimento por WhatsApp')}`, label: 'Pedir atendimento' } },
-  { icon: Clock, titulo: 'Horário de atendimento', desc: 'Segunda a sexta, das 9h às 18h (horário de Brasília)', link: null },
 ]
 
 export default function Contato() {
@@ -47,30 +46,32 @@ export default function Contato() {
   return (
     <SiteLayout>
       <PageHero
-        eyebrow="Contato e suporte"
         title="Fala com a gente."
         lead="Dúvida antes de assinar, problema no sistema ou ideia de melhoria — resposta em até 24 horas úteis."
       />
 
-      <section style={{ paddingTop: 8 }}>
+      <section className="tight-top">
         <div className="wrap">
           <div className="channels">
             {CANAIS.map(c => (
               <div key={c.titulo} className="card">
                 <div className="ic"><c.icon size={20} /></div>
-                <h3>{c.titulo}</h3>
-                <p>{c.desc}</p>
-                {c.link && <a href={c.link.href}>{c.link.label} <ArrowRight size={15} /></a>}
+                <div>
+                  <h3>{c.titulo}</h3>
+                  <p>{c.desc}</p>
+                  <a href={c.link.href}>{c.link.label} <ArrowRight size={15} /></a>
+                </div>
               </div>
             ))}
           </div>
+          <p className="hours"><Clock size={16} /> Atendimento de segunda a sexta, das 9h às 18h (horário de Brasília).</p>
         </div>
       </section>
 
       <section>
         <div className="wrap contact">
           <div>
-            <h2 className="sec-t" style={{ marginTop: 0 }}>Enviar mensagem</h2>
+            <h2 className="sub-t">Enviar mensagem</h2>
             {enviado ? (
               <div className="sent">
                 <CheckCircle size={44} />
@@ -108,7 +109,7 @@ export default function Contato() {
             )}
           </div>
           <div>
-            <h2 className="sec-t" style={{ marginTop: 0 }}>Dúvidas frequentes</h2>
+            <h2 className="sub-t">Dúvidas frequentes</h2>
             <FAQList items={FAQ_SUPORTE} left />
           </div>
         </div>

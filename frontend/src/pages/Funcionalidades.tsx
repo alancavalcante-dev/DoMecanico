@@ -131,22 +131,22 @@ export default function Funcionalidades() {
   return (
     <SiteLayout>
       <PageHero
-        eyebrow="Funcionalidades"
         title="Tudo que a oficina precisa, do balcão ao pátio."
         lead="Cada tela foi pensada para o dia a dia de oficina: rápido no balcão, simples no celular do mecânico e claro para o cliente."
       />
 
-      <div className="subnav" aria-label="Ir para">
+      <nav className="subnav" aria-label="Ir para o grupo">
         <div className="wrap">
-          {GRUPOS.flatMap(g => g.recursos).map(r => <a key={r.id} href={`#${r.id}`}>{r.titulo.replace(' para o mecânico', '')}</a>)}
+          {GRUPOS.map(g => (
+            <a key={g.id} href={`#${g.id}`}>{g.nome}</a>
+          ))}
         </div>
-      </div>
+      </nav>
 
-      {GRUPOS.map((g, gi) => (
-        <section key={g.id} id={g.id} className="group" style={{ paddingBottom: 0 }}>
+      {GRUPOS.map(g => (
+        <section key={g.id} id={g.id} className="group">
           <div className="wrap">
             <div className="group-hd">
-              <span className="n">0{gi + 1}</span>
               <h2>{g.nome}</h2>
               <p>{g.resumo}</p>
             </div>

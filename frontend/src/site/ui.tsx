@@ -17,13 +17,14 @@ export function SectionHead({ eyebrow, title, lead, center, as = 'h2' }: {
   )
 }
 
+// Rótulo (eyebrow) é opcional: só quando acrescenta algo que o título não diz.
 export function PageHero({ eyebrow, title, lead, center, children }: {
-  eyebrow: string; title: ReactNode; lead?: ReactNode; center?: boolean; children?: ReactNode
+  eyebrow?: string; title: ReactNode; lead?: ReactNode; center?: boolean; children?: ReactNode
 }) {
   return (
     <header className={`page-hero ${center ? 'center' : ''}`}>
       <div className="wrap">
-        <span className="eyebrow">{eyebrow}</span>
+        {eyebrow && <span className="eyebrow">{eyebrow}</span>}
         <h1>{title}</h1>
         {lead && <p className="sec-lead">{lead}</p>}
         {children}

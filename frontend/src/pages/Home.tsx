@@ -27,7 +27,7 @@ const FATOS = [
 ]
 
 const RECURSOS = [
-  { id: 'estoque',       icon: Package,     t: 'Estoque',               d: 'Peça baixa sozinha na OS. Alerta quando chega no mínimo.', mini: ['Óleo 5W30 · 12', 'Filtro · 1 ⚠'] },
+  { id: 'estoque',       icon: Package,     t: 'Estoque',               d: 'Peça baixa sozinha na OS. Alerta quando chega no mínimo.' },
   { id: 'checklist',     icon: ShieldCheck, t: 'Checklist de entrada',  d: 'Fotos e assinatura do estado do carro. Zero discussão depois.' },
   { id: 'diagnosticos',  icon: Stethoscope, t: 'Diagnósticos',          d: 'Avaliação técnica do carro que vira orçamento num toque.' },
   { id: 'agendamentos',  icon: Calendar,    t: 'Agendamentos',          d: 'Agenda da oficina, com horário marcado pelo próprio cliente.' },
@@ -87,11 +87,6 @@ export default function Home() {
               <Link className="btn btn-primary" to="/cadastro">Começar grátis — 14 dias <ArrowRight size={17} /></Link>
               <a className="btn btn-ghost" href="#acompanhar">Ver uma OS de verdade</a>
             </div>
-            <div className="micro">
-              <span><Check size={15} /> Sem cartão</span>
-              <span><Check size={15} /> Cancela quando quiser</span>
-              <span><Check size={15} /> Feito no Brasil</span>
-            </div>
           </div>
 
           <div className="shot" aria-hidden="true">
@@ -101,7 +96,7 @@ export default function Home() {
                 <div>
                   <div className="col-h"><span className="stat" style={{ background: 'var(--wait)' }}></span> Aguardando <span className="n">2</span></div>
                   <div className="os"><div className="cli">Pedro Souza</div><div className="veic"><span>VW Gol 2017</span><span className="plate">GDA-2017</span></div><div className="foot"><span className="pill wait">Na fila</span><span className="money">R$ 320</span></div></div>
-                  <div className="os"><div className="cli">Ana Prado</div><div className="veic"><span>Fiat Strada</span><span className="plate">RIO2A45</span></div><div className="foot"><span className="pill wait">Na fila</span><span className="money">R$ 180</span></div></div>
+                  <div className="os os-extra"><div className="cli">Ana Prado</div><div className="veic"><span>Fiat Strada</span><span className="plate">RIO2A45</span></div><div className="foot"><span className="pill wait">Na fila</span><span className="money">R$ 180</span></div></div>
                 </div>
                 <div>
                   <div className="col-h"><span className="stat" style={{ background: 'var(--progress)' }}></span> Em andamento <span className="n">1</span></div>
@@ -178,7 +173,6 @@ export default function Home() {
       <section id="como">
         <div className="wrap live-grid">
           <div>
-            <span className="eyebrow">Enquanto você trabalha</span>
             <h2 className="sec-t">O cliente pergunta "tá pronto?"<br />Agora ele vê sozinho.</h2>
             <p className="sec-lead">Cada OS gera um link. Sem app, sem login: o cliente abre no celular e vê o status, as fotos do checklist e o valor aprovado.</p>
             <div className="steps">
@@ -225,7 +219,6 @@ export default function Home() {
                   </div>
                   <div className="p-cta">
                     <div className="b">Ver orçamento <span className="mono">R$ 890,00</span></div>
-                    <div className="ripple"></div>
                   </div>
                 </div>
               </div>
@@ -259,31 +252,31 @@ export default function Home() {
         </div>
       </section>
 
-      {/* RECURSOS (bento) */}
+      {/* RECURSOS */}
       <section id="recursos">
         <div className="wrap">
-          <SectionHead eyebrow="Recursos" title="Tudo que a oficina usa no dia — junto." />
-          <div className="bento">
-            <div className="card c-wide">
+          <SectionHead title="Tudo que a oficina usa no dia — junto." />
+          <div className="card feature">
+            <div>
               <div className="ic"><FileText size={20} /></div>
               <h3>Ordem de serviço &amp; orçamento</h3>
               <p>Monta o orçamento com peças e serviços separados; o cliente aprova pelo celular e vira OS num toque.</p>
-              <div className="receipt">
-                <div className="row"><span>Pastilha de freio diant.</span><span>R$ 180,00</span></div>
-                <div className="row"><span>Disco (par)</span><span>R$ 420,00</span></div>
-                <div className="row"><span>Mão de obra</span><span>R$ 290,00</span></div>
-                <div className="row tot"><span>Total aprovado</span><span>R$ 890,00</span></div>
-              </div>
             </div>
-            {RECURSOS.map((r, i) => (
-              <div key={r.id} className={`card ${i >= RECURSOS.length - 2 ? 'c-half' : 'c-nar'}`}>
-                <div className="ic"><r.icon size={20} /></div>
-                <h3>{r.t}</h3>
-                <p>{r.d}</p>
-                {r.mini && <div className="mini">{r.mini.map(m => <span key={m} className="chip">{m}</span>)}</div>}
-              </div>
-            ))}
+            <div className="receipt">
+              <div className="row"><span>Pastilha de freio diant.</span><span>R$ 180,00</span></div>
+              <div className="row"><span>Disco (par)</span><span>R$ 420,00</span></div>
+              <div className="row"><span>Mão de obra</span><span>R$ 290,00</span></div>
+              <div className="row tot"><span>Total aprovado</span><span>R$ 890,00</span></div>
+            </div>
           </div>
+          <ul className="feat-list">
+            {RECURSOS.map(r => (
+              <li key={r.id}>
+                <h3><r.icon size={18} /> {r.t}</h3>
+                <p>{r.d}</p>
+              </li>
+            ))}
+          </ul>
           <MoreLink to="/funcionalidades">Ver todas as funcionalidades</MoreLink>
         </div>
       </section>
@@ -291,15 +284,15 @@ export default function Home() {
       {/* PROVA / FUNDADOR */}
       <section>
         <div className="wrap">
-          <SectionHead eyebrow="Sem enrolação" title="Por que confiar num sistema novo?" />
-          <div className="proof" style={{ marginTop: 30 }}>
+          <SectionHead title="Por que confiar num sistema novo?" />
+          <div className="proof">
             <div className="founder">
               <p className="q">"Fiz o DoMecânico do lado de dentro da oficina, vendo OS sumir no caderno e cliente ligando três vezes pra saber do carro. Cada tela aqui resolve uma dor que eu vi de perto — não é um sistema genérico com cara de oficina."</p>
               <div className="sig"><div className="av">A</div><div><div className="nm">Alan Pereira Cavalcante</div><div className="rl">Criador do DoMecânico</div></div></div>
               <MoreLink to="/sobre">Conheça a história</MoreLink>
             </div>
             <div>
-              <p style={{ color: 'var(--ink-soft)', fontSize: 15, marginBottom: 14 }}>O que muda na prática:</p>
+              <p className="vs-hd">O que muda na prática:</p>
               <div className="vs">
                 <div className="line"><span className="old">OS no papel que some</span><span className="arw">→</span><span className="new">Tudo salvo e buscável</span></div>
                 <div className="line"><span className="old">"Quanto ficou mesmo?"</span><span className="arw">→</span><span className="new">Valor somado sozinho</span></div>
@@ -315,7 +308,7 @@ export default function Home() {
       {/* PLANOS */}
       <section id="planos">
         <div className="wrap">
-          <SectionHead eyebrow="Planos" title="Comece grátis. Escolha depois." lead="14 dias com tudo liberado, sem cartão. Cancela quando quiser." />
+          <SectionHead title="Comece grátis. Escolha depois." lead="14 dias com tudo liberado, sem cartão. Cancela quando quiser." center />
           <PlanCards planos={planos} status={status} />
           <div style={{ textAlign: 'center' }}><MoreLink to="/planos">Comparar todos os planos</MoreLink></div>
         </div>
@@ -324,7 +317,7 @@ export default function Home() {
       {/* FAQ */}
       <section id="faq">
         <div className="wrap">
-          <SectionHead eyebrow="Perguntas frequentes" title="Ainda com dúvida?" center />
+          <SectionHead title="Ainda com dúvida?" center />
           <FAQList items={PERGUNTAS} />
         </div>
       </section>
